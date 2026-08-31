@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatorio Gerencial - Controle de Horas x Valores</title>
+<style>
+:root{
+  --navy:#002B5C; --navy-700:#0A3B70; --navy-100:#E6EDF4;
+  --green:#92D050; --green-dark:#6FA834; --info-blue:#2E7BC4;
+  --bg:#eef1f5; --surface:#ffffff; --border:#dbe2ea; --text:#1b2733; --text-muted:#647184;
+  --warn:#a8710b; --warn-bg:#fbf0dc; --danger:#b3261e; --danger-bg:#fbe6e4;
+  --shadow:0 1px 3px rgba(0,43,92,.08), 0 1px 2px rgba(0,43,92,.06);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Calibri,Arial,sans-serif;font-size:13.5px;}
+.app{max-width:1500px;margin:0 auto;padding:20px 22px 50px;}
+.header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.header h1{margin:0;font-size:19px;color:var(--navy);}
+.header .sub{font-size:12px;color:var(--text-muted);margin-top:3px;}
+.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:2px solid var(--border);}
+.tab-btn{padding:9px 18px;border:none;background:transparent;font-size:13.5px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;}
+.tab-btn:hover{color:var(--navy);}
+.tab-btn.active{color:var(--navy);border-bottom-color:var(--green-dark);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);background:var(--surface);}
+table.rep{border-collapse:collapse;width:100%;min-width:1400px;font-size:12.5px;}
+table.rep th, table.rep td{border:1px solid var(--border);padding:5px 8px;white-space:nowrap;}
+table.rep td.desc{white-space:normal;min-width:280px;max-width:340px;}
+.title-band{background:var(--green);font-weight:800;font-size:14px;color:var(--navy);text-align:left;padding:8px 10px;}
+.title-band .gen{float:right;font-weight:600;font-size:11px;color:var(--navy-700);}
+.grp-head{background:var(--navy);color:#fff;text-align:center;font-weight:700;}
+.grp-sub{background:var(--navy-700);color:#fff;text-align:center;font-size:11px;}
+.col-head{background:var(--navy-100);color:var(--navy);text-align:center;font-weight:700;font-size:11.5px;}
+.total-col-head{background:var(--green-dark);color:#fff;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+td.item-idx{text-align:center;color:var(--text-muted);font-size:11.5px;}
+tr.sec-head td{background:#dfe6ee;font-weight:800;color:var(--navy);}
+tr.sec3 td{background:#fdeecb;}
+tr.total-geral td{background:var(--navy);color:#fff;font-weight:800;}
+tr.na td.num{color:var(--text-muted);font-style:italic;}
+tr:hover td{filter:brightness(0.98);}
+.notes{margin-top:14px;background:var(--navy-100);border-left:4px solid var(--info-blue);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text);}
+.notes b{color:var(--navy);}
+.notes ul{margin:6px 0 0;padding-left:18px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>Relatorio Gerencial &mdash; Controle de Horas x Valores (R$)</h1>
+      <div class="sub">Status HH - SGE Diaria Medicao | Fonte: Controle de horas x valores R$_jornal.xlsx (abas "Extrato SGE (FAD)" e "Pendencias MOA_PCI")</div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-proj="MOA">MOA</button>
+    <button class="tab-btn" data-proj="PCI">PCI</button>
+    <button class="tab-btn" data-proj="GERAL">MOA &amp; PCI - Geral</button>
+  </div>
+
+  <div id="content"></div>
+
+  <div class="notes">
+    <b>Notas metodologicas:</b>
+    <ul>
+      <li>As colunas de mes mostram os 5 meses mais recentes com movimentacao. A coluna "Total Geral" soma <b>todos</b> os meses do historico (inclusive os anteriores aos 5 exibidos).</li>
+      <li>(%) = valor da linha dividido pelo valor da linha "Total Geral" na <b>mesma coluna</b> (percentual vertical do periodo).</li>
+      <li>Secao 1 vem da aba "Pendencias MOA_PCI" (coluna RESUMO). Secao 2 e 3 vem da aba "Extrato SGE" (coluna Situacao).</li>
+      <li><b>Linhas 3.1 / 3.2 / 3.3 nao puderam ser calculadas:</b> a coluna "Situacao" da base atual so distingue "Medida" e "Pendente de aprovacao" — nao ha um campo que diferencie Aprovado-SGE / Medicao em Andamento-SGE / Medido-Para emitir FR-SAP. O total da Secao 3 ("Aprovado") esta correto; se voce indicar o criterio ou uma fonte adicional, eu completo essas 3 linhas.</li>
+      <li>A linha "FR" (ajuste de faturamento ja emitido) do modelo original nao foi reproduzida — depende de valores de ajuste manual que nao encontrei na base.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ================= DADOS (extraidos de Controle de horas x valores R$_jornal .xlsx) ================= */
+const RAW_EXTRATO = [
+{projeto:"PCI",situacao:"Medida",mesano:"Abr/25",hh:115569.47666000093,rs:7350310.3162696194},
+{projeto:"PCI",situacao:"Medida",mesano:"Abr/26",hh:81573.105730000578,rs:6248771.5724646933},
+{projeto:"PCI",situacao:"Medida",mesano:"Ago/25",hh:146454.32000000152,rs:10277875.021199968},
+{projeto:"PCI",situacao:"Medida",mesano:"Dez/24",hh:33037.669999999984,rs:2151539.3024999951},
+{projeto:"PCI",situacao:"Medida",mesano:"Dez/25",hh:93744.480000000971,rs:6600363.5371999927},
+{projeto:"PCI",situacao:"Medida",mesano:"Fev/25",hh:69408.050000000163,rs:4324019.6151999952},
+{projeto:"PCI",situacao:"Medida",mesano:"Fev/26",hh:85516.720000000947,rs:5975131.7029999942},
+{projeto:"PCI",situacao:"Medida",mesano:"Jan/25",hh:58065.620000000075,rs:3771931.9095999952},
+{projeto:"PCI",situacao:"Medida",mesano:"Jan/26",hh:79765.5300000004,rs:5676773.8331999918},
+{projeto:"PCI",situacao:"Medida",mesano:"Jul/25",hh:154423.04000000039,rs:10301428.299399968},
+{projeto:"PCI",situacao:"Medida",mesano:"Jul/26",hh:938.44993,rs:74864.619161899987},
+{projeto:"PCI",situacao:"Medida",mesano:"Jun/25",hh:122494.1000000014,rs:8452364.2666000146},
+{projeto:"PCI",situacao:"Medida",mesano:"Jun/26",hh:2220.83981,rs:206282.06441540009},
+{projeto:"PCI",situacao:"Medida",mesano:"Mai/25",hh:125178.75000000096,rs:8045632.31349998},
+{projeto:"PCI",situacao:"Medida",mesano:"Mai/26",hh:2658.6164200000007,rs:236060.08664890009},
+{projeto:"PCI",situacao:"Medida",mesano:"Mar/25",hh:101542.97000000082,rs:6082167.0287999865},
+{projeto:"PCI",situacao:"Medida",mesano:"Mar/26",hh:108129.17666000135,rs:7552789.2339402},
+{projeto:"PCI",situacao:"Medida",mesano:"Nov/24",hh:14859.569999999951,rs:957522.387},
+{projeto:"PCI",situacao:"Medida",mesano:"Nov/25",hh:118039.8500000012,rs:8687607.9266999979},
+{projeto:"PCI",situacao:"Medida",mesano:"Out/24",hh:5486.0800000000008,rs:352720.9366},
+{projeto:"PCI",situacao:"Medida",mesano:"Out/25",hh:140230.77666000367,rs:9732655.2776843477},
+{projeto:"PCI",situacao:"Medida",mesano:"Set/25",hh:142998.51000000312,rs:9891184.4766999837},
+{projeto:"PCI",situacao:"Pendente de aprovação",mesano:"Jul/26",hh:2043.0998899999997,rs:192097.4227388},
+{projeto:"PCI",situacao:"Pendente de aprovação",mesano:"Jun/26",hh:1397.1965500000001,rs:125909.61371979999},
+{projeto:"PCI",situacao:"Pendente de aprovação",mesano:"Mai/26",hh:46.65,rs:4518.5455},
+{projeto:"MOA",situacao:"Medida",mesano:"Abr/25",hh:51192.283240000186,rs:3474222.8736686069},
+{projeto:"MOA",situacao:"Medida",mesano:"Abr/26",hh:222.71,rs:17013.9209},
+{projeto:"MOA",situacao:"Medida",mesano:"Ago/25",hh:46799.699079999977,rs:3293046.7977048047},
+{projeto:"MOA",situacao:"Medida",mesano:"Dez/24",hh:50323.306660000133,rs:3279170.8224622034},
+{projeto:"MOA",situacao:"Medida",mesano:"Dez/25",hh:35101.836649999845,rs:2509952.5902503952},
+{projeto:"MOA",situacao:"Medida",mesano:"Fev/25",hh:50264.823290000219,rs:3374820.8847499066},
+{projeto:"MOA",situacao:"Medida",mesano:"Fev/26",hh:22593.426579999894,rs:1590294.7245936969},
+{projeto:"MOA",situacao:"Medida",mesano:"Jan/25",hh:51475.34663000016,rs:3416771.3273825031},
+{projeto:"MOA",situacao:"Medida",mesano:"Jan/26",hh:25761.669999999929,rs:1865675.083899999},
+{projeto:"MOA",situacao:"Medida",mesano:"Jul/25",hh:57635.506460000295,rs:3945188.3417004989},
+{projeto:"MOA",situacao:"Medida",mesano:"Jul/26",hh:615.93330999999989,rs:54887.0943959},
+{projeto:"MOA",situacao:"Medida",mesano:"Jun/25",hh:56127.363330000262,rs:3924241.508346606},
+{projeto:"MOA",situacao:"Medida",mesano:"Jun/26",hh:80,rs:6809.8},
+{projeto:"MOA",situacao:"Medida",mesano:"Mai/25",hh:56983.666580000354,rs:3815101.0306256213},
+{projeto:"MOA",situacao:"Medida",mesano:"Mai/26",hh:45,rs:2606.04},
+{projeto:"MOA",situacao:"Medida",mesano:"Mar/25",hh:54898.396620000007,rs:3690267.1918342058},
+{projeto:"MOA",situacao:"Medida",mesano:"Mar/26",hh:10824.719999999959,rs:779422.36420000019},
+{projeto:"MOA",situacao:"Medida",mesano:"Nov/24",hh:39963.073329999854,rs:2632093.139557011},
+{projeto:"MOA",situacao:"Medida",mesano:"Nov/25",hh:33178.869989999861,rs:2419847.9080199013},
+{projeto:"MOA",situacao:"Medida",mesano:"Out/24",hh:38110.970000000008,rs:2526077.9389000032},
+{projeto:"MOA",situacao:"Medida",mesano:"Out/25",hh:53541.586650000208,rs:3862413.4617285994},
+{projeto:"MOA",situacao:"Medida",mesano:"Set/24",hh:29096.109999999986,rs:1953466.5248000012},
+{projeto:"MOA",situacao:"Medida",mesano:"Set/25",hh:53819.523320000248,rs:3814730.8779567955},
+{projeto:"MOA",situacao:"Medida",mesano:"Abr/25",hh:1649.1,rs:109264.23280000001},
+{projeto:"MOA",situacao:"Medida",mesano:"Abr/26",hh:386.93,rs:29668.687399999995},
+{projeto:"MOA",situacao:"Medida",mesano:"Ago/25",hh:1632.21666,rs:109632.71680420001},
+{projeto:"MOA",situacao:"Medida",mesano:"Dez/25",hh:3189.2600000000025,rs:221885.60760000013},
+{projeto:"MOA",situacao:"Medida",mesano:"Fev/25",hh:120.66000000000001,rs:6438.1446},
+{projeto:"MOA",situacao:"Medida",mesano:"Fev/26",hh:8344.48326999999,rs:586610.14003029966},
+{projeto:"MOA",situacao:"Medida",mesano:"Jan/25",hh:134.5,rs:9915.536},
+{projeto:"MOA",situacao:"Medida",mesano:"Jan/26",hh:5155.46,rs:355630.00699999969},
+{projeto:"MOA",situacao:"Medida",mesano:"Jul/25",hh:2577.5900000000015,rs:187537.17590000003},
+{projeto:"MOA",situacao:"Medida",mesano:"Jun/25",hh:2339.6699999999992,rs:155422.41760000002},
+{projeto:"MOA",situacao:"Medida",mesano:"Mai/25",hh:2122.02,rs:134281.67549999998},
+{projeto:"MOA",situacao:"Medida",mesano:"Mar/25",hh:2151.9600000000005,rs:138544.98390000005},
+{projeto:"MOA",situacao:"Medida",mesano:"Mar/26",hh:8586.8399999999911,rs:579320.89620000066},
+{projeto:"MOA",situacao:"Medida",mesano:"Nov/25",hh:288.84000000000003,rs:21973.0419},
+{projeto:"MOA",situacao:"Medida",mesano:"Out/25",hh:199.64999999999998,rs:15418.889500000001},
+{projeto:"MOA",situacao:"Medida",mesano:"Set/25",hh:294.82000000000005,rs:23229.0852}
+];
+
+const RAW_PENDENCIAS = [
+{projeto:"MOA",resumo:"OS: 44128 Situação: Aguardando liberação tecnica",mesano:"Jul/26",hh:1627.045000000001,rs:114170.2204},
+{projeto:"MOA",resumo:"Pendência de Função",mesano:"Jul/26",hh:480.08230000000003,rs:38865.9284},
+{projeto:"MOA",resumo:"Pendência de Saldo",mesano:"Jul/26",hh:93,rs:6438.39},
+{projeto:"MOA",resumo:"RDC não está aprovada",mesano:"Jul/26",hh:1934.6607000000008,rs:143229.5788},
+{projeto:"MOA",resumo:"Recurso não cadastrado no WebTerceiros",mesano:"Jul/26",hh:532.3329,rs:41308.0285},
+{projeto:"MOA",resumo:"Recurso não cadastrado no WebTerceiros",mesano:"Jun/26",hh:60,rs:5394.8},
+{projeto:"PCI",resumo:"Pendência de Saldo",mesano:"Jul/26",hh:1359.4100000000017,rs:125196.9718},
+{projeto:"PCI",resumo:"Pendência de Saldo",mesano:"Jun/26",hh:144.163,rs:14113.6506},
+{projeto:"PCI",resumo:"RDC não está aprovada",mesano:"Jul/26",hh:16,rs:1418.4}
+];
+
+const CONTRATOS = { MOA:"4600185340 / 4600185359", PCI:"4600184457", GERAL:"4600184457 / 4600185340 / 4600185359" };
+
+const PEND_FIXED = [
+  "Pendência de Saldo","Pendência de Função","Recurso não cadastrado no WebTerceiros",
+  "Aguardando aprovação Suplementação","RDC não está aprovada","RDC Inexistente",
+  "RDC Mobile em Elaboração","OS em conclusão","RDC manual em lançamento",
+  "Não é possível trocar RDC para nova OS/FAD medida, vinculada ao RDC"
+];
+const PEND_OUTRAS_LABEL = "Outras pendências específicas (por OS)";
+const PEND_TAIL = "Ajustar RDC";
+
+const SGE_SEC2 = [
+  { label:"Aguardando revisão", match:"Aguardando Revisão" },
+  { label:"Em Elaboração", match:"Em elaboração" },
+  { label:"Pendente de aprovação", match:"Pendente de aprovação" }
+];
+
+/* ---------------- utilidades ---------------- */
+const MES_ORD = {Jan:1,Fev:2,Mar:3,Abr:4,Mai:5,Jun:6,Jul:7,Ago:8,Set:9,Out:10,Nov:11,Dez:12};
+function mesKey(m){ const [mm,yy] = m.split('/'); return (2000+parseInt(yy,10))*100 + MES_ORD[mm]; }
+function fmtInt(v){ return Math.round(v).toLocaleString('pt-BR'); }
+function fmtBRL(v){ return v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmtPct(v){ return isFinite(v) ? (v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%' : '-'; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+const ALL_MONTHS = Array.from(new Set([...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano)])).sort((a,b)=>mesKey(a)-mesKey(b));
+const DISPLAY_MONTHS = ALL_MONTHS.slice(-5);
+
+function filterProj(rows, proj){ return proj==='GERAL' ? rows : rows.filter(r=>r.projeto===proj); }
+
+function sumWhere(rows, pred, month){
+  let hh=0, rs=0;
+  for (const r of rows){ if (pred(r) && (month==null || r.mesano===month)){ hh+=r.hh; rs+=r.rs; } }
+  return {hh, rs};
+}
+
+function buildTable(proj){
+  const pend = filterProj(RAW_PENDENCIAS, proj);
+  const extr = filterProj(RAW_EXTRATO, proj);
+
+  // categorias fixas conhecidas na base atual (usadas p/ excluir do "outras")
+  const knownPend = new Set(PEND_FIXED);
+
+  function pendRowsFor(label, month){
+    return sumWhere(pend, r=>r.resumo.trim()===label, month);
+  }
+  function pendOutrasFor(month){
+    return sumWhere(pend, r=>!knownPend.has(r.resumo.trim()), month);
+  }
+  function pendTailFor(month){
+    return sumWhere(pend, r=>r.resumo.trim()===PEND_TAIL, month);
+  }
+  function sgeFor(label, month){
+    return sumWhere(extr, r=>r.situacao===label, month);
+  }
+  function medidaFor(month){
+    return sumWhere(extr, r=>r.situacao==='Medida', month);
+  }
+
+  const cols = [...DISPLAY_MONTHS, '__TOTAL__'];
+
+  // monta as linhas: {nivel, idx, label, values:{mes:{hh,rs}}, isSection, isTotal, na}
+  const rows = [];
+  const s1items = [...PEND_FIXED, PEND_OUTRAS_LABEL, PEND_TAIL];
+  const s1values = {};
+  cols.forEach(c=>{
+    const m = c==='__TOTAL__' ? null : c;
+    let hh=0, rs=0;
+    const perItem = s1items.map(label=>{
+      let v;
+      if (label===PEND_OUTRAS_LABEL) v = pendOutrasFor(m);
+      else if (label===PEND_TAIL) v = pendTailFor(m);
+      else v = pendRowsFor(label, m);
+      hh+=v.hh; rs+=v.rs;
+      return v;
+    });
+    s1values[c] = { total:{hh,rs}, perItem };
+  });
+
+  const s2values = {};
+  cols.forEach(c=>{
+    const m = c==='__TOTAL__' ? null : c;
+    let hh=0, rs=0;
+    const perItem = SGE_SEC2.map(s=>{ const v = sgeFor(s.match, m); hh+=v.hh; rs+=v.rs; return v; });
+    s2values[c] = { total:{hh,rs}, perItem };
+  });
+
+  const s3values = {};
+  cols.forEach(c=>{
+    const m = c==='__TOTAL__' ? null : c;
+    s3values[c] = medidaFor(m);
+  });
+
+  const totalGeral = {};
+  cols.forEach(c=>{
+    totalGeral[c] = {
+      hh: s1values[c].total.hh + s2values[c].total.hh + s3values[c].hh,
+      rs: s1values[c].total.rs + s2values[c].total.rs + s3values[c].rs
+    };
+  });
+
+  return { proj, cols, s1items, s1values, s2values, s3values, totalGeral };
+}
+
+function pct(val, col, data){
+  const base = data.totalGeral[col];
+  if (!base || base.rs===0) return 0;
+  return val.rs / base.rs;
+}
+
+function renderTableHTML(data){
+  const { proj, cols } = data;
+  const nCols = 2 + cols.length*3;
+  let html = '<div class="table-wrap"><table class="rep">';
+
+  // banda titulo
+  html += '<tr><td class="title-band" colspan="'+nCols+'">'+esc(proj)+'_'+esc(CONTRATOS[proj])+'<span class="gen">Gerado em '+new Date().toLocaleDateString('pt-BR')+'</span></td></tr>';
+
+  // grupo (mes) header
+  html += '<tr><th class="col-head" rowspan="3">Item</th><th class="col-head" rowspan="3">Descrição</th>';
+  cols.forEach(c=>{
+    if (c==='__TOTAL__') html += '<th class="grp-head total-col-head" colspan="3">Total Geral (Passivo + '+esc(DISPLAY_MONTHS[DISPLAY_MONTHS.length-1].toUpperCase())+')</th>';
+    else html += '<th class="grp-head" colspan="3">Status HH - SGE Diária Medição ('+esc(c.toUpperCase())+')</th>';
+  });
+  html += '</tr><tr>';
+  cols.forEach(()=>{ html += '<th class="grp-sub" colspan="3"></th>'; });
+  html += '</tr><tr>';
+  cols.forEach(c=>{
+    const cls = c==='__TOTAL__' ? 'col-head total-col-head' : 'col-head';
+    html += '<th class="'+cls+'">HH</th><th class="'+cls+'">R$</th><th class="'+cls+'">(%)</th>';
+  });
+  html += '</tr>';
+
+  function rowCells(values, na){
+    let out = '';
+    data.cols.forEach(c=>{
+      const v = values[c];
+      if (na){ out += '<td class="num">—</td><td class="num">—</td><td class="num">—</td>'; }
+      else { out += '<td class="num">'+fmtInt(v.hh)+'</td><td class="num">'+fmtBRL(v.rs)+'</td><td class="num">'+fmtPct(pct(v,c,data))+'</td>'; }
+    });
+    return out;
+  }
+
+  // SECAO 1
+  {
+    const vals = {}; data.cols.forEach(c=>vals[c]=data.s1values[c].total);
+    html += '<tr class="sec-head"><td class="item-idx">1</td><td class="desc">Apresentou pendência</td>'+rowCells(vals)+'</tr>';
+  }
+  data.s1items.forEach((label,i)=>{
+    const vals = {}; data.cols.forEach(c=>vals[c]=data.s1values[c].perItem[i]);
+    html += '<tr><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(label)+'</td>'+rowCells(vals)+'</tr>';
+  });
+
+  // SECAO 2
+  {
+    const vals = {}; data.cols.forEach(c=>vals[c]=data.s2values[c].total);
+    html += '<tr class="sec-head"><td class="item-idx">2</td><td class="desc">Carregamento no SGE</td>'+rowCells(vals)+'</tr>';
+  }
+  SGE_SEC2.forEach((s,i)=>{
+    const vals = {}; data.cols.forEach(c=>vals[c]=data.s2values[c].perItem[i]);
+    html += '<tr><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(s.label)+'</td>'+rowCells(vals)+'</tr>';
+  });
+
+  // SECAO 3
+  {
+    const vals = {}; data.cols.forEach(c=>vals[c]=data.s3values[c]);
+    html += '<tr class="sec3 sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCells(vals)+'</tr>';
+  }
+  const s3labels = ['Aprovado - SGE','Medição em Andamento - SGE','Medido - Para emitir FR - SAP'];
+  s3labels.forEach((label,i)=>{
+    html += '<tr class="sec3 na"><td class="item-idx">3.'+(i+1)+'</td><td class="desc">'+esc(label)+'</td>'+rowCells({}, true)+'</tr>';
+  });
+
+  // TOTAL GERAL
+  {
+    const vals = {}; data.cols.forEach(c=>vals[c]=data.totalGeral[c]);
+    html += '<tr class="total-geral"><td class="item-idx">&nbsp;</td><td class="desc">Total Geral "FADS"</td>'+rowCells(vals)+'</tr>';
+  }
+
+  html += '</table></div>';
+  return html;
+}
+
+function render(){
+  const active = document.querySelector('.tab-btn.active').dataset.proj;
+  const data = buildTable(active);
+  document.getElementById('content').innerHTML = renderTableHTML(data);
+}
+
+document.getElementById('tabs').addEventListener('click', e=>{
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

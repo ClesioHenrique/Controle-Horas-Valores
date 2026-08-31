@@ -1,0 +1,7 @@
+# Dados reais / sensiveis (contem nomes de funcionarios) - nunca versionar
+*.xlsx
+*.xls
+*.csv
+
+# Arquivos temporarios do Office
+~$*
