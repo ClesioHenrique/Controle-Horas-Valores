@@ -14,14 +14,15 @@
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Calibri,Arial,sans-serif;font-size:13.5px;}
-.app{max-width:1500px;margin:0 auto;padding:20px 22px 50px;}
+.app{width:100%;max-width:none;margin:0;padding:20px 28px 50px;}
 .header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
 .header h1{margin:0;font-size:19px;color:var(--navy);}
 .header .sub{font-size:12px;color:var(--text-muted);margin-top:3px;}
-.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:2px solid var(--border);}
-.tab-btn{padding:9px 18px;border:none;background:transparent;font-size:13.5px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;}
-.tab-btn:hover{color:var(--navy);}
-.tab-btn.active{color:var(--navy);border-bottom-color:var(--green-dark);}
+.tabs{display:flex;flex-wrap:nowrap;width:100%;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;}
+.tab-btn{flex:1 1 0;padding:12px 18px;border:none;border-right:1px solid var(--border);background:var(--surface);font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;text-align:center;}
+.tab-btn:last-child{border-right:none;}
+.tab-btn:hover{color:var(--navy);background:var(--navy-100);}
+.tab-btn.active{color:var(--navy);background:var(--navy-100);border-bottom-color:var(--green-dark);}
 .tab-panel{display:none;}
 .tab-panel.active{display:block;}
 .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);background:var(--surface);}
@@ -362,21 +363,20 @@ function renderFiscalDetailHTML(proj){
     html += '</div>';
     return html;
   }
-  // agrupa por fiscal (+projeto quando GERAL), soma HH/R$, e lista os meses envolvidos
-  const key = r => proj==='GERAL' ? (r.projeto+'|'+r.fiscal) : r.fiscal;
+  // agrupa por fiscal + mes (+projeto quando GERAL) — uma linha por mes, sem combinar
+  const key = r => (proj==='GERAL' ? r.projeto+'|' : '') + r.fiscal + '|' + r.mesano;
   const groups = new Map();
   rows.forEach(r=>{
     const k = key(r);
     let g = groups.get(k);
-    if (!g) { g = { projeto:r.projeto, fiscal:r.fiscal, hh:0, rs:0, meses:new Set() }; groups.set(k,g); }
-    g.hh += r.hh; g.rs += r.rs; g.meses.add(r.mesano);
+    if (!g) { g = { projeto:r.projeto, fiscal:r.fiscal, mesano:r.mesano, hh:0, rs:0 }; groups.set(k,g); }
+    g.hh += r.hh; g.rs += r.rs;
   });
-  const list = Array.from(groups.values()).sort((a,b)=>b.rs-a.rs);
+  const list = Array.from(groups.values()).sort((a,b)=> a.fiscal.localeCompare(b.fiscal,'pt-BR') || mesKey(a.mesano)-mesKey(b.mesano));
   html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
-  html += '<tr>'+(proj==='GERAL'?'<th class="col-head">Projeto</th>':'')+'<th class="col-head">Fiscal (Responsável pela aprovação)</th><th class="col-head">Meses em aberto</th><th class="col-head">HH</th><th class="col-head">R$</th></tr>';
+  html += '<tr>'+(proj==='GERAL'?'<th class="col-head">Projeto</th>':'')+'<th class="col-head">Fiscal (Responsável pela aprovação)</th><th class="col-head">Mês/Ano</th><th class="col-head">HH</th><th class="col-head">R$</th></tr>';
   list.forEach(g=>{
-    const meses = Array.from(g.meses).sort((a,b)=>mesKey(a)-mesKey(b)).join(', ');
-    html += '<tr>'+(proj==='GERAL'?'<td>'+esc(g.projeto)+'</td>':'')+'<td>'+esc(g.fiscal)+'</td><td>'+esc(meses)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+    html += '<tr>'+(proj==='GERAL'?'<td>'+esc(g.projeto)+'</td>':'')+'<td>'+esc(g.fiscal)+'</td><td>'+esc(g.mesano)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
   });
   html += '</table></div></div>';
   return html;
