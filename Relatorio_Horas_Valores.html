@@ -313,6 +313,10 @@ function renderTableHTML(data){
     });
     return out;
   }
+  function isZeroTotal(vals){
+    const t = vals['__TOTAL__'];
+    return !t || (Math.round(t.hh)===0 && Math.round(t.rs)===0);
+  }
 
   // SECAO 1
   {
@@ -321,6 +325,7 @@ function renderTableHTML(data){
   }
   data.s1items.forEach((label,i)=>{
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s1values[c].perItem[i]);
+    if (isZeroTotal(vals)) return;
     html += '<tr><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(label)+'</td>'+rowCells(vals)+'</tr>';
   });
 
@@ -331,6 +336,7 @@ function renderTableHTML(data){
   }
   SGE_SEC2.forEach((s,i)=>{
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s2values[c].perItem[i]);
+    if (isZeroTotal(vals)) return;
     html += '<tr><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(s.label)+'</td>'+rowCells(vals)+'</tr>';
   });
 
