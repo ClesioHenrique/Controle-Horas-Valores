@@ -82,6 +82,7 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
 #print-content{display:none;}
 #print-content .print-proj-title{font-size:16px;font-weight:800;color:var(--navy);margin:0 0 10px;}
 @media print{
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;}
   .toolbar, .notes, .header .sub{display:none !important;}
   #content{display:none !important;}
   #print-content{display:block !important;}
