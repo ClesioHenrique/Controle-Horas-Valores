@@ -24,14 +24,14 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .tab-btn:hover{color:var(--navy);background:var(--navy-100);}
 .tab-btn.active{color:var(--navy);background:var(--navy-100);border-bottom-color:var(--green-dark);}
 
-.toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
-.month-filter{position:relative;}
-.month-filter .mf-toggle{padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--navy);font-weight:700;font-size:13px;cursor:pointer;box-shadow:var(--shadow);}
-.month-filter .mf-toggle:hover{background:var(--navy-100);}
-.mf-panel{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 30px rgba(0,43,92,.18);padding:10px;z-index:80;max-height:280px;overflow-y:auto;min-width:150px;}
-.mf-panel.open{display:block;}
-.mf-panel label{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:12.5px;border-radius:5px;cursor:pointer;white-space:nowrap;}
-.mf-panel label:hover{background:var(--navy-100);}
+.toolbar{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.month-filter, .item-filter{position:relative;}
+.mf-toggle, .if-toggle{padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--navy);font-weight:700;font-size:13px;cursor:pointer;box-shadow:var(--shadow);}
+.mf-toggle:hover, .if-toggle:hover{background:var(--navy-100);}
+.mf-panel, .if-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 30px rgba(0,43,92,.18);padding:10px;z-index:80;max-height:280px;overflow-y:auto;min-width:150px;}
+.mf-panel.open, .if-panel.open{display:block;}
+.mf-panel label, .if-panel label{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:12.5px;border-radius:5px;cursor:pointer;white-space:nowrap;}
+.mf-panel label:hover, .if-panel label:hover{background:var(--navy-100);}
 .mf-panel .mf-actions{display:flex;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
 .mf-panel .mf-actions button{flex:1;font-size:11px;padding:5px;border:1px solid var(--border);border-radius:5px;background:var(--navy-100);cursor:pointer;color:var(--navy);}
 .tab-panel{display:none;}
@@ -46,7 +46,9 @@ table.rep td.desc{white-space:normal;min-width:280px;max-width:340px;}
 .grp-sub{background:var(--navy-700);color:#fff;text-align:center;font-size:11px;}
 .col-head{background:var(--navy-100);color:var(--navy);text-align:center;font-weight:700;font-size:11.5px;}
 .total-col-head{background:var(--green-dark);color:#fff;}
-td.num{text-align:right;font-variant-numeric:tabular-nums;}
+td.num{text-align:center;font-variant-numeric:tabular-nums;}
+tr.fads-row td{background:var(--navy-100);color:var(--navy);font-weight:800;font-size:12.5px;}
+tr.fads-row td.fads-total{background:var(--green);}
 td.item-idx{text-align:center;color:var(--text-muted);font-size:11.5px;}
 tr.sec-head td{background:#dfe6ee;font-weight:800;color:var(--navy);}
 tr.sec3 td{background:#fdeecb;}
@@ -87,6 +89,10 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
     <div class="month-filter" id="month-filter">
       <button type="button" class="mf-toggle" id="mf-toggle">&#128197; Meses: <span id="mf-summary">últimos 5</span> &#9662;</button>
       <div class="mf-panel" id="mf-panel"></div>
+    </div>
+    <div class="item-filter" id="item-filter">
+      <button type="button" class="if-toggle" id="if-toggle">&#128203; Itens: <span id="if-summary">todos</span> &#9662;</button>
+      <div class="if-panel" id="if-panel"></div>
     </div>
   </div>
 
@@ -221,6 +227,8 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp
 
 const ALL_MONTHS = Array.from(new Set([...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano), ...RAW_FISCAL_PENDENTE.map(r=>r.mesano)])).sort((a,b)=>mesKey(a)-mesKey(b));
 let DISPLAY_MONTHS = ALL_MONTHS.slice(-5);
+let SELECTED_SECTIONS = new Set([1,2,3]);
+const SECTION_LABELS = { 1:'1 - Apresentou pendência', 2:'2 - Carregamento no SGE', 3:'3 - Aprovado' };
 
 function filterProj(rows, proj){ return proj==='GERAL' ? rows : rows.filter(r=>r.projeto===proj); }
 
@@ -327,6 +335,11 @@ function renderTableHTML(data){
   });
   html += '</tr>';
 
+  // linha "FADS"
+  html += '<tr class="fads-row"><td></td><td>FADS</td>';
+  cols.forEach(c=>{ html += '<td colspan="3"'+(c==='__TOTAL__'?' class="fads-total"':'')+'></td>'; });
+  html += '</tr>';
+
   function rowCells(values, na){
     let out = '';
     data.cols.forEach(c=>{
@@ -342,35 +355,35 @@ function renderTableHTML(data){
   }
 
   // SECAO 1
-  {
+  if (SELECTED_SECTIONS.has(1)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s1values[c].total);
     html += '<tr class="sec-head"><td class="item-idx">1</td><td class="desc">Apresentou pendência</td>'+rowCells(vals)+'</tr>';
+    data.s1items.forEach((label,i)=>{
+      const v2 = {}; data.cols.forEach(c=>v2[c]=data.s1values[c].perItem[i]);
+      if (isZeroTotal(v2)) return;
+      html += '<tr><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(label)+'</td>'+rowCells(v2)+'</tr>';
+    });
   }
-  data.s1items.forEach((label,i)=>{
-    const vals = {}; data.cols.forEach(c=>vals[c]=data.s1values[c].perItem[i]);
-    if (isZeroTotal(vals)) return;
-    html += '<tr><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(label)+'</td>'+rowCells(vals)+'</tr>';
-  });
 
   // SECAO 2
-  {
+  if (SELECTED_SECTIONS.has(2)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s2values[c].total);
     html += '<tr class="sec-head"><td class="item-idx">2</td><td class="desc">Carregamento no SGE</td>'+rowCells(vals)+'</tr>';
+    SGE_SEC2.forEach((s,i)=>{
+      const v2 = {}; data.cols.forEach(c=>v2[c]=data.s2values[c].perItem[i]);
+      html += '<tr><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(s.label)+'</td>'+rowCells(v2)+'</tr>';
+    });
   }
-  SGE_SEC2.forEach((s,i)=>{
-    const vals = {}; data.cols.forEach(c=>vals[c]=data.s2values[c].perItem[i]);
-    html += '<tr><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(s.label)+'</td>'+rowCells(vals)+'</tr>';
-  });
 
   // SECAO 3
-  {
+  if (SELECTED_SECTIONS.has(3)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s3values[c]);
     html += '<tr class="sec3 sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCells(vals)+'</tr>';
+    const s3labels = ['Aprovado - SGE','Medição em Andamento - SGE','Medido - Para emitir FR - SAP'];
+    s3labels.forEach((label,i)=>{
+      html += '<tr class="sec3 na"><td class="item-idx">3.'+(i+1)+'</td><td class="desc">'+esc(label)+'</td>'+rowCells({}, true)+'</tr>';
+    });
   }
-  const s3labels = ['Aprovado - SGE','Medição em Andamento - SGE','Medido - Para emitir FR - SAP'];
-  s3labels.forEach((label,i)=>{
-    html += '<tr class="sec3 na"><td class="item-idx">3.'+(i+1)+'</td><td class="desc">'+esc(label)+'</td>'+rowCells({}, true)+'</tr>';
-  });
 
   // TOTAL GERAL
   {
@@ -440,6 +453,7 @@ function render(){
   const data = buildTable(active);
   document.getElementById('content').innerHTML = renderTableHTML(data) + renderFiscalDetailHTML(active);
   updateMonthFilterSummary();
+  updateItemFilterSummary();
 }
 
 document.getElementById('tabs').addEventListener('click', e=>{
@@ -488,7 +502,36 @@ document.getElementById('mf-toggle').addEventListener('click', e=>{
   e.stopPropagation();
   document.getElementById('mf-panel').classList.toggle('open');
 });
-document.addEventListener('click', ()=>{ document.getElementById('mf-panel').classList.remove('open'); });
+
+/* ---------------- Filtro de itens (secoes 1/2/3, aplica a todas as abas) ---------------- */
+function updateItemFilterSummary(){
+  const n = SELECTED_SECTIONS.size;
+  document.getElementById('if-summary').textContent = n===3 ? 'todos' : (n===0 ? 'nenhum' : Array.from(SELECTED_SECTIONS).sort().join(', '));
+}
+function buildItemFilterPanel(){
+  const panel = document.getElementById('if-panel');
+  panel.innerHTML = [1,2,3].map(n =>
+    '<label><input type="checkbox" value="'+n+'"'+(SELECTED_SECTIONS.has(n)?' checked':'')+'> '+SECTION_LABELS[n]+'</label>'
+  ).join('');
+  panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const checked = Array.from(panel.querySelectorAll('input[type=checkbox]:checked')).map(c=>parseInt(c.value,10));
+      SELECTED_SECTIONS = new Set(checked.length ? checked : [1,2,3]);
+      if (!checked.length) buildItemFilterPanel();
+      render();
+    });
+  });
+}
+buildItemFilterPanel();
+document.getElementById('if-toggle').addEventListener('click', e=>{
+  e.stopPropagation();
+  document.getElementById('if-panel').classList.toggle('open');
+});
+
+document.addEventListener('click', ()=>{
+  document.getElementById('mf-panel').classList.remove('open');
+  document.getElementById('if-panel').classList.remove('open');
+});
 
 render();
 </script>
