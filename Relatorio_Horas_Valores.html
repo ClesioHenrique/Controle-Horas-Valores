@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relatorio Gerencial - Controle de Horas x Valores</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <style>
 :root{
   --navy:#002B5C; --navy-700:#0A3B70; --navy-100:#E6EDF4;
@@ -55,6 +56,11 @@ tr.sec3 td{background:#fdeecb;}
 tr.total-geral td{background:var(--navy);color:#fff;font-weight:800;}
 tr.na td.num{color:var(--text-muted);font-style:italic;}
 tr:hover td{filter:brightness(0.98);}
+.chart-block{margin-top:38px;padding-top:22px;border-top:3px dashed var(--border);}
+.chart-block h3{margin:0 0 10px;font-size:15px;color:var(--navy);}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:14px;}
+.chart-box{width:100%;min-height:320px;}
+
 .fiscal-block{margin-top:38px;padding-top:22px;border-top:3px dashed var(--border);}
 .fiscal-block h3{margin:0 0 10px;font-size:15px;color:var(--navy);}
 .fiscal-empty{background:var(--ok-bg,#eef7e3);color:var(--green-dark);border:1px solid var(--green-dark);border-radius:6px;padding:8px 12px;font-size:12.5px;}
@@ -448,12 +454,34 @@ function renderFiscalDetailHTML(proj){
   return html;
 }
 
+const CHART_GREEN = '#92D050', CHART_WARN = '#E8A33D', CHART_INFO_BLUE = '#2E7BC4';
+function statusChartHTML(){
+  return '<div class="chart-block"><h3>Percentual do Valor por Status, ao Longo dos Meses</h3>'+
+    '<div class="chart-card"><div id="chart-status" class="chart-box"></div></div></div>';
+}
+function renderStatusChart(data){
+  const months = data.cols.filter(c=>c!=='__TOTAL__');
+  const pct1 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s1values[c].total.rs/t.rs*100 : 0; });
+  const pct2 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s2values[c].total.rs/t.rs*100 : 0; });
+  const pct3 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s3values[c].rs/t.rs*100 : 0; });
+  Plotly.newPlot('chart-status', [
+    { type:'bar', name:'1 - Apresentou pendência', x:months, y:pct1, marker:{color:CHART_WARN}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
+    { type:'bar', name:'2 - Carregamento no SGE', x:months, y:pct2, marker:{color:CHART_INFO_BLUE}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
+    { type:'bar', name:'3 - Aprovado', x:months, y:pct3, marker:{color:CHART_GREEN}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' }
+  ], {
+    barmode:'stack', margin:{t:10,b:40,l:50,r:10},
+    yaxis:{title:'% do valor (R$) do mes', ticksuffix:'%', range:[0,100]},
+    legend:{orientation:'h', y:1.12}, font:{family:'Segoe UI', size:11.5}
+  }, { displaylogo:false, responsive:true });
+}
+
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   const data = buildTable(active);
-  document.getElementById('content').innerHTML = renderTableHTML(data) + renderFiscalDetailHTML(active);
+  document.getElementById('content').innerHTML = renderTableHTML(data) + renderFiscalDetailHTML(active) + statusChartHTML();
   updateMonthFilterSummary();
   updateItemFilterSummary();
+  renderStatusChart(data);
 }
 
 document.getElementById('tabs').addEventListener('click', e=>{
