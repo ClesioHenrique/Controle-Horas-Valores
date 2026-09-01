@@ -25,7 +25,9 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .tab-btn:hover{color:var(--navy);background:var(--navy-100);}
 .tab-btn.active{color:var(--navy);background:var(--navy-100);border-bottom-color:var(--green-dark);}
 
-.toolbar{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.toolbar{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+.update-date-box{display:inline-flex;align-items:center;gap:8px;width:fit-content;margin-bottom:16px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);font-size:12.5px;font-weight:700;color:var(--navy);}
+.update-date-box input[type=date]{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12.5px;color:var(--text);font-family:inherit;}
 .month-filter, .item-filter{position:relative;}
 .mf-toggle, .if-toggle{padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--navy);font-weight:700;font-size:13px;cursor:pointer;box-shadow:var(--shadow);}
 .mf-toggle:hover, .if-toggle:hover{background:var(--navy-100);}
@@ -115,6 +117,11 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
       <div class="if-panel" id="if-panel"></div>
     </div>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
+  </div>
+
+  <div class="update-date-box" id="update-date-box">
+    <label for="update-date">Data de atualização:</label>
+    <input type="date" id="update-date">
   </div>
 
   <div id="content"></div>
@@ -246,6 +253,12 @@ function fmtInt(v){ return Math.round(v).toLocaleString('pt-BR'); }
 function fmtBRL(v){ return v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function fmtPct(v){ return isFinite(v) ? (v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%' : '-'; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function getUpdateDateStr(){
+  const el = document.getElementById('update-date');
+  if (!el || !el.value) return new Date().toLocaleDateString('pt-BR');
+  const [y,m,d] = el.value.split('-');
+  return d+'/'+m+'/'+y;
+}
 
 const ALL_MONTHS = Array.from(new Set([...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano), ...RAW_FISCAL_PENDENTE.map(r=>r.mesano)])).sort((a,b)=>mesKey(a)-mesKey(b));
 let DISPLAY_MONTHS = ALL_MONTHS.slice(-5);
@@ -340,7 +353,7 @@ function renderTableHTML(data){
   let html = '<div class="table-wrap"><table class="rep">';
 
   // banda titulo
-  html += '<tr><td class="title-band" colspan="'+nCols+'">'+esc(proj)+'_'+esc(CONTRATOS[proj])+'<span class="gen">Gerado em '+new Date().toLocaleDateString('pt-BR')+'</span></td></tr>';
+  html += '<tr><td class="title-band" colspan="'+nCols+'">'+esc(proj)+'_'+esc(CONTRATOS[proj])+'<span class="gen">Atualizado em '+esc(getUpdateDateStr())+'</span></td></tr>';
 
   // grupo (mes) header
   html += '<tr><th class="col-head" rowspan="3">Item</th><th class="col-head" rowspan="3">Descrição</th>';
@@ -583,18 +596,25 @@ document.addEventListener('click', ()=>{
 /* ---------------- Exportar PDF (todas as abas) ---------------- */
 const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral' };
 function exportPDF(){
-  const projs = ['MOA','PCI','GERAL'];
+  const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
   container.innerHTML = projs.map(p =>
     '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
-    renderTableHTML(buildTable(p)) + renderFiscalDetailHTML(p) + statusChartHTML('chart-print-'+p) +
+    renderTableHTML(buildTable(p)) + renderFiscalDetailHTML(p) +
     '</div>'
   ).join('');
-  projs.forEach(p => renderStatusChart(buildTable(p), 'chart-print-'+p));
-  setTimeout(()=>{ window.print(); }, 350);
+  window.print();
 }
 document.getElementById('btn-export-pdf').addEventListener('click', exportPDF);
 window.addEventListener('afterprint', ()=>{ document.getElementById('print-content').innerHTML = ''; });
+
+/* ---------------- Data de atualizacao (editavel pelo usuario) ---------------- */
+{
+  const el = document.getElementById('update-date');
+  const today = new Date();
+  el.value = today.toISOString().slice(0,10);
+  el.addEventListener('change', render);
+}
 
 render();
 </script>
