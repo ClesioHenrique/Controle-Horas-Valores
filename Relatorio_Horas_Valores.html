@@ -75,6 +75,19 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
 .notes{margin-top:14px;background:var(--navy-100);border-left:4px solid var(--info-blue);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text);}
 .notes b{color:var(--navy);}
 .notes ul{margin:6px 0 0;padding-left:18px;}
+
+#print-content{display:none;}
+#print-content .print-proj-title{font-size:16px;font-weight:800;color:var(--navy);margin:0 0 10px;}
+@media print{
+  .toolbar, .notes, .header .sub{display:none !important;}
+  #content{display:none !important;}
+  #print-content{display:block !important;}
+  #print-content .print-page{page-break-after:always;padding-top:4px;}
+  #print-content .print-page:last-child{page-break-after:auto;}
+  table.rep{min-width:0 !important;}
+  .table-wrap{overflow:visible !important;border:none;box-shadow:none;}
+  .chart-block, .fiscal-block{border-top:1px solid var(--border);}
+}
 </style>
 </head>
 <body>
@@ -100,9 +113,11 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
       <button type="button" class="if-toggle" id="if-toggle">&#128203; Itens: <span id="if-summary">todos</span> &#9662;</button>
       <div class="if-panel" id="if-panel"></div>
     </div>
+    <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
   </div>
 
   <div id="content"></div>
+  <div id="print-content"></div>
 
   <div class="notes">
     <b>Notas metodologicas:</b>
@@ -455,16 +470,18 @@ function renderFiscalDetailHTML(proj){
 }
 
 const CHART_GREEN = '#92D050', CHART_WARN = '#E8A33D', CHART_INFO_BLUE = '#2E7BC4';
-function statusChartHTML(){
+function statusChartHTML(chartId){
+  chartId = chartId || 'chart-status';
   return '<div class="chart-block"><h3>Percentual do Valor por Status, ao Longo dos Meses</h3>'+
-    '<div class="chart-card"><div id="chart-status" class="chart-box"></div></div></div>';
+    '<div class="chart-card"><div id="'+chartId+'" class="chart-box"></div></div></div>';
 }
-function renderStatusChart(data){
+function renderStatusChart(data, chartId){
+  chartId = chartId || 'chart-status';
   const months = data.cols.filter(c=>c!=='__TOTAL__');
   const pct1 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s1values[c].total.rs/t.rs*100 : 0; });
   const pct2 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s2values[c].total.rs/t.rs*100 : 0; });
   const pct3 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s3values[c].rs/t.rs*100 : 0; });
-  Plotly.newPlot('chart-status', [
+  Plotly.newPlot(chartId, [
     { type:'bar', name:'1 - Apresentou pendência', x:months, y:pct1, marker:{color:CHART_WARN}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
     { type:'bar', name:'2 - Carregamento no SGE', x:months, y:pct2, marker:{color:CHART_INFO_BLUE}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
     { type:'bar', name:'3 - Aprovado', x:months, y:pct3, marker:{color:CHART_GREEN}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' }
@@ -560,6 +577,22 @@ document.addEventListener('click', ()=>{
   document.getElementById('mf-panel').classList.remove('open');
   document.getElementById('if-panel').classList.remove('open');
 });
+
+/* ---------------- Exportar PDF (todas as abas) ---------------- */
+const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral' };
+function exportPDF(){
+  const projs = ['MOA','PCI','GERAL'];
+  const container = document.getElementById('print-content');
+  container.innerHTML = projs.map(p =>
+    '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
+    renderTableHTML(buildTable(p)) + renderFiscalDetailHTML(p) + statusChartHTML('chart-print-'+p) +
+    '</div>'
+  ).join('');
+  projs.forEach(p => renderStatusChart(buildTable(p), 'chart-print-'+p));
+  setTimeout(()=>{ window.print(); }, 350);
+}
+document.getElementById('btn-export-pdf').addEventListener('click', exportPDF);
+window.addEventListener('afterprint', ()=>{ document.getElementById('print-content').innerHTML = ''; });
 
 render();
 </script>
