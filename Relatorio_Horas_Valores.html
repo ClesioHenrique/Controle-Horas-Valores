@@ -49,6 +49,9 @@ table.rep td.desc{white-space:normal;min-width:280px;max-width:340px;}
 .grp-sub{background:var(--navy-700);color:#fff;text-align:center;font-size:11px;}
 .col-head{background:var(--navy-100);color:var(--navy);text-align:center;font-weight:700;font-size:11.5px;}
 .col-head-blue{background:var(--navy-700);color:#fff;}
+th.cell-hh{border-right:none;}
+th.cell-mid{border-left:none;border-right:none;}
+th.cell-pct{border-left:none;}
 .total-col-head{background:var(--green);color:var(--navy);}
 td.num{text-align:center;font-variant-numeric:tabular-nums;}
 td.num.hl-yellow{background:#fff59d !important;color:var(--danger) !important;font-weight:800;}
@@ -612,7 +615,7 @@ function renderTableHTML(data){
   html += '</tr><tr>';
   cols.forEach(c=>{
     const cls = c==='__TOTAL__' ? 'col-head total-col-head' : 'col-head col-head-blue';
-    html += '<th class="'+cls+'">HH</th><th class="'+cls+'">R$</th><th class="'+cls+'">(%)</th>';
+    html += '<th class="'+cls+' cell-hh">HH</th><th class="'+cls+' cell-mid">R$</th><th class="'+cls+' cell-pct">(%)</th>';
   });
   html += '</tr>';
 
