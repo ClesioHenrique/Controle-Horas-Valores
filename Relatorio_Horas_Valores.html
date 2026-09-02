@@ -148,6 +148,7 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
     <ul>
       <li>Use o filtro "Meses" (canto superior direito) para escolher quais meses aparecem nas colunas — vale para MOA, PCI e Geral ao mesmo tempo. Por padrao mostra os 5 mais recentes.</li>
       <li>A coluna "Total Geral" soma <b>apenas os meses selecionados</b> no filtro "Meses" — se voce desmarcar um mes, ele sai da soma dessa coluna (em todos os resumos: FADS, FIA e RATEIO).</li>
+      <li>As somas ("Total Geral FADS", "Total Geral FIA+RATEIO", "Total Global" e o grafico de percentual) tambem seguem o filtro "Itens" — se voce desmarcar uma secao (ex.: "3 - Aprovado"), ela sai de todas as somas, nao so da tabela.</li>
       <li>(%) = valor da linha dividido pelo valor da linha "Total Geral" na <b>mesma coluna</b> (percentual vertical do periodo).</li>
       <li>Secao 1 vem da aba "Pendencias MOA_PCI" (coluna RESUMO). Secao 2 e 3 vem da aba "Extrato SGE" (coluna Situacao). Os subitens da Secao 2 ficam sempre visiveis, mesmo quando zerados.</li>
       <li><b>Secao 3 ("Aprovado") agora e a soma das linhas 3.1 + 3.2 + 3.3.</b> Linhas 3.1 "Aprovado - SGE" e 3.2 "Medicao em Andamento - SGE" usam a aba "Extrato SGE" (coluna Situacao), com o mesmo criterio da Secao 2 — hoje aparecem zeradas porque a base ainda nao tem lancamentos com essas situacoes exatas; assim que existirem, entram automaticamente no calculo. <b>Linha 3.3 "Medido - Para emitir FR - SAP":</b> calculada a partir da aba "FAD_FIA &amp; RATEIO", filtrando FAD_FIA_RAT="FAD" + Situacao="Medida" + Faturado SIM ou NAO="Nao faturado", agrupado por Projeto.</li>
@@ -531,8 +532,8 @@ function buildTable(proj){
   const totalGeral = {};
   cols.forEach(c=>{
     totalGeral[c] = {
-      hh: s1values[c].total.hh + s2values[c].total.hh + s3values[c].hh,
-      rs: s1values[c].total.rs + s2values[c].total.rs + s3values[c].rs
+      hh: (SELECTED_SECTIONS.has(1)?s1values[c].total.hh:0) + (SELECTED_SECTIONS.has(2)?s2values[c].total.hh:0) + (SELECTED_SECTIONS.has(3)?s3values[c].hh:0),
+      rs: (SELECTED_SECTIONS.has(1)?s1values[c].total.rs:0) + (SELECTED_SECTIONS.has(2)?s2values[c].total.rs:0) + (SELECTED_SECTIONS.has(3)?s3values[c].rs:0)
     };
   });
 
@@ -571,10 +572,14 @@ function buildTable(proj){
     rateioTotal[c] = { hh:ratHH, rs:ratRS };
 
     fiaRateioTotal[c] = { hh: fiaTotal[c].hh + rateioTotal[c].hh, rs: fiaTotal[c].rs + rateioTotal[c].rs };
-    totalGlobal[c] = { hh: totalGeral[c].hh + fiaRateioTotal[c].hh, rs: totalGeral[c].rs + fiaRateioTotal[c].rs };
+    const fiaRateioIn = SELECTED_SECTIONS.has(4) ? fiaRateioTotal[c] : {hh:0,rs:0};
+    totalGlobal[c] = { hh: totalGeral[c].hh + fiaRateioIn.hh, rs: totalGeral[c].rs + fiaRateioIn.rs };
+    const s3sub3In = SELECTED_SECTIONS.has(3) ? s3sub3values[c] : {hh:0,rs:0};
+    const fiaSub5In = SELECTED_SECTIONS.has(4) ? fiaSub5values[c] : {hh:0,rs:0};
+    const rateioSub5In = SELECTED_SECTIONS.has(4) ? rateioSub5values[c] : {hh:0,rs:0};
     totalMedidoFR[c] = {
-      hh: s3sub3values[c].hh + fiaSub5values[c].hh + rateioSub5values[c].hh,
-      rs: s3sub3values[c].rs + fiaSub5values[c].rs + rateioSub5values[c].rs
+      hh: s3sub3In.hh + fiaSub5In.hh + rateioSub5In.hh,
+      rs: s3sub3In.rs + fiaSub5In.rs + rateioSub5In.rs
     };
   });
 
@@ -772,9 +777,9 @@ function statusChartHTML(chartId){
 function renderStatusChart(data, chartId){
   chartId = chartId || 'chart-status';
   const months = data.cols.filter(c=>c!=='__TOTAL__');
-  const pct1 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s1values[c].total.rs/t.rs*100 : 0; });
-  const pct2 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s2values[c].total.rs/t.rs*100 : 0; });
-  const pct3 = months.map(c=>{ const t=data.totalGeral[c]; return t.rs? data.s3values[c].rs/t.rs*100 : 0; });
+  const pct1 = months.map(c=>{ const t=data.totalGeral[c]; return (SELECTED_SECTIONS.has(1) && t.rs) ? data.s1values[c].total.rs/t.rs*100 : 0; });
+  const pct2 = months.map(c=>{ const t=data.totalGeral[c]; return (SELECTED_SECTIONS.has(2) && t.rs) ? data.s2values[c].total.rs/t.rs*100 : 0; });
+  const pct3 = months.map(c=>{ const t=data.totalGeral[c]; return (SELECTED_SECTIONS.has(3) && t.rs) ? data.s3values[c].rs/t.rs*100 : 0; });
   Plotly.newPlot(chartId, [
     { type:'bar', name:'1 - Apresentou pendência', x:months, y:pct1, marker:{color:CHART_WARN}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
     { type:'bar', name:'2 - Carregamento no SGE', x:months, y:pct2, marker:{color:CHART_INFO_BLUE}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
