@@ -69,6 +69,7 @@ tr.fia.darkgray td, tr.rateio.darkgray td{background:#9aa7b4;color:#0d1b2a;}
 tr.total-fiarat td{background:#b9c2cc;color:#0d1b2a;font-weight:800;}
 tr.total-global td{background:#5a6472;color:#fff;font-weight:800;}
 tr.total-medido td{background:var(--info-blue);color:#fff;font-weight:800;}
+tr.sep-row td{padding:0;border-left:none;border-right:none;height:6px;background:var(--bg);}
 tr:hover td{filter:brightness(0.98);}
 .chart-block{margin-top:38px;padding-top:22px;border-top:3px dashed var(--border);}
 .chart-block h3{margin:0 0 10px;font-size:15px;color:var(--navy);}
@@ -668,6 +669,7 @@ function renderTableHTML(data){
 
   // ================= FIA / RATEIO =================
   if (SELECTED_SECTIONS.has(4)){
+    html += '<tr class="sep-row"><td colspan="'+nCols+'"></td></tr>';
     html += '<tr><td class="title-band" colspan="'+nCols+'">FIA / RATEIO</td></tr>';
 
     // FIA
