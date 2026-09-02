@@ -609,6 +609,9 @@ function renderTableHTML(data){
   });
   html += '</tr>';
 
+  // banda "FADS - Homem Hora" (mesmo padrao da banda "FIA / RATEIO")
+  html += '<tr><td class="title-band" colspan="'+nCols+'">FADS - Homem Hora</td></tr>';
+
   // linha "FADS"
   html += '<tr class="fads-row"><td></td><td>FADS</td>';
   cols.forEach(c=>{ html += '<td colspan="3"'+(c==='__TOTAL__'?' class="fads-total"':'')+'></td>'; });
