@@ -95,6 +95,7 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
 #print-content{display:none;}
 #print-content .print-proj-title{font-size:16px;font-weight:800;color:var(--navy);margin:0 0 10px;}
 @media print{
+  body{zoom:1 !important;}
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;}
   html, body, .app, .update-date-box{background:#fff !important;}
   .update-date-box{border-color:#fff !important;box-shadow:none !important;}
@@ -889,10 +890,24 @@ function exportPDF(){
     renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) +
     '</div>'
   ).join('');
+  document.body.style.zoom = 1;
   window.print();
 }
 document.getElementById('btn-export-pdf').addEventListener('click', exportPDF);
-window.addEventListener('afterprint', ()=>{ document.getElementById('print-content').innerHTML = ''; });
+window.addEventListener('afterprint', ()=>{ document.getElementById('print-content').innerHTML = ''; applyAutoZoom(); });
+
+/* ---------------- Zoom automatico (ajusta a pagina para caber na tela) ---------------- */
+function applyAutoZoom(){
+  const REF_WIDTH = 1600;
+  const z = Math.max(0.75, Math.min(1, window.innerWidth / REF_WIDTH));
+  document.body.style.zoom = z;
+}
+applyAutoZoom();
+let _zoomResizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(_zoomResizeTimer);
+  _zoomResizeTimer = setTimeout(applyAutoZoom, 150);
+});
 
 /* ---------------- Data de atualizacao (editavel pelo usuario) ---------------- */
 {
