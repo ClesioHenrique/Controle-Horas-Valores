@@ -64,6 +64,7 @@ tr.fia td{background:#fdeecb;}
 tr.fia.na td{background:#fff;}
 tr.rateio td{background:#dcebf8;}
 tr.rateio.na td{background:#fff;}
+tr.sec3.blue td, tr.fia.blue td{background:#dcebf8;}
 tr.total-fiarat td{background:#b9c2cc;color:#0d1b2a;font-weight:800;}
 tr.total-global td{background:#5a6472;color:#fff;font-weight:800;}
 tr.total-medido td{background:var(--info-blue);color:#fff;font-weight:800;}
@@ -652,7 +653,7 @@ function renderTableHTML(data){
     html += '<tr class="sec3 sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCellsX(vals, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
     html += '<tr class="sec3 na"><td class="item-idx">3.1</td><td class="desc">Aprovado - SGE</td>'+rowCellsX(data.s3sub1values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
     html += '<tr class="sec3 na"><td class="item-idx">3.2</td><td class="desc">Medição em Andamento - SGE</td>'+rowCellsX(data.s3sub2values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
-    html += '<tr class="sec3"><td class="item-idx">3.3</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.s3sub3values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="sec3 blue"><td class="item-idx">3.3</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.s3sub3values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
   }
 
   // TOTAL GERAL "FADS"
@@ -670,7 +671,7 @@ function renderTableHTML(data){
     FIA_ITEMS.forEach((it,i)=>{
       html += '<tr class="fia na"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
-    html += '<tr class="fia"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
+    html += '<tr class="fia blue"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
 
     // RATEIO
     html += '<tr class="rateio sec-head"><td class="item-idx">2</td><td class="desc">RATEIO</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
