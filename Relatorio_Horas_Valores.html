@@ -48,13 +48,15 @@ table.rep td.desc{white-space:normal;min-width:280px;max-width:340px;}
 .grp-head{background:var(--navy);color:#fff;text-align:center;font-weight:700;}
 .grp-sub{background:var(--navy-700);color:#fff;text-align:center;font-size:11px;}
 .col-head{background:var(--navy-100);color:var(--navy);text-align:center;font-weight:700;font-size:11.5px;}
-.total-col-head{background:var(--green-dark);color:#fff;}
+.total-col-head{background:var(--green);color:var(--navy);}
 td.num{text-align:center;font-variant-numeric:tabular-nums;}
+td.num.hl-yellow{background:#fff59d !important;color:var(--danger) !important;font-weight:800;}
 tr.fads-row td{background:#9aa7b4;color:#0d1b2a;font-weight:800;font-size:12.5px;}
 tr.fads-row td.fads-total{background:var(--green);color:var(--navy);}
 td.item-idx{text-align:center;color:var(--text-muted);font-size:11.5px;}
 tr.sec-head td{background:#dfe6ee;font-weight:800;color:var(--navy);}
 tr.sec3 td{background:#fdeecb;}
+tr.sec3.na td{background:#fff;}
 tr.total-geral td{background:var(--navy);color:#fff;font-weight:800;}
 tr.na td.num{color:var(--text-muted);font-style:italic;}
 tr:hover td{filter:brightness(0.98);}
@@ -359,17 +361,17 @@ function renderTableHTML(data){
   html += '<tr><td class="title-band" colspan="'+nCols+'">'+esc(proj)+'_'+esc(CONTRATOS[proj])+'<span class="gen">Atualizado em '+esc(getUpdateDateStr())+'</span></td></tr>';
 
   // grupo (mes) header
-  html += '<tr><th class="col-head" rowspan="3">Item</th><th class="col-head" rowspan="3">Descrição</th>';
+  html += '<tr><th class="col-head total-col-head" rowspan="3">Item</th><th class="col-head total-col-head" rowspan="3">Descrição</th>';
   cols.forEach(c=>{
     if (c==='__TOTAL__') html += '<th class="grp-head total-col-head" colspan="3">Total Geral (Passivo + '+esc(DISPLAY_MONTHS[DISPLAY_MONTHS.length-1].toUpperCase())+')</th>';
     else html += '<th class="grp-head" colspan="3">Status HH - SGE Diária Medição ('+esc(c.toUpperCase())+')</th>';
   });
   html += '</tr><tr>';
-  cols.forEach(()=>{ html += '<th class="grp-sub" colspan="3"></th>'; });
+  cols.forEach(c=>{ html += '<th class="grp-sub'+(c==='__TOTAL__'?' total-col-head':'')+'" colspan="3"></th>'; });
   html += '</tr><tr>';
   cols.forEach(c=>{
     const cls = c==='__TOTAL__' ? 'col-head total-col-head' : 'col-head';
-    html += '<th class="'+cls+'">HH</th><th class="'+cls+'">R$</th><th class="'+cls+'">(%)</th>';
+    html += '<th class="'+cls+'">HH</th><th class="'+cls+'">R$</th><th class="col-head">(%)</th>';
   });
   html += '</tr>';
 
@@ -378,12 +380,15 @@ function renderTableHTML(data){
   cols.forEach(c=>{ html += '<td colspan="3"'+(c==='__TOTAL__'?' class="fads-total"':'')+'></td>'; });
   html += '</tr>';
 
-  function rowCells(values, na){
+  function rowCells(values, na, hlTotal){
     let out = '';
     data.cols.forEach(c=>{
       const v = values[c];
       if (na){ out += '<td class="num">—</td><td class="num">—</td><td class="num">—</td>'; }
-      else { out += '<td class="num">'+fmtInt(v.hh)+'</td><td class="num">'+fmtBRL(v.rs)+'</td><td class="num">'+fmtPct(pct(v,c,data))+'</td>'; }
+      else {
+        const hl = (hlTotal && c==='__TOTAL__') ? ' hl-yellow' : '';
+        out += '<td class="num'+hl+'">'+fmtInt(v.hh)+'</td><td class="num'+hl+'">'+fmtBRL(v.rs)+'</td><td class="num">'+fmtPct(pct(v,c,data))+'</td>';
+      }
     });
     return out;
   }
@@ -409,7 +414,7 @@ function renderTableHTML(data){
     html += '<tr class="sec-head"><td class="item-idx">2</td><td class="desc">Carregamento no SGE</td>'+rowCells(vals)+'</tr>';
     SGE_SEC2.forEach((s,i)=>{
       const v2 = {}; data.cols.forEach(c=>v2[c]=data.s2values[c].perItem[i]);
-      html += '<tr><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(s.label)+'</td>'+rowCells(v2)+'</tr>';
+      html += '<tr><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(s.label)+'</td>'+rowCells(v2, false, i===2)+'</tr>';
     });
   }
 
