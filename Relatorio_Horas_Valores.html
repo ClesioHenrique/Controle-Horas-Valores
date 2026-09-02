@@ -648,8 +648,8 @@ function renderTableHTML(data){
   if (SELECTED_SECTIONS.has(3)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s3values[c]);
     html += '<tr class="sec3 sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCellsX(vals, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
-    html += '<tr class="sec3"><td class="item-idx">3.1</td><td class="desc">Aprovado - SGE</td>'+rowCellsX(data.s3sub1values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
-    html += '<tr class="sec3"><td class="item-idx">3.2</td><td class="desc">Medição em Andamento - SGE</td>'+rowCellsX(data.s3sub2values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="sec3 na"><td class="item-idx">3.1</td><td class="desc">Aprovado - SGE</td>'+rowCellsX(data.s3sub1values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="sec3 na"><td class="item-idx">3.2</td><td class="desc">Medição em Andamento - SGE</td>'+rowCellsX(data.s3sub2values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
     html += '<tr class="sec3"><td class="item-idx">3.3</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.s3sub3values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
   }
 
