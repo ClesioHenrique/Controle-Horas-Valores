@@ -784,7 +784,7 @@ function renderStatusChart(data, chartId){
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   const data = buildTable(active);
-  document.getElementById('content').innerHTML = renderTableHTML(data) + renderFiscalDetailHTML(active) + statusChartHTML();
+  document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + statusChartHTML();
   updateMonthFilterSummary();
   updateItemFilterSummary();
   renderStatusChart(data);
@@ -874,7 +874,7 @@ function exportPDF(){
   const container = document.getElementById('print-content');
   container.innerHTML = projs.map(p =>
     '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
-    renderTableHTML(buildTable(p)) + renderFiscalDetailHTML(p) +
+    renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) +
     '</div>'
   ).join('');
   window.print();
