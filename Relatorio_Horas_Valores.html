@@ -872,6 +872,8 @@ document.getElementById('if-toggle').addEventListener('click', e=>{
   document.getElementById('if-panel').classList.toggle('open');
 });
 
+document.getElementById('mf-panel').addEventListener('click', e=>e.stopPropagation());
+document.getElementById('if-panel').addEventListener('click', e=>e.stopPropagation());
 document.addEventListener('click', ()=>{
   document.getElementById('mf-panel').classList.remove('open');
   document.getElementById('if-panel').classList.remove('open');
