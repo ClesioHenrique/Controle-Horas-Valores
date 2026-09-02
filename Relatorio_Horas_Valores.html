@@ -139,7 +139,7 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
       <li>A coluna "Total Geral" sempre soma <b>todo o historico</b> (independente dos meses selecionados no filtro).</li>
       <li>(%) = valor da linha dividido pelo valor da linha "Total Geral" na <b>mesma coluna</b> (percentual vertical do periodo).</li>
       <li>Secao 1 vem da aba "Pendencias MOA_PCI" (coluna RESUMO). Secao 2 e 3 vem da aba "Extrato SGE" (coluna Situacao). Os subitens da Secao 2 ficam sempre visiveis, mesmo quando zerados.</li>
-      <li><b>Linhas 3.1 / 3.2 / 3.3 nao puderam ser calculadas:</b> a coluna "Situacao" da base atual so distingue "Medida" e "Pendente de aprovacao" — nao ha um campo que diferencie Aprovado-SGE / Medicao em Andamento-SGE / Medido-Para emitir FR-SAP. O total da Secao 3 ("Aprovado") esta correto; se voce indicar o criterio ou uma fonte adicional, eu completo essas 3 linhas.</li>
+      <li><b>Linha 3.3 "Medido - Para emitir FR - SAP":</b> calculada a partir da aba "FAD_FIA &amp; RATEIO", filtrando FAD_FIA_RAT="FAD" + Situacao="Medida" + Faturado SIM ou NAO="Nao faturado", agrupado por Projeto. <b>Linhas 3.1 e 3.2</b> ainda nao puderam ser calculadas — nao ha um campo que diferencie Aprovado-SGE de Medicao em Andamento-SGE. O total da Secao 3 ("Aprovado") continua sendo o total completo de Situacao="Medida" da aba Extrato SGE (nao e a soma de 3.1+3.2+3.3, ja que 3.1/3.2 ainda nao sao mensuraveis).</li>
       <li>A linha "FR" (ajuste de faturamento ja emitido) do modelo original nao foi reproduzida — depende de valores de ajuste manual que nao encontrei na base.</li>
     </ul>
   </div>
@@ -234,6 +234,18 @@ const RAW_FISCAL_PENDENTE = [
 {projeto:"PCI",fiscal:"Gustavo Silveira Carvalho",mesano:"Mai/26",hh:46.65,rs:4518.5455}
 ];
 
+/* Item 3.3 "Medido - Para emitir FR - SAP": aba "FAD_FIA & RATEIO", filtrado por
+   FAD_FIA_RAT(col N)="FAD" + Situação(col F)="Medida" + Faturado SIM ou NÃO(col AB)="Não faturado",
+   agrupado por Projeto(col O) e Mês/Ano(col M). */
+const RAW_MEDIDO_FR = [
+{projeto:"MOA",mesano:"Jul/26",hh:318.29999,rs:28373.6396523},
+{projeto:"MOA",mesano:"Ago/25",hh:30.98,rs:1772.09},
+{projeto:"PCI",mesano:"Abr/26",hh:78068.8958400022,rs:5952187.64866395},
+{projeto:"PCI",mesano:"Mai/26",hh:2658.61642,rs:236060.086648901},
+{projeto:"PCI",mesano:"Jun/26",hh:2220.83981,rs:206282.0644154},
+{projeto:"PCI",mesano:"Jul/26",hh:938.44993,rs:74864.6191619}
+];
+
 const CONTRATOS = { MOA:"4600185340 / 4600185359", PCI:"4600184457", GERAL:"4600184457 / 4600185340 / 4600185359" };
 
 const PEND_FIXED = [
@@ -265,7 +277,7 @@ function getUpdateDateStr(){
   return d+'/'+m+'/'+y;
 }
 
-const ALL_MONTHS = Array.from(new Set([...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano), ...RAW_FISCAL_PENDENTE.map(r=>r.mesano)])).sort((a,b)=>mesKey(a)-mesKey(b));
+const ALL_MONTHS = Array.from(new Set([...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano), ...RAW_FISCAL_PENDENTE.map(r=>r.mesano), ...RAW_MEDIDO_FR.map(r=>r.mesano)])).sort((a,b)=>mesKey(a)-mesKey(b));
 let DISPLAY_MONTHS = ALL_MONTHS.slice(-5);
 let SELECTED_SECTIONS = new Set([1,2,3]);
 const SECTION_LABELS = { 1:'1 - Apresentou pendência', 2:'2 - Carregamento no SGE', 3:'3 - Aprovado' };
@@ -300,6 +312,10 @@ function buildTable(proj){
   function medidaFor(month){
     return sumWhere(extr, r=>r.situacao==='Medida', month);
   }
+  const medidoFR = filterProj(RAW_MEDIDO_FR, proj);
+  function medidoFRFor(month){
+    return sumWhere(medidoFR, r=>true, month);
+  }
 
   const cols = [...DISPLAY_MONTHS, '__TOTAL__'];
 
@@ -330,9 +346,11 @@ function buildTable(proj){
   });
 
   const s3values = {};
+  const s3sub3values = {};
   cols.forEach(c=>{
     const m = c==='__TOTAL__' ? null : c;
     s3values[c] = medidaFor(m);
+    s3sub3values[c] = medidoFRFor(m);
   });
 
   const totalGeral = {};
@@ -343,7 +361,7 @@ function buildTable(proj){
     };
   });
 
-  return { proj, cols, s1items, s1values, s2values, s3values, totalGeral };
+  return { proj, cols, s1items, s1values, s2values, s3values, s3sub3values, totalGeral };
 }
 
 function pct(val, col, data){
@@ -422,10 +440,11 @@ function renderTableHTML(data){
   if (SELECTED_SECTIONS.has(3)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s3values[c]);
     html += '<tr class="sec3 sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCells(vals)+'</tr>';
-    const s3labels = ['Aprovado - SGE','Medição em Andamento - SGE','Medido - Para emitir FR - SAP'];
+    const s3labels = ['Aprovado - SGE','Medição em Andamento - SGE'];
     s3labels.forEach((label,i)=>{
       html += '<tr class="sec3 na"><td class="item-idx">3.'+(i+1)+'</td><td class="desc">'+esc(label)+'</td>'+rowCells({}, true)+'</tr>';
     });
+    html += '<tr class="sec3"><td class="item-idx">3.3</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCells(data.s3sub3values)+'</tr>';
   }
 
   // TOTAL GERAL
