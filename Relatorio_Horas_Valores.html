@@ -612,14 +612,12 @@ function renderTableHTML(data){
   html += '<tr><td class="title-band title-band-lg" colspan="'+nCols+'">'+esc(proj)+'_'+esc(CONTRATOS[proj])+'<span class="gen">Atualizado em '+esc(getUpdateDateStr())+'</span></td></tr>';
 
   // grupo (mes) header
-  html += '<tr><th class="col-head total-col-head" rowspan="3">Item</th><th class="col-head total-col-head" rowspan="3">Descrição</th>';
+  html += '<tr><th class="col-head total-col-head" rowspan="2">Item</th><th class="col-head total-col-head" rowspan="2">Descrição</th>';
   cols.forEach(c=>{
     if (c==='__TOTAL__') html += '<th class="grp-head total-col-head" colspan="3">Total Geral (meses selecionados)</th>';
     else html += '<th class="grp-head" colspan="3">Status HH - SGE Diária Medição ('+esc(c.toUpperCase())+')</th>';
   });
-  html += '<th class="col-head total-col-head" rowspan="3">Observações</th>';
-  html += '</tr><tr>';
-  cols.forEach(c=>{ html += '<th class="grp-sub'+(c==='__TOTAL__'?' total-col-head':'')+'" colspan="3"></th>'; });
+  html += '<th class="col-head total-col-head" rowspan="2">Observações</th>';
   html += '</tr><tr>';
   cols.forEach(c=>{
     const cls = c==='__TOTAL__' ? 'col-head total-col-head' : 'col-head col-head-blue';
