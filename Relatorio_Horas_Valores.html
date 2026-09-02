@@ -146,7 +146,7 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
     <b>Notas metodologicas:</b>
     <ul>
       <li>Use o filtro "Meses" (canto superior direito) para escolher quais meses aparecem nas colunas — vale para MOA, PCI e Geral ao mesmo tempo. Por padrao mostra os 5 mais recentes.</li>
-      <li>A coluna "Total Geral" sempre soma <b>todo o historico</b> (independente dos meses selecionados no filtro).</li>
+      <li>A coluna "Total Geral" soma <b>apenas os meses selecionados</b> no filtro "Meses" — se voce desmarcar um mes, ele sai da soma dessa coluna (em todos os resumos: FADS, FIA e RATEIO).</li>
       <li>(%) = valor da linha dividido pelo valor da linha "Total Geral" na <b>mesma coluna</b> (percentual vertical do periodo).</li>
       <li>Secao 1 vem da aba "Pendencias MOA_PCI" (coluna RESUMO). Secao 2 e 3 vem da aba "Extrato SGE" (coluna Situacao). Os subitens da Secao 2 ficam sempre visiveis, mesmo quando zerados.</li>
       <li><b>Secao 3 ("Aprovado") agora e a soma das linhas 3.1 + 3.2 + 3.3.</b> Linhas 3.1 "Aprovado - SGE" e 3.2 "Medicao em Andamento - SGE" usam a aba "Extrato SGE" (coluna Situacao), com o mesmo criterio da Secao 2 — hoje aparecem zeradas porque a base ainda nao tem lancamentos com essas situacoes exatas; assim que existirem, entram automaticamente no calculo. <b>Linha 3.3 "Medido - Para emitir FR - SAP":</b> calculada a partir da aba "FAD_FIA &amp; RATEIO", filtrando FAD_FIA_RAT="FAD" + Situacao="Medida" + Faturado SIM ou NAO="Nao faturado", agrupado por Projeto.</li>
@@ -449,7 +449,10 @@ function filterProj(rows, proj){ return proj==='GERAL' ? rows : rows.filter(r=>r
 
 function sumWhere(rows, pred, month){
   let hh=0, rs=0;
-  for (const r of rows){ if (pred(r) && (month==null || r.mesano===month)){ hh+=(r.hh||0); rs+=r.rs; } }
+  for (const r of rows){
+    const inMonth = month==null ? DISPLAY_MONTHS.includes(r.mesano) : r.mesano===month;
+    if (pred(r) && inMonth){ hh+=(r.hh||0); rs+=r.rs; }
+  }
   return {hh, rs};
 }
 function pctOf(val, base){
@@ -592,7 +595,7 @@ function renderTableHTML(data){
   // grupo (mes) header
   html += '<tr><th class="col-head total-col-head" rowspan="3">Item</th><th class="col-head total-col-head" rowspan="3">Descrição</th>';
   cols.forEach(c=>{
-    if (c==='__TOTAL__') html += '<th class="grp-head total-col-head" colspan="3">Total Geral (Passivo + '+esc(DISPLAY_MONTHS[DISPLAY_MONTHS.length-1].toUpperCase())+')</th>';
+    if (c==='__TOTAL__') html += '<th class="grp-head total-col-head" colspan="3">Total Geral (meses selecionados)</th>';
     else html += '<th class="grp-head" colspan="3">Status HH - SGE Diária Medição ('+esc(c.toUpperCase())+')</th>';
   });
   html += '<th class="col-head total-col-head" rowspan="3">Observações</th>';
