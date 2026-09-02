@@ -45,6 +45,12 @@ table.rep th, table.rep td{border:1px solid var(--border);padding:5px 8px;white-
 table.rep td.desc{white-space:normal;min-width:280px;max-width:340px;}
 .title-band{background:var(--green);font-weight:800;font-size:14px;color:var(--navy);text-align:left;padding:8px 10px;}
 .title-band .gen{float:right;font-weight:600;font-size:11px;color:var(--navy-700);}
+.title-band-gray{background:#9aa7b4;font-weight:800;font-size:14px;color:#0d1b2a;text-align:left;padding:8px 10px;}
+table.rep td:first-child, table.rep th:first-child{position:sticky;left:0;z-index:3;background:#fff;min-width:44px;}
+table.rep td:nth-child(2), table.rep th:nth-child(2){position:sticky;left:44px;z-index:3;background:#fff;border-right:2px solid var(--border);}
+@media print{
+  table.rep td:first-child, table.rep th:first-child, table.rep td:nth-child(2), table.rep th:nth-child(2){position:static !important;}
+}
 .grp-head{background:var(--navy);color:#fff;text-align:center;font-weight:700;}
 .grp-sub{background:var(--navy-700);color:#fff;text-align:center;font-size:11px;}
 .col-head{background:var(--navy-100);color:var(--navy);text-align:center;font-weight:700;font-size:11.5px;}
@@ -62,6 +68,8 @@ tr.na td.num{color:var(--text-muted);font-style:italic;}
 td.obs{text-align:center;font-size:11px;font-weight:700;color:var(--text-muted);}
 tr.fia td{background:#fdeecb;}
 tr.rateio td{background:#dcebf8;}
+tr.row-white td{background:#fff;}
+tr.row-blue td{background:#dcebf8;}
 tr.total-fiarat td{background:#b9c2cc;color:#0d1b2a;font-weight:800;}
 tr.total-global td{background:#5a6472;color:#fff;font-weight:800;}
 tr.total-medido td{background:var(--info-blue);color:#fff;font-weight:800;}
@@ -648,9 +656,9 @@ function renderTableHTML(data){
   if (SELECTED_SECTIONS.has(3)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s3values[c]);
     html += '<tr class="sec3 sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCellsX(vals, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
-    html += '<tr class="sec3"><td class="item-idx">3.1</td><td class="desc">Aprovado - SGE</td>'+rowCellsX(data.s3sub1values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
-    html += '<tr class="sec3"><td class="item-idx">3.2</td><td class="desc">Medição em Andamento - SGE</td>'+rowCellsX(data.s3sub2values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
-    html += '<tr class="sec3"><td class="item-idx">3.3</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.s3sub3values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="row-white"><td class="item-idx">3.1</td><td class="desc">Aprovado - SGE</td>'+rowCellsX(data.s3sub1values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="row-white"><td class="item-idx">3.2</td><td class="desc">Medição em Andamento - SGE</td>'+rowCellsX(data.s3sub2values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="row-blue"><td class="item-idx">3.3</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.s3sub3values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
   }
 
   // TOTAL GERAL "FADS"
@@ -661,21 +669,21 @@ function renderTableHTML(data){
 
   // ================= FIA / RATEIO =================
   if (SELECTED_SECTIONS.has(4)){
-    html += '<tr><td class="title-band" colspan="'+nCols+'">FIA / RATEIO</td></tr>';
+    html += '<tr><td class="title-band-gray" colspan="'+nCols+'">FIA / RATEIO</td></tr>';
 
     // FIA
     html += '<tr class="fia sec-head"><td class="item-idx">1</td><td class="desc">FIA - equipamentos auxiliares</td>'+rowCellsX(data.fiaTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
     FIA_ITEMS.forEach((it,i)=>{
-      html += '<tr class="fia"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
+      html += '<tr class="row-white"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
-    html += '<tr class="fia"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
+    html += '<tr class="row-blue"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
 
     // RATEIO
     html += '<tr class="rateio sec-head"><td class="item-idx">2</td><td class="desc">RATEIO</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
     RATEIO_ITEMS.forEach((it,i)=>{
-      html += '<tr class="rateio"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
+      html += '<tr class="row-white"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
-    html += '<tr class="rateio"><td class="item-idx">2.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.rateioSub5values, data.rateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
+    html += '<tr class="row-blue"><td class="item-idx">2.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.rateioSub5values, data.rateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
 
     // Total Geral (FIA + RATEIO)
     html += '<tr class="total-fiarat"><td class="item-idx">&nbsp;</td><td class="desc">Total Geral (FIA + RATEIO)</td>'+rowCellsX(data.fiaRateioTotal, data.totalGlobal, {noHH:true})+obsCell(null)+'</tr>';
