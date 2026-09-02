@@ -63,6 +63,7 @@ td.obs{text-align:center;font-size:11px;font-weight:700;color:var(--text-muted);
 tr.fia td{background:#fdeecb;}
 tr.fia.na td{background:#fff;}
 tr.rateio td{background:#dcebf8;}
+tr.rateio.na td{background:#fff;}
 tr.total-fiarat td{background:#b9c2cc;color:#0d1b2a;font-weight:800;}
 tr.total-global td{background:#5a6472;color:#fff;font-weight:800;}
 tr.total-medido td{background:var(--info-blue);color:#fff;font-weight:800;}
@@ -674,7 +675,7 @@ function renderTableHTML(data){
     // RATEIO
     html += '<tr class="rateio sec-head"><td class="item-idx">2</td><td class="desc">RATEIO</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
     RATEIO_ITEMS.forEach((it,i)=>{
-      html += '<tr class="rateio"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
+      html += '<tr class="rateio na"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
     html += '<tr class="rateio"><td class="item-idx">2.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.rateioSub5values, data.rateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
 
