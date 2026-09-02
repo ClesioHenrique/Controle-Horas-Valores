@@ -44,6 +44,7 @@ table.rep{border-collapse:collapse;width:100%;min-width:1400px;font-size:12.5px;
 table.rep th, table.rep td{border:1px solid var(--border);padding:5px 8px;white-space:nowrap;}
 table.rep td.desc{white-space:normal;min-width:280px;max-width:340px;}
 .title-band{background:var(--green);font-weight:800;font-size:14px;color:var(--navy);text-align:left;padding:8px 10px;}
+.title-band-lg{font-size:16.5px;padding:10px 10px;}
 .title-band .gen{float:right;font-weight:600;font-size:11px;color:var(--navy-700);}
 .grp-head{background:var(--navy);color:#fff;text-align:center;font-weight:700;}
 .grp-sub{background:var(--navy-700);color:#fff;text-align:center;font-size:11px;}
@@ -601,7 +602,7 @@ function renderTableHTML(data){
   let html = '<div class="table-wrap"><table class="rep">';
 
   // banda titulo
-  html += '<tr><td class="title-band" colspan="'+nCols+'">'+esc(proj)+'_'+esc(CONTRATOS[proj])+'<span class="gen">Atualizado em '+esc(getUpdateDateStr())+'</span></td></tr>';
+  html += '<tr><td class="title-band title-band-lg" colspan="'+nCols+'">'+esc(proj)+'_'+esc(CONTRATOS[proj])+'<span class="gen">Atualizado em '+esc(getUpdateDateStr())+'</span></td></tr>';
 
   // grupo (mes) header
   html += '<tr><th class="col-head total-col-head" rowspan="3">Item</th><th class="col-head total-col-head" rowspan="3">Descrição</th>';
