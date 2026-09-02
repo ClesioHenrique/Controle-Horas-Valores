@@ -605,16 +605,16 @@ function renderTableHTML(data){
   html += '</tr><tr>';
   cols.forEach(c=>{
     const cls = c==='__TOTAL__' ? 'col-head total-col-head' : 'col-head';
-    html += '<th class="'+cls+'">HH</th><th class="'+cls+'">R$</th><th class="col-head">(%)</th>';
+    html += '<th class="'+cls+'">HH</th><th class="'+cls+'">R$</th><th class="'+cls+'">(%)</th>';
   });
   html += '</tr>';
 
-  // banda "FADS - Homem Hora" (mesmo padrao da banda "FIA / RATEIO")
-  html += '<tr><td class="title-band" colspan="'+nCols+'">FADS - Homem Hora</td></tr>';
+  // banda "FADS" (mesmo padrao da banda "FIA / RATEIO")
+  html += '<tr><td class="title-band" colspan="'+nCols+'">FADS</td></tr>';
 
-  // linha "FADS"
-  html += '<tr class="fads-row"><td></td><td>FADS</td>';
-  cols.forEach(c=>{ html += '<td colspan="3"'+(c==='__TOTAL__'?' class="fads-total"':'')+'></td>'; });
+  // linha "FADS - Homem Hora" (toda cinza, sem destaque verde no Total Geral)
+  html += '<tr class="fads-row"><td></td><td>FADS - Homem Hora</td>';
+  cols.forEach(c=>{ html += '<td colspan="3"></td>'; });
   html += '<td></td></tr>';
 
   function rowCellsX(values, base, opts){
@@ -683,7 +683,7 @@ function renderTableHTML(data){
     html += '<tr class="fia blue"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
 
     // RATEIO
-    html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
+    html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO - Hs Mão de Obra Indireta</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
     RATEIO_ITEMS.forEach((it,i)=>{
       html += '<tr class="rateio na"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
