@@ -117,6 +117,8 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 
 #print-content{display:none;}
 #print-content .print-proj-title{font-size:16px;font-weight:800;color:var(--navy);margin:0 0 10px;}
+.print-capa{font-size:11px;color:var(--navy);margin:0 0 8px;padding:6px 10px;background:var(--navy-100);border-radius:6px;}
+@page{size:landscape;margin:8mm;}
 @media print{
   body{zoom:1 !important;}
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;}
@@ -125,11 +127,21 @@ td.fa-detail:hover{background:#eaf3fb !important;}
   .toolbar, .notes, .header .sub{display:none !important;}
   #content{display:none !important;}
   #print-content{display:block !important;}
-  #print-content .print-page{page-break-after:always;padding-top:4px;}
+  #print-content .print-page{page-break-after:always;padding-top:2px;}
   #print-content .print-page:last-child{page-break-after:auto;}
-  table.rep{min-width:0 !important;}
+  #print-content .print-proj-title{font-size:12.5px !important;margin:0 0 4px !important;}
+  table.rep{min-width:0 !important;font-size:8.5px !important;}
+  table.rep th, table.rep td{padding:2px 4px !important;}
+  th.grp-head{font-size:8px !important;}
+  .title-band, .title-band-lg{font-size:10.5px !important;padding:4px 8px !important;}
   .table-wrap{overflow:visible !important;border:none;box-shadow:none;}
-  .chart-block, .fiscal-block{border-top:1px solid var(--border);}
+  .chart-block, .fiscal-block{border-top:1px solid var(--border);margin-top:8px !important;padding-top:8px !important;}
+  .fiscal-block h3{font-size:11px !important;margin:0 0 4px !important;}
+  table.fiscal-tbl{font-size:8px !important;}
+  .freenote-block{margin-top:6px !important;}
+  .freenote-block label{font-size:9px !important;margin-bottom:2px !important;}
+  .freenote-block textarea{min-height:24px !important;font-size:8.5px !important;padding:4px 6px !important;}
+  .fa-sub{font-size:9px !important;margin-bottom:4px !important;}
 }
 </style>
 </head>
@@ -883,7 +895,7 @@ function renderFiscalDetailHTML(proj){
   return html;
 }
 
-function renderFrsEmitidasHTML(proj){
+function renderFrsEmitidasHTML(proj, condensed){
   let html = '<div class="fiscal-block">';
   html += '<h3>FR\'S Emitidas</h3>';
 
@@ -912,15 +924,27 @@ function renderFrsEmitidasHTML(proj){
   const d = FRS_EMITIDAS[proj];
   html += '<div class="fa-sub" style="margin-bottom:8px;">'+esc(d.obs)+'</div>';
   html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
-  html += '<colgroup><col style="width:110px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:130px"></colgroup>';
-  html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">BM\'S</th><th class="ft-band">Período</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
-  d.groups.forEach(g=>{
-    html += '<tr class="sec-head"><td class="ft-resp">'+esc(g.tipo)+'</td><td></td><td></td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
-    g.items.forEach(it=>{
-      html += '<tr><td></td><td class="ft-resp">'+esc(it.bm)+'</td><td>'+esc(it.periodo)+'</td><td class="num">'+(it.hh==null?'n/a':fmtInt(it.hh))+'</td><td class="num">'+fmtBRL(it.rs)+'</td></tr>';
+
+  if (condensed){
+    // versao reduzida (usada na impressao): so os subtotais FAD/FIA/RATEIO, sem o detalhe por BM
+    html += '<colgroup><col style="width:150px"><col style="width:110px"><col style="width:130px"></colgroup>';
+    html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
+    d.groups.forEach(g=>{
+      html += '<tr><td class="ft-resp">'+esc(g.tipo)+'</td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
     });
-  });
-  html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td></td><td></td><td class="num"></td><td class="num ft-geral">'+fmtBRL(d.totalGeral)+'</td></tr>';
+    html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td class="num"></td><td class="num ft-geral">'+fmtBRL(d.totalGeral)+'</td></tr>';
+  } else {
+    html += '<colgroup><col style="width:110px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:130px"></colgroup>';
+    html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">BM\'S</th><th class="ft-band">Período</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
+    d.groups.forEach(g=>{
+      html += '<tr class="sec-head"><td class="ft-resp">'+esc(g.tipo)+'</td><td></td><td></td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+      g.items.forEach(it=>{
+        html += '<tr><td></td><td class="ft-resp">'+esc(it.bm)+'</td><td>'+esc(it.periodo)+'</td><td class="num">'+(it.hh==null?'n/a':fmtInt(it.hh))+'</td><td class="num">'+fmtBRL(it.rs)+'</td></tr>';
+      });
+    });
+    html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td></td><td></td><td class="num"></td><td class="num ft-geral">'+fmtBRL(d.totalGeral)+'</td></tr>';
+  }
+
   html += '</table></div></div>';
   return html;
 }
@@ -1090,11 +1114,12 @@ const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral' };
 function exportPDF(){
   const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
-  container.innerHTML = projs.map(p =>
-    '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
-    renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
-    '</div>'
-  ).join('');
+  container.innerHTML = projs.map(p => {
+    const capa = p==='GERAL' ? '<div class="print-capa"><b>MOA</b> = Contrato(s) '+esc(CONTRATOS.MOA)+' &nbsp;|&nbsp; <b>PCI</b> = Contrato(s) '+esc(CONTRATOS.PCI)+'</div>' : '';
+    return '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' + capa +
+      renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p, true) +
+      '</div>';
+  }).join('');
   document.body.style.zoom = 1;
   window.print();
 }
