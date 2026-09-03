@@ -107,6 +107,10 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 .fa-modal td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .fa-modal tr.fa-total td{font-weight:800;background:var(--navy-100);}
 .fa-modal-close{float:right;border:none;background:none;font-size:18px;cursor:pointer;color:var(--text-muted);line-height:1;}
+.freenote-block{margin:10px 0 0;}
+.freenote-block label{display:block;font-size:11.5px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.freenote-block textarea{width:100%;min-height:56px;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:12.5px;color:var(--text);resize:vertical;box-sizing:border-box;background:var(--surface);}
+.freenote-block textarea:focus{outline:2px solid var(--info-blue);outline-offset:1px;}
 .notes{margin-top:14px;background:var(--navy-100);border-left:4px solid var(--info-blue);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text);}
 .notes b{color:var(--navy);}
 .notes ul{margin:6px 0 0;padding-left:18px;}
@@ -344,6 +348,43 @@ const RAW_RATEIO_MEDIDO_DETAIL = [
 {projeto:"MOA",mesano:"Abr/26",numfa:"RAT_1505",rs:151288.43},
 {projeto:"PCI",mesano:"Nov/25",numfa:"RAT_1403",rs:71661.66}
 ];
+
+/* Aba "FR'S emitidas" (montada manualmente pelo usuario): valores de FR ja emitidos/faturados,
+   por FAD/FIA/RATEIO, com o BM (Boletim de Medicao) e periodo de cada um. */
+const FRS_EMITIDAS = {
+  PCI: {
+    obs: "Valores de FR'S emitidas em 01/09/26",
+    groups: [
+      { tipo:'FAD', hh:3729, rs:296173, items:[
+        {bm:'BM-20', periodo:'Abr/26', hh:228, rs:15028},
+        {bm:'BM-22', periodo:'Jun/26', hh:2368, rs:196988},
+        {bm:'BM-23', periodo:'Jul/26', hh:1134, rs:84156}
+      ]},
+      { tipo:'FIA', hh:null, rs:1713163, items:[
+        {bm:'BM-22', periodo:'Jun/26', hh:null, rs:1713163}
+      ]},
+      { tipo:'RATEIO', hh:null, rs:38050, items:[
+        {bm:'BM-21', periodo:'Mai/26', hh:null, rs:38050}
+      ]}
+    ],
+    totalGeral: 2047386
+  },
+  MOA: {
+    obs: "Valores de FR'S emitidas em 01/09/26",
+    groups: [
+      { tipo:'FAD', hh:318, rs:28374, items:[
+        {bm:'BM-23', periodo:'Jul/26', hh:318, rs:28374}
+      ]},
+      { tipo:'FIA', hh:null, rs:51580, items:[
+        {bm:'BM-20', periodo:'Abr/26', hh:null, rs:19200},
+        {bm:'BM-21', periodo:'Mai/26', hh:null, rs:16190},
+        {bm:'BM-22', periodo:'Jun/26', hh:null, rs:16190}
+      ]},
+      { tipo:'RATEIO', hh:null, rs:0, items:[] }
+    ],
+    totalGeral: 79953
+  }
+};
 
 /* Itens 1.1-1.4 (FIA): FAD_FIA_RAT(N)="FIA", agrupado por Projeto/Situação(F)/Mês. Hoje a base só
    tem Situação="Medida" para FIA — nenhum item 1.1-1.4 casa ainda, mas o lookup é dinâmico: se a
@@ -776,6 +817,15 @@ function renderTableHTML(data){
   }
 
   html += '</table></div>';
+
+  // campo de digitacao livre (observacoes do usuario), persistido por aba no localStorage
+  {
+    let saved = '';
+    try { saved = localStorage.getItem('freenote_'+proj) || ''; } catch(e){}
+    html += '<div class="freenote-block"><label for="freenote">Observações / Anotações</label>'+
+      '<textarea id="freenote" data-proj="'+esc(proj)+'" placeholder="Digite aqui observações sobre esta aba...">'+esc(saved)+'</textarea></div>';
+  }
+
   return html;
 }
 
@@ -833,6 +883,48 @@ function renderFiscalDetailHTML(proj){
   return html;
 }
 
+function renderFrsEmitidasHTML(proj){
+  let html = '<div class="fiscal-block">';
+  html += '<h3>FR\'S Emitidas</h3>';
+
+  if (proj==='GERAL'){
+    const tipos = ['FAD','FIA','RATEIO'];
+    const combined = tipos.map(tipo=>{
+      const gMOA = FRS_EMITIDAS.MOA.groups.find(g=>g.tipo===tipo);
+      const gPCI = FRS_EMITIDAS.PCI.groups.find(g=>g.tipo===tipo);
+      const hh = (gMOA.hh==null && gPCI.hh==null) ? null : (gMOA.hh||0)+(gPCI.hh||0);
+      const rs = gMOA.rs + gPCI.rs;
+      return { tipo, hh, rs };
+    });
+    const totalGeral = FRS_EMITIDAS.MOA.totalGeral + FRS_EMITIDAS.PCI.totalGeral;
+    html += '<div class="fa-sub" style="margin-bottom:8px;">'+esc(FRS_EMITIDAS.PCI.obs)+' (MOA + PCI)</div>';
+    html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
+    html += '<colgroup><col style="width:150px"><col style="width:110px"><col style="width:130px"></colgroup>';
+    html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
+    combined.forEach(g=>{
+      html += '<tr><td class="ft-resp">'+esc(g.tipo)+'</td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+    });
+    html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td class="num"></td><td class="num ft-geral">'+fmtBRL(totalGeral)+'</td></tr>';
+    html += '</table></div></div>';
+    return html;
+  }
+
+  const d = FRS_EMITIDAS[proj];
+  html += '<div class="fa-sub" style="margin-bottom:8px;">'+esc(d.obs)+'</div>';
+  html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
+  html += '<colgroup><col style="width:110px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:130px"></colgroup>';
+  html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">BM\'S</th><th class="ft-band">Período</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
+  d.groups.forEach(g=>{
+    html += '<tr class="sec-head"><td class="ft-resp">'+esc(g.tipo)+'</td><td></td><td></td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+    g.items.forEach(it=>{
+      html += '<tr><td></td><td class="ft-resp">'+esc(it.bm)+'</td><td>'+esc(it.periodo)+'</td><td class="num">'+(it.hh==null?'n/a':fmtInt(it.hh))+'</td><td class="num">'+fmtBRL(it.rs)+'</td></tr>';
+    });
+  });
+  html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td></td><td></td><td class="num"></td><td class="num ft-geral">'+fmtBRL(d.totalGeral)+'</td></tr>';
+  html += '</table></div></div>';
+  return html;
+}
+
 const CHART_GREEN = '#92D050', CHART_WARN = '#E8A33D', CHART_INFO_BLUE = '#2E7BC4';
 function statusChartHTML(chartId){
   chartId = chartId || 'chart-status';
@@ -859,10 +951,16 @@ function renderStatusChart(data, chartId){
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   const data = buildTable(active);
-  document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + statusChartHTML();
+  document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFrsEmitidasHTML(active) + statusChartHTML();
   updateMonthFilterSummary();
   updateItemFilterSummary();
   renderStatusChart(data);
+  const note = document.getElementById('freenote');
+  if (note){
+    note.addEventListener('input', ()=>{
+      try { localStorage.setItem('freenote_'+note.dataset.proj, note.value); } catch(e){}
+    });
+  }
 }
 
 document.getElementById('tabs').addEventListener('click', e=>{
@@ -994,7 +1092,7 @@ function exportPDF(){
   const container = document.getElementById('print-content');
   container.innerHTML = projs.map(p =>
     '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
-    renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) +
+    renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFrsEmitidasHTML(p) +
     '</div>'
   ).join('');
   document.body.style.zoom = 1;
