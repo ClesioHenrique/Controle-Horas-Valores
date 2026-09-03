@@ -118,9 +118,6 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 
 #print-content{display:none;}
 #print-content .print-proj-title{font-size:16px;font-weight:800;color:var(--navy);margin:0 0 10px;}
-.print-capa{font-size:11px;color:var(--navy);margin:0 0 8px;padding:6px 10px;background:var(--navy-100);border-radius:6px;}
-.geral-capa{font-size:13px;color:var(--navy);margin:0 0 12px;padding:10px 14px;background:var(--navy-100);border-left:4px solid var(--green-dark);border-radius:6px;font-weight:600;}
-.geral-capa b{color:var(--navy);}
 @page{size:landscape;margin:8mm;}
 @media print{
   body{zoom:1 !important;}
@@ -166,7 +163,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
       <button class="tab-btn" data-proj="PCI">PCI</button>
     </div>
     <div class="month-filter" id="month-filter">
-      <button type="button" class="mf-toggle" id="mf-toggle">&#128197; Meses: <span id="mf-summary">últimos 5</span> &#9662;</button>
+      <button type="button" class="mf-toggle" id="mf-toggle">&#128197; Meses: <span id="mf-summary">últimos 3</span> &#9662;</button>
       <div class="mf-panel" id="mf-panel"></div>
     </div>
     <div class="item-filter" id="item-filter">
@@ -559,7 +556,7 @@ const ALL_MONTHS = Array.from(new Set([
   ...RAW_MEDIDO_FR.map(r=>r.mesano), ...RAW_FIA_MEDIDO.map(r=>r.mesano), ...RAW_RATEIO_MEDIDO.map(r=>r.mesano),
   ...RAW_FIA_EXTRATO.map(r=>r.mesano), ...RAW_RATEIO_EXTRATO.map(r=>r.mesano)
 ])).sort((a,b)=>mesKey(a)-mesKey(b));
-let DISPLAY_MONTHS = ALL_MONTHS.slice(-5);
+let DISPLAY_MONTHS = ALL_MONTHS.slice(-3);
 let SELECTED_SECTIONS = new Set([1,2,3,4]);
 const SECTION_LABELS = { 1:'1 - Apresentou pendência', 2:'2 - Carregamento no SGE', 3:'3 - Aprovado', 4:'FIA / RATEIO' };
 
@@ -847,11 +844,6 @@ function renderFreeNoteHTML(proj){
     '<textarea id="freenote" data-proj="'+esc(proj)+'" placeholder="Digite aqui observações sobre esta aba...">'+esc(saved)+'</textarea></div>';
 }
 
-// "capa" da aba Geral: explica o que e MOA e o que e PCI, ja que essa aba soma os dois
-function renderGeralCapaHTML(){
-  return '<div class="geral-capa"><b>MOA</b> = Contrato(s) '+esc(CONTRATOS.MOA)+' &nbsp;|&nbsp; <b>PCI</b> = Contrato(s) '+esc(CONTRATOS.PCI)+'</div>';
-}
-
 function renderFiscalDetailHTML(proj){
   const mesAtual = DISPLAY_MONTHS[DISPLAY_MONTHS.length-1];
   const rows = filterProj(RAW_FISCAL_PENDENTE, proj).filter(r=>DISPLAY_MONTHS.includes(r.mesano));
@@ -993,7 +985,7 @@ function renderStatusChart(data, chartId){
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   const data = buildTable(active);
-  document.getElementById('content').innerHTML = (active==='GERAL' ? renderGeralCapaHTML() : '') + renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
+  document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
   updateMonthFilterSummary();
   updateItemFilterSummary();
   renderStatusChart(data);
@@ -1025,7 +1017,7 @@ function buildMonthFilterPanel(){
   const selected = new Set(DISPLAY_MONTHS);
   panel.innerHTML = ALL_MONTHS.map(m =>
     '<label><input type="checkbox" value="'+m+'"'+(selected.has(m)?' checked':'')+'> '+m+'</label>'
-  ).join('') + '<div class="mf-actions"><button type="button" id="mf-last5">Últimos 5</button><button type="button" id="mf-all">Todos</button></div>';
+  ).join('') + '<div class="mf-actions"><button type="button" id="mf-last3">Últimos 3</button><button type="button" id="mf-all">Todos</button></div>';
 
   panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
@@ -1035,8 +1027,8 @@ function buildMonthFilterPanel(){
       render();
     });
   });
-  document.getElementById('mf-last5').addEventListener('click', ()=>{
-    DISPLAY_MONTHS = ALL_MONTHS.slice(-5);
+  document.getElementById('mf-last3').addEventListener('click', ()=>{
+    DISPLAY_MONTHS = ALL_MONTHS.slice(-3);
     buildMonthFilterPanel();
     render();
   });
@@ -1134,8 +1126,7 @@ function exportPDF(){
   const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
   container.innerHTML = projs.map(p => {
-    const capa = p==='GERAL' ? '<div class="print-capa"><b>MOA</b> = Contrato(s) '+esc(CONTRATOS.MOA)+' &nbsp;|&nbsp; <b>PCI</b> = Contrato(s) '+esc(CONTRATOS.PCI)+'</div>' : '';
-    return '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' + capa +
+    return '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
       renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
       '</div>';
   }).join('');
