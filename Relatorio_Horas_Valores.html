@@ -818,16 +818,15 @@ function renderTableHTML(data){
   }
 
   html += '</table></div>';
-
-  // campo de digitacao livre (observacoes do usuario), persistido por aba no localStorage
-  {
-    let saved = '';
-    try { saved = localStorage.getItem('freenote_'+proj) || ''; } catch(e){}
-    html += '<div class="freenote-block"><label for="freenote">Observações / Anotações</label>'+
-      '<textarea id="freenote" data-proj="'+esc(proj)+'" placeholder="Digite aqui observações sobre esta aba...">'+esc(saved)+'</textarea></div>';
-  }
-
   return html;
+}
+
+// campo de digitacao livre (observacoes do usuario), persistido por aba no localStorage
+function renderFreeNoteHTML(proj){
+  let saved = '';
+  try { saved = localStorage.getItem('freenote_'+proj) || ''; } catch(e){}
+  return '<div class="freenote-block"><label for="freenote">Observações / Anotações</label>'+
+    '<textarea id="freenote" data-proj="'+esc(proj)+'" placeholder="Digite aqui observações sobre esta aba...">'+esc(saved)+'</textarea></div>';
 }
 
 function renderFiscalDetailHTML(proj){
@@ -952,7 +951,7 @@ function renderStatusChart(data, chartId){
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   const data = buildTable(active);
-  document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFrsEmitidasHTML(active) + statusChartHTML();
+  document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
   updateMonthFilterSummary();
   updateItemFilterSummary();
   renderStatusChart(data);
@@ -1093,7 +1092,7 @@ function exportPDF(){
   const container = document.getElementById('print-content');
   container.innerHTML = projs.map(p =>
     '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
-    renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFrsEmitidasHTML(p) +
+    renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
     '</div>'
   ).join('');
   document.body.style.zoom = 1;
