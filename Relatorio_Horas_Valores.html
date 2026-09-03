@@ -16,6 +16,7 @@
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Calibri,Arial,sans-serif;font-size:13.5px;}
 .app{width:100%;max-width:none;margin:0;padding:20px 28px 50px;}
+.sticky-topbar{position:sticky;top:0;z-index:60;background:var(--bg);padding-bottom:10px;box-shadow:0 6px 12px -8px rgba(0,43,92,.25);}
 .header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
 .header h1{margin:0;font-size:19px;color:var(--navy);}
 .header .sub{font-size:12px;color:var(--text-muted);margin-top:3px;}
@@ -127,6 +128,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
   html, body, .app, .update-date-box{background:#fff !important;}
   .update-date-box{border-color:#fff !important;box-shadow:none !important;}
   .toolbar, .notes, .header .sub{display:none !important;}
+  .sticky-topbar{position:static !important;box-shadow:none !important;}
   #content{display:none !important;}
   #print-content{display:block !important;}
   #print-content .print-page{page-break-after:always;padding-top:2px;}
@@ -149,6 +151,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 </head>
 <body>
 <div class="app">
+  <div class="sticky-topbar">
   <div class="header">
     <div>
       <h1>Relatorio Gerencial &mdash; Controle de Horas x Valores (R$)</h1>
@@ -176,6 +179,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
   <div class="update-date-box" id="update-date-box">
     <label for="update-date">Data de atualização:</label>
     <input type="date" id="update-date">
+  </div>
   </div>
 
   <div id="content"></div>
