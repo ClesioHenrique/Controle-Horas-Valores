@@ -209,7 +209,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
       <li><b>(%) do bloco FIA/RATEIO:</b> os subitens (1.1-1.5 / 2.1-2.5) sao % do total da <b>propria</b> secao (FIA ou RATEIO); as linhas "1 FIA" e "2 RATEIO" sao % do "Total Geral (FIA + RATEIO)"; e "Total Geral (FIA+RATEIO)" e "Total Medido" sao % do "Total Global (FADS FIA &amp; RATEIO)".</li>
       <li><b>Linha "Total Medido - Para emitir FR"</b> (destaque azul) = soma de todas as linhas "Medido - Para emitir FR - SAP" do relatorio (3.3 do FAD + 1.5 da FIA + 2.5 do RATEIO) — o total pronto para faturar (FR liberada).</li>
       <li>Nos itens <b>1.5 (FIA)</b> e <b>2.5 (RATEIO)</b>, valores diferentes de zero aceitam <b>duplo-clique</b> no R$ para abrir a lista dos numeros de FIA/RATEIO (coluna "Nº FA" da aba FAD_FIA &amp; RATEIO) que compoem aquele total.</li>
-      <li><b>"FR'S Emitidas"</b> vem da aba homonima da planilha (montada manualmente pelo usuario) — mostra os valores de FR ja emitidos/faturados por FAD/FIA/RATEIO, com BM e periodo. Na aba Geral aparece o resumo combinado (MOA + PCI).</li>
+      <li><b>"FR'S Emitidas"</b> vem da aba homonima da planilha (montada manualmente pelo usuario) — mostra o resumo por FAD/FIA/RATEIO (valores ja emitidos/faturados) nas tres abas, inclusive na Geral (combinado MOA + PCI). <b>Duplo-clique</b> no R$ de uma linha abre o detalhe por BM e periodo daquele tipo.</li>
       <li><b>Coluna "Observações"</b> (Techint/Usiminas) indica a responsabilidade de cada etapa, com base no print de referencia. Para a Secao 1 ("Apresentou pendência") nao havia exemplo no print — assumi "TECHINT" por serem etapas internas de cadastro/regularizacao; ajuste se estiver incorreto.</li>
     </ul>
   </div>
@@ -906,58 +906,65 @@ function renderFiscalDetailHTML(proj){
   return html;
 }
 
-function renderFrsEmitidasHTML(proj, condensed){
-  let html = '<div class="fiscal-block">';
-  html += '<h3>FR\'S Emitidas</h3>';
-
+function frsGroupsFor(proj){
   if (proj==='GERAL'){
-    const tipos = ['FAD','FIA','RATEIO'];
-    const combined = tipos.map(tipo=>{
+    return ['FAD','FIA','RATEIO'].map(tipo=>{
       const gMOA = FRS_EMITIDAS.MOA.groups.find(g=>g.tipo===tipo);
       const gPCI = FRS_EMITIDAS.PCI.groups.find(g=>g.tipo===tipo);
       const hh = (gMOA.hh==null && gPCI.hh==null) ? null : (gMOA.hh||0)+(gPCI.hh||0);
       const rs = gMOA.rs + gPCI.rs;
       return { tipo, hh, rs };
     });
-    const totalGeral = FRS_EMITIDAS.MOA.totalGeral + FRS_EMITIDAS.PCI.totalGeral;
-    html += '<div class="fa-sub" style="margin-bottom:8px;">'+esc(FRS_EMITIDAS.PCI.obs)+' (MOA + PCI)</div>';
-    html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
-    html += '<colgroup><col style="width:150px"><col style="width:110px"><col style="width:130px"></colgroup>';
-    html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
-    combined.forEach(g=>{
-      html += '<tr><td class="ft-resp">'+esc(g.tipo)+'</td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
-    });
-    html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td class="num"></td><td class="num ft-geral">'+fmtBRL(totalGeral)+'</td></tr>';
-    html += '</table></div></div>';
-    return html;
   }
-
-  const d = FRS_EMITIDAS[proj];
-  html += '<div class="fa-sub" style="margin-bottom:8px;">'+esc(d.obs)+'</div>';
+  return FRS_EMITIDAS[proj].groups.map(g=>({ tipo:g.tipo, hh:g.hh, rs:g.rs }));
+}
+function frsTotalGeralFor(proj){
+  return proj==='GERAL' ? (FRS_EMITIDAS.MOA.totalGeral + FRS_EMITIDAS.PCI.totalGeral) : FRS_EMITIDAS[proj].totalGeral;
+}
+function frsItemsFor(proj, tipo){
+  if (proj==='GERAL'){
+    const a = FRS_EMITIDAS.MOA.groups.find(g=>g.tipo===tipo).items.map(it=>({...it, proj:'MOA'}));
+    const b = FRS_EMITIDAS.PCI.groups.find(g=>g.tipo===tipo).items.map(it=>({...it, proj:'PCI'}));
+    return [...a, ...b];
+  }
+  return FRS_EMITIDAS[proj].groups.find(g=>g.tipo===tipo).items.map(it=>({...it, proj}));
+}
+function renderFrsEmitidasHTML(proj){
+  let html = '<div class="fiscal-block">';
+  html += '<h3>FR\'S Emitidas</h3>';
+  const obs = proj==='GERAL' ? FRS_EMITIDAS.PCI.obs+' (MOA + PCI)' : FRS_EMITIDAS[proj].obs;
+  html += '<div class="fa-sub" style="margin-bottom:8px;">'+esc(obs)+'</div>';
   html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
-
-  if (condensed){
-    // versao reduzida (usada na impressao): so os subtotais FAD/FIA/RATEIO, sem o detalhe por BM
-    html += '<colgroup><col style="width:150px"><col style="width:110px"><col style="width:130px"></colgroup>';
-    html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
-    d.groups.forEach(g=>{
-      html += '<tr><td class="ft-resp">'+esc(g.tipo)+'</td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
-    });
-    html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td class="num"></td><td class="num ft-geral">'+fmtBRL(d.totalGeral)+'</td></tr>';
-  } else {
-    html += '<colgroup><col style="width:110px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:130px"></colgroup>';
-    html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">BM\'S</th><th class="ft-band">Período</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
-    d.groups.forEach(g=>{
-      html += '<tr class="sec-head"><td class="ft-resp">'+esc(g.tipo)+'</td><td></td><td></td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
-      g.items.forEach(it=>{
-        html += '<tr><td></td><td class="ft-resp">'+esc(it.bm)+'</td><td>'+esc(it.periodo)+'</td><td class="num">'+(it.hh==null?'n/a':fmtInt(it.hh))+'</td><td class="num">'+fmtBRL(it.rs)+'</td></tr>';
-      });
-    });
-    html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td></td><td></td><td class="num"></td><td class="num ft-geral">'+fmtBRL(d.totalGeral)+'</td></tr>';
-  }
-
+  html += '<colgroup><col style="width:150px"><col style="width:110px"><col style="width:130px"></colgroup>';
+  html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
+  frsGroupsFor(proj).forEach(g=>{
+    const clickable = Math.round(g.rs)!==0;
+    const rsAttrs = clickable ? ' class="num fa-detail" data-frs-tipo="'+esc(g.tipo)+'" data-frs-proj="'+esc(proj)+'" title="Duplo clique para ver o(s) BM/mes"' : ' class="num"';
+    html += '<tr><td class="ft-resp">'+esc(g.tipo)+'</td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td'+rsAttrs+'>'+fmtBRL(g.rs)+'</td></tr>';
+  });
+  html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td class="num"></td><td class="num ft-geral">'+fmtBRL(frsTotalGeralFor(proj))+'</td></tr>';
   html += '</table></div></div>';
   return html;
+}
+function openFrsModal(proj, tipo){
+  const rows = frsItemsFor(proj, tipo);
+  document.getElementById('fa-modal-title').textContent = tipo+' — '+proj;
+  document.getElementById('fa-modal-sub').textContent = 'FR\'S Emitidas — BM e período';
+  let body = '';
+  if (!rows.length){
+    body = '<div class="fiscal-empty">Nenhum BM encontrado para esse tipo.</div>';
+  } else {
+    let totHH = 0, totRS = 0, anyHH = false;
+    body = '<table><tr><th>BM</th>'+(proj==='GERAL'?'<th>Proj</th>':'')+'<th>Período</th><th class="num">HH</th><th class="num">R$</th></tr>';
+    rows.forEach(r=>{
+      if (r.hh!=null){ totHH += r.hh; anyHH = true; }
+      totRS += r.rs;
+      body += '<tr><td>'+esc(r.bm||'—')+'</td>'+(proj==='GERAL'?'<td>'+esc(r.proj)+'</td>':'')+'<td>'+esc(r.periodo||'—')+'</td><td class="num">'+(r.hh==null?'n/a':fmtInt(r.hh))+'</td><td class="num">'+fmtBRL(r.rs)+'</td></tr>';
+    });
+    body += '<tr class="fa-total"><td>Total</td>'+(proj==='GERAL'?'<td></td>':'')+'<td></td><td class="num">'+(anyHH?fmtInt(totHH):'n/a')+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
+  }
+  document.getElementById('fa-modal-body').innerHTML = body;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
 }
 
 const CHART_GREEN = '#92D050', CHART_WARN = '#E8A33D', CHART_INFO_BLUE = '#2E7BC4';
@@ -1112,6 +1119,7 @@ function closeFaModal(){ document.getElementById('fa-modal-backdrop').classList.
 document.getElementById('content').addEventListener('dblclick', e=>{
   const td = e.target.closest('td.fa-detail');
   if (!td) return;
+  if (td.dataset.frsTipo){ openFrsModal(td.dataset.frsProj, td.dataset.frsTipo); return; }
   openFaModal(td.dataset.detail, td.dataset.proj, td.dataset.col);
 });
 document.getElementById('fa-modal-close').addEventListener('click', closeFaModal);
@@ -1128,7 +1136,7 @@ function exportPDF(){
   container.innerHTML = projs.map(p => {
     const capa = p==='GERAL' ? '<div class="print-capa"><b>MOA</b> = Contrato(s) '+esc(CONTRATOS.MOA)+' &nbsp;|&nbsp; <b>PCI</b> = Contrato(s) '+esc(CONTRATOS.PCI)+'</div>' : '';
     return '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' + capa +
-      renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p, true) +
+      renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
       '</div>';
   }).join('');
   document.body.style.zoom = 1;
