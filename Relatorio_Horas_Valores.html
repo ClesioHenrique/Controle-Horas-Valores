@@ -56,21 +56,20 @@ th.cell-hh{border-right:none;}
 th.cell-mid{border-left:none;border-right:none;}
 th.cell-pct{border-left:none;}
 .total-col-head{background:var(--green);color:var(--navy);}
-td.num{text-align:center;font-variant-numeric:tabular-nums;}
+td.num{text-align:center;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;}
 td.num.hl-yellow{background:#fff59d !important;color:var(--danger) !important;font-weight:800;}
 tr.fads-row td{background:#9aa7b4;color:#0d1b2a;font-weight:800;font-size:12.5px;}
 tr.fads-row td.fads-total{background:var(--green);color:var(--navy);}
 td.item-idx{text-align:center;color:var(--text-muted);font-size:11.5px;}
 tr.sec-head td{background:#dfe6ee;font-weight:800;color:var(--navy);}
 tr.sec3 td{background:#fdeecb;}
-tr.sec3.na td{background:#fff;}
+tr.sec3.bgwhite td{background:#fff;}
 tr.total-geral td{background:var(--navy);color:#fff;font-weight:800;}
-tr.na td.num{color:var(--text-muted);font-style:italic;}
 td.obs{text-align:center;font-size:11px;font-weight:700;color:var(--text-muted);}
 tr.fia td{background:#fdeecb;}
-tr.fia.na td{background:#fff;}
+tr.fia.bgwhite td{background:#fff;}
 tr.rateio td{background:#dcebf8;}
-tr.rateio.na td{background:#fff;}
+tr.rateio.bgwhite td{background:#fff;}
 tr.sec3.blue td, tr.fia.blue td{background:#dcebf8;}
 tr.fia.darkgray td, tr.rateio.darkgray td{background:#9aa7b4;color:#0d1b2a;}
 tr.total-fiarat td{background:#b9c2cc;color:#0d1b2a;font-weight:800;}
@@ -137,8 +136,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
   tr.sep-row td{height:1px !important;}
   .title-band, .title-band-lg{font-size:8px !important;padding:1.5px 5px !important;}
   .table-wrap{overflow:visible !important;border:none;box-shadow:none;}
-  table.rep tr{page-break-inside:avoid;}
-  .chart-block, .fiscal-block{border-top:1px solid var(--border);margin-top:3px !important;padding-top:3px !important;page-break-inside:avoid;}
+  .chart-block, .fiscal-block{border-top:1px solid var(--border);margin-top:3px !important;padding-top:3px !important;}
   .fiscal-block h3{font-size:8.5px !important;margin:0 0 1px !important;}
   table.fiscal-tbl{font-size:6.3px !important;line-height:1.15 !important;}
   .freenote-block{margin-top:3px !important;padding:3px 5px !important;}
@@ -713,7 +711,7 @@ function renderTableHTML(data){
   // colgroup fixo: garante que as colunas fiquem com a mesma largura em todas as abas,
   // independente do tamanho do conteudo (nomes, numeros, observacoes) de cada uma.
   html += '<colgroup><col style="width:40px"><col style="width:210px">';
-  cols.forEach(()=>{ html += '<col style="width:52px"><col style="width:70px"><col style="width:50px">'; });
+  cols.forEach(()=>{ html += '<col style="width:56px"><col style="width:84px"><col style="width:50px">'; });
   html += '<col style="width:66px"></colgroup>';
 
   // banda titulo
@@ -788,8 +786,8 @@ function renderTableHTML(data){
   if (SELECTED_SECTIONS.has(3)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s3values[c]);
     html += '<tr class="sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCellsX(vals, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
-    html += '<tr class="sec3 na"><td class="item-idx">3.1</td><td class="desc">Aprovado - SGE</td>'+rowCellsX(data.s3sub1values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
-    html += '<tr class="sec3 na"><td class="item-idx">3.2</td><td class="desc">Medição em Andamento - SGE</td>'+rowCellsX(data.s3sub2values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="sec3 bgwhite"><td class="item-idx">3.1</td><td class="desc">Aprovado - SGE</td>'+rowCellsX(data.s3sub1values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="sec3 bgwhite"><td class="item-idx">3.2</td><td class="desc">Medição em Andamento - SGE</td>'+rowCellsX(data.s3sub2values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
     html += '<tr class="sec3 blue"><td class="item-idx">3.3</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.s3sub3values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
   }
 
@@ -807,14 +805,14 @@ function renderTableHTML(data){
     // FIA
     html += '<tr class="fia darkgray sec-head"><td class="item-idx">1</td><td class="desc">FIA - equipamentos auxiliares</td>'+rowCellsX(data.fiaTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
     FIA_ITEMS.forEach((it,i)=>{
-      html += '<tr class="fia na"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
+      html += '<tr class="fia bgwhite"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
     html += '<tr class="fia blue"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true, detail:'fia'})+obsCell(OBS_FIA)+'</tr>';
 
     // RATEIO
     html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO - Hs Mão de Obra Indireta</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
     RATEIO_ITEMS.forEach((it,i)=>{
-      html += '<tr class="rateio na"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
+      html += '<tr class="rateio bgwhite"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
     html += '<tr class="rateio"><td class="item-idx">2.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.rateioSub5values, data.rateioTotal, {noHH:true, detail:'rateio'})+obsCell(OBS_RATEIO)+'</tr>';
 
