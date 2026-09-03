@@ -94,6 +94,19 @@ table.fiscal-tbl .ft-resp{text-align:left;font-weight:700;color:var(--navy);}
 table.fiscal-tbl tr.ft-total td{font-weight:800;}
 table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);font-weight:800;}
 
+td.fa-detail{cursor:pointer;text-decoration:underline dotted var(--info-blue);text-underline-offset:2px;}
+td.fa-detail:hover{background:#eaf3fb !important;}
+.fa-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(13,27,42,.45);z-index:200;align-items:center;justify-content:center;}
+.fa-modal-backdrop.open{display:flex;}
+.fa-modal{background:var(--surface);border-radius:10px;box-shadow:0 20px 60px rgba(0,43,92,.3);width:min(420px,92vw);max-height:80vh;overflow:auto;padding:18px 20px;}
+.fa-modal h4{margin:0 0 4px;color:var(--navy);font-size:15px;}
+.fa-modal .fa-sub{font-size:12px;color:var(--text-muted);margin-bottom:12px;}
+.fa-modal table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.fa-modal th,.fa-modal td{border:1px solid var(--border);padding:6px 8px;text-align:left;}
+.fa-modal th{background:var(--navy-100);color:var(--navy);}
+.fa-modal td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.fa-modal tr.fa-total td{font-weight:800;background:var(--navy-100);}
+.fa-modal-close{float:right;border:none;background:none;font-size:18px;cursor:pointer;color:var(--text-muted);line-height:1;}
 .notes{margin-top:14px;background:var(--navy-100);border-left:4px solid var(--info-blue);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text);}
 .notes b{color:var(--navy);}
 .notes ul{margin:6px 0 0;padding-left:18px;}
@@ -149,6 +162,15 @@ table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);
 
   <div id="content"></div>
   <div id="print-content"></div>
+
+  <div class="fa-modal-backdrop" id="fa-modal-backdrop">
+    <div class="fa-modal" id="fa-modal-box">
+      <button type="button" class="fa-modal-close" id="fa-modal-close">&times;</button>
+      <h4 id="fa-modal-title"></h4>
+      <div class="fa-sub" id="fa-modal-sub"></div>
+      <div id="fa-modal-body"></div>
+    </div>
+  </div>
 
   <div class="notes">
     <b>Notas metodologicas:</b>
@@ -294,6 +316,32 @@ const RAW_RATEIO_MEDIDO = [
 {projeto:"PCI",mesano:"Mai/26",rs:2852797.0996},
 {projeto:"MOA",mesano:"Jan/26",rs:125499.01},
 {projeto:"MOA",mesano:"Abr/26",rs:151288.43}
+];
+
+/* Detalhe por No FA (coluna D) das linhas que compoem 1.5 (FIA) e 2.5 (RATEIO) — usado no
+   duplo-clique para mostrar quais FA/RATEIO especificos formam o valor daquela celula. */
+const RAW_FIA_MEDIDO_DETAIL = [
+{projeto:"MOA",mesano:"Abr/26",numfa:"FIA_579211",rs:4596.3855},
+{projeto:"MOA",mesano:"Mai/26",numfa:"FIA_579286",rs:4596.3855},
+{projeto:"MOA",mesano:"Jun/26",numfa:"FIA_579288",rs:4596.3855},
+{projeto:"MOA",mesano:"Abr/26",numfa:"FIA_579212",rs:14603.976},
+{projeto:"MOA",mesano:"Jun/26",numfa:"FIA_579289",rs:11593.287},
+{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",rs:1626133.02604},
+{projeto:"PCI",mesano:"Abr/26",numfa:"FIA_573101",rs:963071.48},
+{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_579412",rs:407379.15},
+{projeto:"PCI",mesano:"Jan/25",numfa:"FIA_432876",rs:45000},
+{projeto:"PCI",mesano:"Jun/26",numfa:"FIA_583580",rs:1305783.92999},
+{projeto:"MOA",mesano:"Mai/26",numfa:"FIA_579287",rs:11593.287},
+{projeto:"PCI",mesano:"Jun/26",numfa:"FIA_583579",rs:407379.15}
+];
+const RAW_RATEIO_MEDIDO_DETAIL = [
+{projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1394",rs:30652.7},
+{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",rs:2814746.6696},
+{projeto:"PCI",mesano:"Abr/26",numfa:"RAT_1504",rs:3268908.7865},
+{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1524",rs:38050.43},
+{projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1393",rs:94846.31},
+{projeto:"MOA",mesano:"Abr/26",numfa:"RAT_1505",rs:151288.43},
+{projeto:"PCI",mesano:"Nov/25",numfa:"RAT_1403",rs:71661.66}
 ];
 
 /* Itens 1.1-1.4 (FIA): FAD_FIA_RAT(N)="FIA", agrupado por Projeto/Situação(F)/Mês. Hoje a base só
@@ -643,7 +691,9 @@ function renderTableHTML(data){
       const v = values[c];
       const hl = (opts.hlTotal && c==='__TOTAL__') ? ' hl-yellow' : '';
       const hhText = opts.noHH ? 'n/a' : fmtInt(v.hh);
-      out += '<td class="num'+hl+'">'+hhText+'</td><td class="num'+hl+'">'+fmtBRL(v.rs)+'</td><td class="num">'+fmtPct(pctOf(v, base[c]))+'</td>';
+      const canDetail = opts.detail && Math.round(v.rs)!==0;
+      const detailAttrs = canDetail ? ' class="num'+hl+' fa-detail" data-detail="'+opts.detail+'" data-proj="'+esc(proj)+'" data-col="'+esc(c)+'" title="Duplo clique para ver o(s) numero(s) de '+(opts.detail==='fia'?'FIA':'RATEIO')+'"' : ' class="num'+hl+'"';
+      out += '<td class="num'+hl+'">'+hhText+'</td><td'+detailAttrs+'>'+fmtBRL(v.rs)+'</td><td class="num">'+fmtPct(pctOf(v, base[c]))+'</td>';
     });
     return out;
   }
@@ -699,14 +749,14 @@ function renderTableHTML(data){
     FIA_ITEMS.forEach((it,i)=>{
       html += '<tr class="fia na"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
-    html += '<tr class="fia blue"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
+    html += '<tr class="fia blue"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true, detail:'fia'})+obsCell(OBS_FIA)+'</tr>';
 
     // RATEIO
     html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO - Hs Mão de Obra Indireta</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
     RATEIO_ITEMS.forEach((it,i)=>{
       html += '<tr class="rateio na"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
-    html += '<tr class="rateio"><td class="item-idx">2.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.rateioSub5values, data.rateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
+    html += '<tr class="rateio"><td class="item-idx">2.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.rateioSub5values, data.rateioTotal, {noHH:true, detail:'rateio'})+obsCell(OBS_RATEIO)+'</tr>';
 
     // Total Geral (FIA + RATEIO)
     html += '<tr class="total-fiarat"><td class="item-idx">&nbsp;</td><td class="desc">Total Geral (FIA + RATEIO)</td>'+rowCellsX(data.fiaRateioTotal, data.totalGlobal, {noHH:true})+obsCell(null)+'</tr>';
@@ -892,6 +942,49 @@ document.addEventListener('click', ()=>{
   document.getElementById('mf-panel').classList.remove('open');
   document.getElementById('if-panel').classList.remove('open');
 });
+
+/* ---------------- Detalhe por No FA / RATEIO (duplo-clique em 1.5 / 2.5) ---------------- */
+const FA_DETAIL_SOURCE = { fia: RAW_FIA_MEDIDO_DETAIL, rateio: RAW_RATEIO_MEDIDO_DETAIL };
+const FA_DETAIL_LABEL = { fia: 'FIA', rateio: 'RATEIO' };
+function faDetailRowsFor(kind, proj, col){
+  const rows = filterProj(FA_DETAIL_SOURCE[kind], proj);
+  const inMonth = r => col==='__TOTAL__' ? DISPLAY_MONTHS.includes(r.mesano) : r.mesano===col;
+  const map = new Map();
+  rows.filter(inMonth).forEach(r=>{
+    const key = r.numfa;
+    map.set(key, (map.get(key)||0) + r.rs);
+  });
+  return Array.from(map.entries()).map(([numfa,rs])=>({numfa,rs})).sort((a,b)=> b.rs-a.rs);
+}
+function openFaModal(kind, proj, col){
+  const label = FA_DETAIL_LABEL[kind] || kind;
+  const rows = faDetailRowsFor(kind, proj, col);
+  const colLabel = col==='__TOTAL__' ? 'meses selecionados' : col;
+  document.getElementById('fa-modal-title').textContent = 'Numeros de '+label+' — '+proj;
+  document.getElementById('fa-modal-sub').textContent = 'Periodo: '+colLabel+' | Item '+(kind==='fia'?'1.5':'2.5')+' "Medido - Para emitir FR - SAP"';
+  let body = '';
+  if (!rows.length){
+    body = '<div class="fiscal-empty">Nenhum numero de '+label+' encontrado para esse periodo.</div>';
+  } else {
+    let total = 0;
+    body = '<table><tr><th>No '+label+'</th><th class="num">R$</th></tr>';
+    rows.forEach(r=>{ total += r.rs; body += '<tr><td>'+esc(r.numfa)+'</td><td class="num">'+fmtBRL(r.rs)+'</td></tr>'; });
+    body += '<tr class="fa-total"><td>Total</td><td class="num">'+fmtBRL(total)+'</td></tr></table>';
+  }
+  document.getElementById('fa-modal-body').innerHTML = body;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+}
+function closeFaModal(){ document.getElementById('fa-modal-backdrop').classList.remove('open'); }
+document.getElementById('content').addEventListener('dblclick', e=>{
+  const td = e.target.closest('td.fa-detail');
+  if (!td) return;
+  openFaModal(td.dataset.detail, td.dataset.proj, td.dataset.col);
+});
+document.getElementById('fa-modal-close').addEventListener('click', closeFaModal);
+document.getElementById('fa-modal-backdrop').addEventListener('click', e=>{
+  if (e.target.id === 'fa-modal-backdrop') closeFaModal();
+});
+document.addEventListener('keydown', e=>{ if (e.key === 'Escape') closeFaModal(); });
 
 /* ---------------- Exportar PDF (todas as abas) ---------------- */
 const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral' };
