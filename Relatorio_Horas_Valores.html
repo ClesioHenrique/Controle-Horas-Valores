@@ -118,6 +118,8 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 #print-content{display:none;}
 #print-content .print-proj-title{font-size:16px;font-weight:800;color:var(--navy);margin:0 0 10px;}
 .print-capa{font-size:11px;color:var(--navy);margin:0 0 8px;padding:6px 10px;background:var(--navy-100);border-radius:6px;}
+.geral-capa{font-size:13px;color:var(--navy);margin:0 0 12px;padding:10px 14px;background:var(--navy-100);border-left:4px solid var(--green-dark);border-radius:6px;font-weight:600;}
+.geral-capa b{color:var(--navy);}
 @page{size:landscape;margin:8mm;}
 @media print{
   body{zoom:1 !important;}
@@ -841,6 +843,11 @@ function renderFreeNoteHTML(proj){
     '<textarea id="freenote" data-proj="'+esc(proj)+'" placeholder="Digite aqui observações sobre esta aba...">'+esc(saved)+'</textarea></div>';
 }
 
+// "capa" da aba Geral: explica o que e MOA e o que e PCI, ja que essa aba soma os dois
+function renderGeralCapaHTML(){
+  return '<div class="geral-capa"><b>MOA</b> = Contrato(s) '+esc(CONTRATOS.MOA)+' &nbsp;|&nbsp; <b>PCI</b> = Contrato(s) '+esc(CONTRATOS.PCI)+'</div>';
+}
+
 function renderFiscalDetailHTML(proj){
   const mesAtual = DISPLAY_MONTHS[DISPLAY_MONTHS.length-1];
   const rows = filterProj(RAW_FISCAL_PENDENTE, proj).filter(r=>DISPLAY_MONTHS.includes(r.mesano));
@@ -975,7 +982,7 @@ function renderStatusChart(data, chartId){
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   const data = buildTable(active);
-  document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
+  document.getElementById('content').innerHTML = (active==='GERAL' ? renderGeralCapaHTML() : '') + renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
   updateMonthFilterSummary();
   updateItemFilterSummary();
   renderStatusChart(data);
