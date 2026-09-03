@@ -129,20 +129,22 @@ td.fa-detail:hover{background:#eaf3fb !important;}
   #print-content{display:block !important;}
   #print-content .print-page{page-break-after:always;padding-top:2px;}
   #print-content .print-page:last-child{page-break-after:auto;}
+  /* forca o mesmo tamanho de fonte em TUDO dentro da area de impressao, em vez de contar com
+     heranca (varias classes tem font-size proprio e nao seriam sobrescritas so pelo <table>) */
+  #print-content, #print-content *{font-size:6.3px !important;line-height:1.15 !important;}
   #print-content .print-proj-title{font-size:10px !important;margin:0 0 2px !important;}
-  table.rep{min-width:0 !important;font-size:6.3px !important;line-height:1.15 !important;}
+  #print-content .title-band, #print-content .title-band-lg{font-size:8px !important;padding:1.5px 5px !important;}
+  #print-content .fiscal-block h3{font-size:8.5px !important;margin:0 0 1px !important;}
+  #print-content th.grp-head{white-space:nowrap !important;}
+  table.rep{min-width:0 !important;}
   table.rep th, table.rep td{padding:0.5px 2px !important;}
-  th.grp-head{font-size:6px !important;white-space:nowrap !important;}
   tr.sep-row td{height:1px !important;}
-  .title-band, .title-band-lg{font-size:8px !important;padding:1.5px 5px !important;}
   .table-wrap{overflow:visible !important;border:none;box-shadow:none;}
   .chart-block, .fiscal-block{border-top:1px solid var(--border);margin-top:3px !important;padding-top:3px !important;}
-  .fiscal-block h3{font-size:8.5px !important;margin:0 0 1px !important;}
-  table.fiscal-tbl{font-size:6.3px !important;line-height:1.15 !important;}
   .freenote-block{margin-top:3px !important;padding:3px 5px !important;}
-  .freenote-block label{font-size:7px !important;margin-bottom:1px !important;}
-  .freenote-block textarea{min-height:12px !important;font-size:6.3px !important;padding:1px 3px !important;}
-  .fa-sub{font-size:7px !important;margin-bottom:1px !important;}
+  .freenote-block label{margin-bottom:1px !important;}
+  .freenote-block textarea{min-height:12px !important;padding:1px 3px !important;}
+  .fa-sub{margin-bottom:1px !important;}
 }
 </style>
 </head>
