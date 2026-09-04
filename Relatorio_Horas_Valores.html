@@ -208,7 +208,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
       <li><b>Item 1.5 "Medido - Para emitir FR - SAP" (FIA):</b> Situacao(F)="Medida" + Faturado SIM ou NAO(AB)="Nao faturado". <b>Item 2.5 (RATEIO):</b> Situacao(F)="Concluido" + Faturado SIM ou NAO(AB)="Nao faturado" (equivalente ao "Medida" da FIA/FAD, ja que "Concluido" e o status final da RATEIO). Itens <b>1.1-1.4</b> e <b>2.1-2.4</b> seguem o mesmo principio de 3.1/3.2 — casam pelo texto exato da Situacao — mas hoje a base so tem "Medida" p/ FIA e "Aprovacao"/"Cancelado-Reprovado"/"Concluido" p/ RATEIO, entao aparecem zerados ate a base trazer esses status com o texto exato.</li>
       <li><b>(%) do bloco FIA/RATEIO:</b> os subitens (1.1-1.5 / 2.1-2.5) sao % do total da <b>propria</b> secao (FIA ou RATEIO); as linhas "1 FIA" e "2 RATEIO" sao % do "Total Geral (FIA + RATEIO)"; e "Total Geral (FIA+RATEIO)" e "Total Medido" sao % do "Total Global (FADS FIA &amp; RATEIO)".</li>
       <li><b>Linha "Total Medido - Para emitir FR"</b> (destaque azul) = soma de todas as linhas "Medido - Para emitir FR - SAP" do relatorio (3.3 do FAD + 1.5 da FIA + 2.5 do RATEIO) — o total pronto para faturar (FR liberada).</li>
-      <li>Nos itens <b>1.5 (FIA)</b> e <b>2.5 (RATEIO)</b>, valores diferentes de zero aceitam <b>duplo-clique</b> no R$ para abrir a lista dos numeros de FIA/RATEIO (coluna "Nº FA" da aba FAD_FIA &amp; RATEIO) que compoem aquele total. O item <b>3.3 (FAD)</b> tambem aceita duplo-clique, mostrando o "Nº Med." (coluna G) e o "Nº SAP Med." (coluna H, tratado aqui como FR) de cada medicao.</li>
+      <li>Nos itens <b>1.5 (FIA)</b> e <b>2.5 (RATEIO)</b>, valores diferentes de zero aceitam <b>duplo-clique</b> no R$ para abrir a lista dos numeros de FIA/RATEIO (coluna "Nº FA") junto com o "Nº SAP Med." (coluna H, tratado aqui como FR) de cada um — quando a base ainda nao tem esse numero preenchido aparece "—". O item <b>3.3 (FAD)</b> tambem aceita duplo-clique, mostrando o "Nº Med." (coluna G) e o "Nº SAP Med." (coluna H) de cada medicao.</li>
       <li><b>"FR'S Emitidas"</b> vem da aba homonima da planilha (montada manualmente pelo usuario) — mostra o resumo por FAD/FIA/RATEIO (valores ja emitidos/faturados) nas tres abas, inclusive na Geral (combinado MOA + PCI). <b>Duplo-clique</b> no R$ de uma linha abre o detalhe por BM e periodo daquele tipo.</li>
       <li><b>Coluna "Observações"</b> (Techint/Usiminas) indica a responsabilidade de cada etapa, com base no print de referencia. Para a Secao 1 ("Apresentou pendência") nao havia exemplo no print — assumi "TECHINT" por serem etapas internas de cadastro/regularizacao; ajuste se estiver incorreto.</li>
     </ul>
@@ -335,13 +335,9 @@ const RAW_MEDIDO_FR_DETAIL = [
 /* Item 1.5 "Medido - Para emitir FR - SAP" (FIA): FAD_FIA_RAT(N)="FIA" + Situação(F)="Medida"
    + Faturado SIM ou NÃO(AB)="Não faturado". */
 const RAW_FIA_MEDIDO = [
-{projeto:"MOA",mesano:"Abr/26",rs:19200.3615},
 {projeto:"PCI",mesano:"Jan/25",rs:45000},
-{projeto:"PCI",mesano:"Jun/26",rs:1713163.07999},
 {projeto:"PCI",mesano:"Mai/26",rs:2033512.17604},
-{projeto:"PCI",mesano:"Abr/26",rs:963071.48},
-{projeto:"MOA",mesano:"Mai/26",rs:16189.6725},
-{projeto:"MOA",mesano:"Jun/26",rs:16189.6725}
+{projeto:"PCI",mesano:"Abr/26",rs:963071.48}
 ];
 
 /* Item 2.5 "Medido - Para emitir FR - SAP" (RATEIO): FAD_FIA_RAT(N)="RAT" + Situação(F)="Concluído"
@@ -356,28 +352,26 @@ const RAW_RATEIO_MEDIDO = [
 
 /* Detalhe por No FA (coluna D) das linhas que compoem 1.5 (FIA) e 2.5 (RATEIO) — usado no
    duplo-clique para mostrar quais FA/RATEIO especificos formam o valor daquela celula. */
+/* Reconsultado em 04/09/2026 junto com o Nº SAP Med. (coluna H, tratado como FR): a base mudou
+   desde a extracao original e o MOA nao tem mais linhas de FIA Medida/Nao-faturado (item 1.5
+   do MOA ficou zerado). RAW_FIA_MEDIDO abaixo foi atualizado para bater com esse detalhe. */
 const RAW_FIA_MEDIDO_DETAIL = [
-{projeto:"MOA",mesano:"Abr/26",numfa:"FIA_579211",rs:4596.3855},
-{projeto:"MOA",mesano:"Mai/26",numfa:"FIA_579286",rs:4596.3855},
-{projeto:"MOA",mesano:"Jun/26",numfa:"FIA_579288",rs:4596.3855},
-{projeto:"MOA",mesano:"Abr/26",numfa:"FIA_579212",rs:14603.976},
-{projeto:"MOA",mesano:"Jun/26",numfa:"FIA_579289",rs:11593.287},
-{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",rs:1626133.02604},
-{projeto:"PCI",mesano:"Abr/26",numfa:"FIA_573101",rs:963071.48},
-{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_579412",rs:407379.15},
-{projeto:"PCI",mesano:"Jan/25",numfa:"FIA_432876",rs:45000},
-{projeto:"PCI",mesano:"Jun/26",numfa:"FIA_583580",rs:1305783.92999},
-{projeto:"MOA",mesano:"Mai/26",numfa:"FIA_579287",rs:11593.287},
-{projeto:"PCI",mesano:"Jun/26",numfa:"FIA_583579",rs:407379.15}
+{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_579412",numsapmed:"1013174971",rs:407379.15},
+{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",numsapmed:"1013183016",rs:476909.55128},
+{projeto:"PCI",mesano:"Jan/25",numfa:"FIA_432876",numsapmed:"1012286773",rs:45000},
+{projeto:"PCI",mesano:"Abr/26",numfa:"FIA_573101",numsapmed:"1013120669",rs:963071.48},
+{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",numsapmed:"1013183014",rs:229361.14},
+{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",numsapmed:"1013183015",rs:7339.03426},
+{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",numsapmed:"1013183017",rs:912523.3005}
 ];
 const RAW_RATEIO_MEDIDO_DETAIL = [
-{projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1394",rs:30652.7},
-{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",rs:2814746.6696},
-{projeto:"PCI",mesano:"Abr/26",numfa:"RAT_1504",rs:3268908.7865},
-{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1524",rs:38050.43},
-{projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1393",rs:94846.31},
-{projeto:"MOA",mesano:"Abr/26",numfa:"RAT_1505",rs:151288.43},
-{projeto:"PCI",mesano:"Nov/25",numfa:"RAT_1403",rs:71661.66}
+{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",numsapmed:"1013249294",rs:273217.11},
+{projeto:"PCI",mesano:"Nov/25",numfa:"RAT_1403",numsapmed:"1012912104",rs:71661.66},
+{projeto:"PCI",mesano:"Abr/26",numfa:"RAT_1504",numsapmed:"1013172275",rs:3268908.7865},
+{projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1394",numsapmed:"",rs:30652.7},
+{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",numsapmed:"",rs:2541529.5596},
+{projeto:"MOA",mesano:"Abr/26",numfa:"RAT_1505",numsapmed:"1013172273",rs:151288.43},
+{projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1393",numsapmed:"",rs:94846.31}
 ];
 
 /* Aba "FR'S emitidas" (montada manualmente pelo usuario): valores de FR ja emitidos/faturados,
@@ -1100,10 +1094,12 @@ function faDetailRowsFor(kind, proj, col){
   const inMonth = r => col==='__TOTAL__' ? DISPLAY_MONTHS.includes(r.mesano) : r.mesano===col;
   const map = new Map();
   rows.filter(inMonth).forEach(r=>{
-    const key = r.numfa;
-    map.set(key, (map.get(key)||0) + r.rs);
+    const key = r.numfa+'|'+(r.numsapmed||'');
+    const cur = map.get(key) || {numfa:r.numfa, numsapmed:r.numsapmed||'', rs:0};
+    cur.rs += r.rs;
+    map.set(key, cur);
   });
-  return Array.from(map.entries()).map(([numfa,rs])=>({numfa,rs})).sort((a,b)=> b.rs-a.rs);
+  return Array.from(map.values()).sort((a,b)=> b.rs-a.rs);
 }
 function fadDetailRowsFor(proj, col){
   const rows = filterProj(RAW_MEDIDO_FR_DETAIL, proj);
@@ -1148,9 +1144,9 @@ function openFaModal(kind, proj, col){
     body = '<div class="fiscal-empty">Nenhum numero de '+label+' encontrado para esse periodo.</div>';
   } else {
     let total = 0;
-    body = '<table><tr><th>No '+label+'</th><th class="num">R$</th></tr>';
-    rows.forEach(r=>{ total += r.rs; body += '<tr><td>'+esc(r.numfa)+'</td><td class="num">'+fmtBRL(r.rs)+'</td></tr>'; });
-    body += '<tr class="fa-total"><td>Total</td><td class="num">'+fmtBRL(total)+'</td></tr></table>';
+    body = '<table><tr><th>No '+label+'</th><th>Nº SAP Med. (FR)</th><th class="num">R$</th></tr>';
+    rows.forEach(r=>{ total += r.rs; body += '<tr><td>'+esc(r.numfa)+'</td><td>'+(r.numsapmed?esc(r.numsapmed):'—')+'</td><td class="num">'+fmtBRL(r.rs)+'</td></tr>'; });
+    body += '<tr class="fa-total"><td>Total</td><td></td><td class="num">'+fmtBRL(total)+'</td></tr></table>';
   }
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
