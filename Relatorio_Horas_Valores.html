@@ -28,6 +28,16 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 
 .toolbar{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
 .update-date-box{display:inline-flex;align-items:center;gap:8px;width:fit-content;margin-bottom:16px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);font-size:12.5px;font-weight:700;color:var(--navy);}
+.kpi-strip{display:inline-flex;gap:10px;flex-wrap:wrap;vertical-align:top;margin:0 0 16px 12px;}
+.kpi-card{display:flex;align-items:center;gap:10px;min-width:150px;padding:8px 14px;background:linear-gradient(135deg,var(--surface),var(--navy-100));border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);}
+.kpi-card .kpi-icon{font-size:20px;line-height:1;}
+.kpi-card .kpi-label{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;}
+.kpi-card .kpi-value{font-size:16px;font-weight:800;color:var(--navy);white-space:nowrap;}
+.kpi-card .kpi-sub{font-size:10.5px;font-weight:700;margin-top:1px;}
+.kpi-card.kpi-green{border-left:4px solid var(--green-dark);}
+.kpi-card.kpi-blue{border-left:4px solid var(--info-blue);}
+.kpi-card.kpi-navy{border-left:4px solid var(--navy);}
+.kpi-card.kpi-warn{border-left:4px solid var(--warn);}
 .update-date-box input[type=date]{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12.5px;color:var(--text);font-family:inherit;}
 .month-filter, .item-filter{position:relative;}
 .mf-toggle, .if-toggle{padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--navy);font-weight:700;font-size:13px;cursor:pointer;box-shadow:var(--shadow);}
@@ -123,7 +133,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
   *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;}
   html, body, .app, .update-date-box{background:#fff !important;}
   .update-date-box{border-color:#fff !important;box-shadow:none !important;}
-  .toolbar, .notes, .header, .update-date-box{display:none !important;}
+  .toolbar, .notes, .header, .update-date-box, .kpi-strip{display:none !important;}
   .sticky-topbar{position:static !important;box-shadow:none !important;}
   #content{display:none !important;}
   #print-content{display:block !important;}
@@ -180,6 +190,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
     <label for="update-date">Data de atualização:</label>
     <input type="date" id="update-date">
   </div>
+  <div class="kpi-strip" id="kpi-strip"></div>
   </div>
 
   <div id="content"></div>
@@ -992,10 +1003,28 @@ function renderStatusChart(data, chartId){
   }, { displaylogo:false, responsive:true });
 }
 
+function renderKpiStrip(proj, data){
+  const totalGlobalRS = data.totalGlobal['__TOTAL__'].rs;
+  const totalHH = data.totalGeral['__TOTAL__'].hh;
+  const medidoFR = data.totalMedidoFR['__TOTAL__'];
+  const pctPronto = pctOf(medidoFR, data.totalGlobal['__TOTAL__']);
+  const frsEmitido = frsTotalGeralFor(proj);
+  const cards = [
+    { icon:'💰', cls:'kpi-navy', label:'Total Geral', value:'R$ '+fmtBRL(totalGlobalRS) },
+    { icon:'⏱️', cls:'kpi-blue', label:'Total HH', value:fmtInt(totalHH) },
+    { icon:'✅', cls:'kpi-green', label:'Pronto p/ Faturar', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' },
+    { icon:'📄', cls:'kpi-warn', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido) }
+  ];
+  return cards.map(c=>
+    '<div class="kpi-card '+c.cls+'"><div class="kpi-icon">'+c.icon+'</div><div><div class="kpi-label">'+esc(c.label)+'</div><div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
+  ).join('');
+}
+
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   const data = buildTable(active);
   document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
+  document.getElementById('kpi-strip').innerHTML = renderKpiStrip(active, data);
   updateMonthFilterSummary();
   updateItemFilterSummary();
   renderStatusChart(data);
