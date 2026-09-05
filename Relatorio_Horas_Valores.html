@@ -42,7 +42,13 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .kpi-chart-card{background:linear-gradient(180deg,var(--surface),var(--navy-100) 260%);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px 6px;}
 .kpi-chart-card h4{margin:0 0 2px;font-size:13.5px;color:var(--navy);}
 .kpi-chart-card .kpi-chart-sub{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
-.kpi-chart-box{width:100%;height:230px;}
+.donut-row{display:flex;align-items:center;gap:14px;margin-top:4px;}
+.donut-ring{width:150px;height:150px;flex:0 0 150px;}
+.donut-legend{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;}
+.donut-legend-item{display:flex;align-items:center;gap:8px;}
+.donut-dot{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
+.donut-legend-text .lbl{font-weight:800;color:var(--navy);font-size:12.5px;}
+.donut-legend-text .val{font-size:11px;color:var(--text-muted);}
 .update-date-box input[type=date]{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12.5px;color:var(--text);font-family:inherit;}
 .month-filter, .item-filter{position:relative;}
 .mf-toggle, .if-toggle{padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--navy);font-weight:700;font-size:13px;cursor:pointer;box-shadow:var(--shadow);}
@@ -1009,52 +1015,59 @@ function renderStatusChart(data, chartId){
 }
 
 function chartsPanelHTML(){
+  const donutBlock = (title, sub, ringId, legendId) =>
+    '<div class="kpi-chart-card"><h4>'+title+'</h4><div class="kpi-chart-sub">'+sub+'</div>'+
+    '<div class="donut-row"><div id="'+ringId+'" class="donut-ring"></div><div id="'+legendId+'" class="donut-legend"></div></div></div>';
   return '<div class="kpi-charts-panel">'+
-    '<div class="kpi-chart-card"><h4>Distribuição por Status</h4><div class="kpi-chart-sub">% do valor (R$) — Total Geral "FADS"</div><div id="donut-status" class="kpi-chart-box"></div></div>'+
-    '<div class="kpi-chart-card"><h4>FAD / FIA / RATEIO</h4><div class="kpi-chart-sub">Participação de cada frente — Total Global</div><div id="donut-category" class="kpi-chart-box"></div></div>'+
-    '<div class="kpi-chart-card"><h4>Pipeline de Faturamento</h4><div class="kpi-chart-sub">Emitido, pronto e em processo — Total Global</div><div id="donut-pipeline" class="kpi-chart-box"></div></div>'+
+    donutBlock('Distribuição por Status', '% do valor (R$) — Total Geral "FADS"', 'donut-status-ring', 'donut-status-legend')+
+    donutBlock('FAD / FIA / RATEIO', 'Participação de cada frente — Total Global', 'donut-category-ring', 'donut-category-legend')+
+    donutBlock('Pipeline de Faturamento', 'Emitido, pronto e em processo — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
     '</div>';
+}
+function renderDonutCard(ringId, legendId, labels, values, colors, centerBig, centerSmall){
+  Plotly.newPlot(ringId, [{
+    type:'pie', hole:.72, sort:false,
+    labels, values,
+    marker:{colors, line:{color:'#fff', width:3}},
+    textinfo:'none', hovertemplate:'%{label}: R$ %{value:,.0f}<extra></extra>'
+  }], {
+    margin:{t:0,b:0,l:0,r:0}, showlegend:false, height:150, width:150,
+    annotations:[
+      {text:'<b>'+esc(centerBig)+'</b>', showarrow:false, y:0.56, font:{size:21, color:'#1b2733', family:'Segoe UI'}},
+      {text:esc(centerSmall), showarrow:false, y:0.36, font:{size:9.5, color:'#647184', family:'Segoe UI'}}
+    ]
+  }, {displaylogo:false, staticPlot:true});
+
+  const total = values.reduce((a,b)=>a+b,0);
+  document.getElementById(legendId).innerHTML = labels.map((l,i)=>{
+    const pct = total ? (values[i]/total*100) : 0;
+    return '<div class="donut-legend-item"><span class="donut-dot" style="background:'+colors[i]+'"></span>'+
+      '<div class="donut-legend-text"><div class="lbl">'+esc(l)+'</div><div class="val">R$ '+fmtBRL(values[i])+' ('+fmtPct(pct/100)+')</div></div></div>';
+  }).join('');
 }
 function renderChartsPanel(proj, data){
   const t = data.totalGeral['__TOTAL__'];
   const s1 = SELECTED_SECTIONS.has(1) ? data.s1values['__TOTAL__'].total.rs : 0;
   const s2 = SELECTED_SECTIONS.has(2) ? data.s2values['__TOTAL__'].total.rs : 0;
   const s3 = SELECTED_SECTIONS.has(3) ? data.s3values['__TOTAL__'].rs : 0;
-  const donutLayout = (centerText)=>({
-    margin:{t:6,b:6,l:6,r:6}, showlegend:true, legend:{orientation:'h', y:-0.15, font:{size:10.5}},
-    font:{family:'Segoe UI', size:11.5}, height:230,
-    annotations:[{text:centerText, showarrow:false, font:{size:13.5, color:'#0A3B70', family:'Segoe UI'}}]
-  });
-  Plotly.newPlot('donut-status', [{
-    type:'pie', hole:.62,
-    labels:['1 - Apresentou pendência','2 - Carregamento no SGE','3 - Aprovado'],
-    values:[s1,s2,s3],
-    marker:{colors:[CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], line:{color:'#fff', width:2}},
-    textinfo:'percent', hovertemplate:'%{label}: R$ %{value:,.0f}<extra></extra>'
-  }], donutLayout('R$ '+fmtBRL(t.rs)), {displaylogo:false, responsive:true});
+  renderDonutCard('donut-status-ring', 'donut-status-legend',
+    ['1 - Apresentou pendência','2 - Carregamento no SGE','3 - Aprovado'], [s1,s2,s3],
+    [CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], fmtBRL(t.rs), 'R$ Total FADS');
 
   const fadRS = t.rs;
   const fiaRS = data.fiaTotal['__TOTAL__'].rs;
   const rateioRS = data.rateioTotal['__TOTAL__'].rs;
-  Plotly.newPlot('donut-category', [{
-    type:'pie', hole:.62,
-    labels:['FAD','FIA','RATEIO'],
-    values:[fadRS, fiaRS, rateioRS],
-    marker:{colors:[CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], line:{color:'#fff', width:2}},
-    textinfo:'percent', hovertemplate:'%{label}: R$ %{value:,.0f}<extra></extra>'
-  }], donutLayout('R$ '+fmtBRL(fadRS+fiaRS+rateioRS)), {displaylogo:false, responsive:true});
+  renderDonutCard('donut-category-ring', 'donut-category-legend',
+    ['FAD','FIA','RATEIO'], [fadRS, fiaRS, rateioRS],
+    [CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global');
 
   const emitido = frsTotalGeralFor(proj);
   const pronto = data.totalMedidoFR['__TOTAL__'].rs;
   const totalG = data.totalGlobal['__TOTAL__'].rs;
   const restante = Math.max(0, totalG - emitido - pronto);
-  Plotly.newPlot('donut-pipeline', [{
-    type:'pie', hole:.62,
-    labels:['Já Emitido (FR)','Pronto p/ Faturar','Em processo'],
-    values:[emitido, pronto, restante],
-    marker:{colors:['#0A3B70', CHART_GREEN, CHART_WARN], line:{color:'#fff', width:2}},
-    textinfo:'percent', hovertemplate:'%{label}: R$ %{value:,.0f}<extra></extra>'
-  }], donutLayout('R$ '+fmtBRL(totalG)), {displaylogo:false, responsive:true});
+  renderDonutCard('donut-pipeline-ring', 'donut-pipeline-legend',
+    ['Já Emitido (FR)','Pronto p/ Faturar','Em processo'], [emitido, pronto, restante],
+    ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global');
 }
 
 function renderKpiStrip(proj, data){
