@@ -38,6 +38,11 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .kpi-card.kpi-blue{border-left:4px solid var(--info-blue);}
 .kpi-card.kpi-navy{border-left:4px solid var(--navy);}
 .kpi-card.kpi-warn{border-left:4px solid var(--warn);}
+.kpi-charts-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:22px;}
+.kpi-chart-card{background:linear-gradient(180deg,var(--surface),var(--navy-100) 260%);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px 6px;}
+.kpi-chart-card h4{margin:0 0 2px;font-size:13.5px;color:var(--navy);}
+.kpi-chart-card .kpi-chart-sub{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
+.kpi-chart-box{width:100%;height:230px;}
 .update-date-box input[type=date]{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12.5px;color:var(--text);font-family:inherit;}
 .month-filter, .item-filter{position:relative;}
 .mf-toggle, .if-toggle{padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--navy);font-weight:700;font-size:13px;cursor:pointer;box-shadow:var(--shadow);}
@@ -1003,6 +1008,55 @@ function renderStatusChart(data, chartId){
   }, { displaylogo:false, responsive:true });
 }
 
+function chartsPanelHTML(){
+  return '<div class="kpi-charts-panel">'+
+    '<div class="kpi-chart-card"><h4>Distribuição por Status</h4><div class="kpi-chart-sub">% do valor (R$) — Total Geral "FADS"</div><div id="donut-status" class="kpi-chart-box"></div></div>'+
+    '<div class="kpi-chart-card"><h4>FAD / FIA / RATEIO</h4><div class="kpi-chart-sub">Participação de cada frente — Total Global</div><div id="donut-category" class="kpi-chart-box"></div></div>'+
+    '<div class="kpi-chart-card"><h4>Pipeline de Faturamento</h4><div class="kpi-chart-sub">Emitido, pronto e em processo — Total Global</div><div id="donut-pipeline" class="kpi-chart-box"></div></div>'+
+    '</div>';
+}
+function renderChartsPanel(proj, data){
+  const t = data.totalGeral['__TOTAL__'];
+  const s1 = SELECTED_SECTIONS.has(1) ? data.s1values['__TOTAL__'].total.rs : 0;
+  const s2 = SELECTED_SECTIONS.has(2) ? data.s2values['__TOTAL__'].total.rs : 0;
+  const s3 = SELECTED_SECTIONS.has(3) ? data.s3values['__TOTAL__'].rs : 0;
+  const donutLayout = (centerText)=>({
+    margin:{t:6,b:6,l:6,r:6}, showlegend:true, legend:{orientation:'h', y:-0.15, font:{size:10.5}},
+    font:{family:'Segoe UI', size:11.5}, height:230,
+    annotations:[{text:centerText, showarrow:false, font:{size:13.5, color:'#0A3B70', family:'Segoe UI'}}]
+  });
+  Plotly.newPlot('donut-status', [{
+    type:'pie', hole:.62,
+    labels:['1 - Apresentou pendência','2 - Carregamento no SGE','3 - Aprovado'],
+    values:[s1,s2,s3],
+    marker:{colors:[CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], line:{color:'#fff', width:2}},
+    textinfo:'percent', hovertemplate:'%{label}: R$ %{value:,.0f}<extra></extra>'
+  }], donutLayout('R$ '+fmtBRL(t.rs)), {displaylogo:false, responsive:true});
+
+  const fadRS = t.rs;
+  const fiaRS = data.fiaTotal['__TOTAL__'].rs;
+  const rateioRS = data.rateioTotal['__TOTAL__'].rs;
+  Plotly.newPlot('donut-category', [{
+    type:'pie', hole:.62,
+    labels:['FAD','FIA','RATEIO'],
+    values:[fadRS, fiaRS, rateioRS],
+    marker:{colors:[CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], line:{color:'#fff', width:2}},
+    textinfo:'percent', hovertemplate:'%{label}: R$ %{value:,.0f}<extra></extra>'
+  }], donutLayout('R$ '+fmtBRL(fadRS+fiaRS+rateioRS)), {displaylogo:false, responsive:true});
+
+  const emitido = frsTotalGeralFor(proj);
+  const pronto = data.totalMedidoFR['__TOTAL__'].rs;
+  const totalG = data.totalGlobal['__TOTAL__'].rs;
+  const restante = Math.max(0, totalG - emitido - pronto);
+  Plotly.newPlot('donut-pipeline', [{
+    type:'pie', hole:.62,
+    labels:['Já Emitido (FR)','Pronto p/ Faturar','Em processo'],
+    values:[emitido, pronto, restante],
+    marker:{colors:['#0A3B70', CHART_GREEN, CHART_WARN], line:{color:'#fff', width:2}},
+    textinfo:'percent', hovertemplate:'%{label}: R$ %{value:,.0f}<extra></extra>'
+  }], donutLayout('R$ '+fmtBRL(totalG)), {displaylogo:false, responsive:true});
+}
+
 function renderKpiStrip(proj, data){
   const totalGlobalRS = data.totalGlobal['__TOTAL__'].rs;
   const totalHH = data.totalGeral['__TOTAL__'].hh;
@@ -1023,10 +1077,11 @@ function renderKpiStrip(proj, data){
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   const data = buildTable(active);
-  document.getElementById('content').innerHTML = renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
+  document.getElementById('content').innerHTML = chartsPanelHTML() + renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
   document.getElementById('kpi-strip').innerHTML = renderKpiStrip(active, data);
   updateMonthFilterSummary();
   updateItemFilterSummary();
+  renderChartsPanel(active, data);
   renderStatusChart(data);
   const note = document.getElementById('freenote');
   if (note){
