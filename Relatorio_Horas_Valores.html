@@ -148,32 +148,39 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 
 #print-content{display:none;}
 #print-content .print-proj-title{font-size:16px;font-weight:800;color:var(--navy);margin:0 0 10px;}
-@page{size:landscape;margin:8mm;}
+@page{size:landscape;margin:6mm;}
 @media print{
   body{zoom:1 !important;}
-  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
   html, body, .app, .update-date-box{background:#fff !important;}
   .update-date-box{border-color:#fff !important;box-shadow:none !important;}
   .toolbar, .notes, .header, .update-date-box, .kpi-strip{display:none !important;}
   .sticky-topbar{position:static !important;box-shadow:none !important;}
   #content{display:none !important;}
   #print-content{display:block !important;}
-  #print-content .print-page{page-break-after:always;padding-top:2px;}
-  #print-content .print-page:last-child{page-break-after:auto;}
+  #print-content .print-page{padding-top:2px;}
+  #print-content .print-page:not(:last-child){page-break-after:always;}
   /* forca o mesmo tamanho de fonte em TUDO dentro da area de impressao, em vez de contar com
-     heranca (varias classes tem font-size proprio e nao seriam sobrescritas so pelo <table>) */
-  #print-content, #print-content *{font-size:7.2px !important;line-height:1.25 !important;}
-  #print-content .print-proj-title{font-size:11px !important;margin:0 0 4px !important;}
-  #print-content .title-band{font-size:9.5px !important;padding:3px 6px !important;}
-  #print-content .title-band-lg{font-size:10.5px !important;padding:3px 6px !important;}
-  #print-content .fiscal-block h3{font-size:9.5px !important;margin:0 0 3px !important;}
+     heranca (varias classes tem font-size proprio e nao seriam sobrescritas so pelo <table>).
+     Tamanho maior que antes (era 7.2px) para ficar nitido — as colunas da tabela (ver W em
+     renderTableHTML) foram estreitadas no modo impressao para compensar e continuar cabendo
+     na largura da folha paisagem. */
+  #print-content, #print-content *{font-size:8.6px !important;line-height:1.3 !important;}
+  #print-content .print-proj-title{font-size:12px !important;margin:0 0 4px !important;}
+  #print-content .title-band{font-size:10px !important;padding:3px 6px !important;}
+  #print-content .title-band-lg{font-size:11px !important;padding:3px 6px !important;}
+  #print-content .fiscal-block h3{font-size:10px !important;margin:0 0 3px !important;}
   #print-content th.grp-head{white-space:nowrap !important;}
-  table.rep{min-width:0 !important;}
-  table.rep th, table.rep td{padding:1.5px 3.5px !important;}
+  table.rep{min-width:0 !important;width:auto !important;}
+  table.rep thead{display:table-header-group;}
+  table.rep th, table.rep td{padding:2px 4px !important;}
+  table.rep tr{break-inside:avoid;page-break-inside:avoid;}
   tr.sep-row td{height:2px !important;}
   .table-wrap{overflow:visible !important;border:none;box-shadow:none;}
-  .chart-block, .fiscal-block{border-top:1px solid var(--border);margin-top:4px !important;padding-top:4px !important;}
-  .freenote-block{margin-top:4px !important;padding:4px 6px !important;}
+  .chart-block, .fiscal-block{border-top:1px solid var(--border);margin-top:5px !important;padding-top:5px !important;break-inside:avoid;page-break-inside:avoid;}
+  .fiscal-block table.rep tr{break-inside:avoid;page-break-inside:avoid;}
+  .freenote-block{margin-top:5px !important;padding:4px 6px !important;break-inside:avoid;page-break-inside:avoid;}
   .freenote-block label{margin-bottom:1px !important;}
   .freenote-block textarea{min-height:16px !important;padding:1.5px 3px !important;}
   .fa-sub{margin-bottom:2px !important;}
@@ -734,16 +741,26 @@ function buildTable(proj){
   };
 }
 
-function renderTableHTML(data){
+function renderTableHTML(data, printMode){
   const { proj, cols } = data;
   const nCols = 2 + cols.length*3 + 1;
+  // no modo impressao as colunas ficam um pouco mais estreitas para o total da tabela
+  // caber com folga na largura util da pagina paisagem (evita o navegador "encolher" a
+  // pagina inteira pra caber, o que deixa as letras borradas).
+  const W = printMode
+    ? {item:36, desc:195, hh:44, rs:68, pct:40, obs:54}
+    : {item:40, desc:195, hh:56, rs:84, pct:50, obs:66};
   let html = '<div class="table-wrap"><table class="rep">';
 
   // colgroup fixo: garante que as colunas fiquem com a mesma largura em todas as abas,
   // independente do tamanho do conteudo (nomes, numeros, observacoes) de cada uma.
-  html += '<colgroup><col style="width:40px"><col style="width:195px">';
-  cols.forEach(()=>{ html += '<col style="width:56px"><col style="width:84px"><col style="width:50px">'; });
-  html += '<col style="width:66px"></colgroup>';
+  html += '<colgroup><col style="width:'+W.item+'px"><col style="width:'+W.desc+'px">';
+  cols.forEach(()=>{ html += '<col style="width:'+W.hh+'px"><col style="width:'+W.rs+'px"><col style="width:'+W.pct+'px">'; });
+  html += '<col style="width:'+W.obs+'px"></colgroup>';
+
+  // cabecalho (banda titulo + linhas de mes/HH-R$-%) num <thead> para repetir em cada
+  // pagina impressa, caso a tabela de uma aba precise quebrar em mais de uma pagina.
+  html += '<thead>';
 
   // banda titulo
   html += '<tr><td class="title-band title-band-lg" colspan="'+nCols+'">'+esc(proj)+'_'+esc(CONTRATOS[proj])+'<span class="gen">Atualizado em '+esc(getUpdateDateStr())+'</span></td></tr>';
@@ -761,6 +778,7 @@ function renderTableHTML(data){
     html += '<th class="'+cls+' cell-hh">HH</th><th class="'+cls+' cell-mid">R$</th><th class="'+cls+' cell-pct">(%)</th>';
   });
   html += '</tr>';
+  html += '</thead><tbody>';
 
   // espacinho entre o cabecalho e a banda "FADS"
   html += '<tr class="sep-row"><td colspan="'+nCols+'"></td></tr>';
@@ -864,7 +882,7 @@ function renderTableHTML(data){
     }
   }
 
-  html += '</table></div>';
+  html += '</tbody></table></div>';
   return html;
 }
 
@@ -1290,7 +1308,7 @@ function exportPDF(){
   const container = document.getElementById('print-content');
   container.innerHTML = projs.map(p => {
     return '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
-      renderTableHTML(buildTable(p)) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
+      renderTableHTML(buildTable(p), true) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
       '</div>';
   }).join('');
   document.body.style.zoom = 1;
