@@ -15,6 +15,15 @@
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Calibri,Arial,sans-serif;font-size:13.5px;}
+
+/* ---------- BANNER "PAINEL DE CONFRONTO" ---------- */
+.confronto-banner{background:var(--navy);color:#fff;padding:12px 26px;}
+.confronto-banner-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:4px;}
+.confronto-banner-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.confronto-banner-title{font-size:26px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#fff;line-height:1.15;}
+.confronto-banner-switch{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:1px solid rgba(255,255,255,.5);border-radius:999px;color:#fff;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s;}
+.confronto-banner-switch:hover{background:rgba(255,255,255,.12);border-color:#fff;}
+
 .app{width:100%;max-width:none;margin:0;padding:20px 28px 50px;}
 .sticky-topbar{position:sticky;top:0;z-index:60;background:var(--bg);padding-bottom:10px;box-shadow:0 6px 12px -8px rgba(0,43,92,.25);}
 .header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
@@ -155,7 +164,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
     -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
   html, body, .app, .update-date-box{background:#fff !important;}
   .update-date-box{border-color:#fff !important;box-shadow:none !important;}
-  .toolbar, .notes, .header, .update-date-box, .kpi-strip{display:none !important;}
+  .confronto-banner, .toolbar, .notes, .header, .update-date-box, .kpi-strip{display:none !important;}
   .sticky-topbar{position:static !important;box-shadow:none !important;}
   #content{display:none !important;}
   #print-content{display:block !important;}
@@ -188,6 +197,13 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 </style>
 </head>
 <body>
+<div class="confronto-banner">
+  <div class="confronto-banner-label">Painel de Confronto &middot; Techint Engenharia e Constru&ccedil;&atilde;o</div>
+  <div class="confronto-banner-row">
+    <div class="confronto-banner-title">Painel de Horas x Valores</div>
+    <a class="confronto-banner-switch" href="https://clesiohenrique.github.io/Painel-Faturamento/Dashboard_Faturamento.html">&#8617; Trocar de painel</a>
+  </div>
+</div>
 <div class="app">
   <div class="sticky-topbar">
   <div class="header">
