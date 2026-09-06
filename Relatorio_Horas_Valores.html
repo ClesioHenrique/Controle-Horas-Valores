@@ -340,24 +340,17 @@ const RAW_FISCAL_PENDENTE = [
 /* Item 3.3 "Medido - Para emitir FR - SAP": aba "FAD_FIA & RATEIO", filtrado por
    FAD_FIA_RAT(col N)="FAD" + Situação(col F)="Medida" + Faturado SIM ou NÃO(col AB)="Não faturado",
    agrupado por Projeto(col O) e Mês/Ano(col M). */
+/* Reconsultado em 05/09/2026: todo o saldo do PCI (Abr/26 e Mai/26, ~R$ 6,17 mi) ja foi faturado
+   (coluna AB agora = "Faturado"), por isso saiu do "Nao faturado" e sobrou so o MOA Ago/25. */
 const RAW_MEDIDO_FR = [
-{projeto:"PCI",mesano:"Abr/26",hh:77850.3291999994,rs:5937159.17819833},
-{projeto:"PCI",mesano:"Mai/26",hh:2658.61642,rs:236060.086648901},
 {projeto:"MOA",mesano:"Ago/25",hh:30.98,rs:1772.09}
 ];
 
 /* Detalhe por No Med. (coluna G) e No SAP Med. (coluna H, tratado aqui como "FR") das linhas
-   que compoem o item 3.3 do FAD — usado no duplo-clique. Reconsultado em 04/09/2026: a base
-   mudou desde a extracao original (Jun/26 e Jul/26 nao aparecem mais como Medida/Nao faturado,
-   e o valor de Abr/26 do PCI mudou), por isso o RAW_MEDIDO_FR acima foi atualizado junto. */
+   que compoem o item 3.3 do FAD — usado no duplo-clique. Reconsultado em 05/09/2026 junto com
+   o RAW_MEDIDO_FR acima: os medidos do PCI ja foram faturados e saem do detalhe. */
 const RAW_MEDIDO_FR_DETAIL = [
-{projeto:"PCI",mesano:"Abr/26",med:"MED_83151",sapmed:"1013127824",hh:11632.6899999999,rs:1003651.9497},
 {projeto:"MOA",mesano:"Ago/25",med:"MED_79588",sapmed:"1012797875",hh:8.98,rs:570.23},
-{projeto:"PCI",mesano:"Abr/26",med:"MED_83403",sapmed:"1013174980",hh:79.62332,rs:8679.9676164},
-{projeto:"PCI",mesano:"Abr/26",med:"MED_83233",sapmed:"1013145725",hh:25840.9132399999,rs:1871622.69835401},
-{projeto:"PCI",mesano:"Abr/26",med:"MED_83152",sapmed:"1013127822",hh:14737.6026399997,rs:1105852.1099279},
-{projeto:"PCI",mesano:"Mai/26",med:"MED_83403",sapmed:"1013174980",hh:2658.61642,rs:236060.086648901},
-{projeto:"PCI",mesano:"Abr/26",med:"MED_83235",sapmed:"1013145726",hh:25559.4999999999,rs:1947352.45260002},
 {projeto:"MOA",mesano:"Ago/25",med:"MED_79528",sapmed:"1012797813",hh:22,rs:1201.86}
 ];
 
@@ -367,42 +360,38 @@ const RAW_MEDIDO_FR_DETAIL = [
 
 /* Item 1.5 "Medido - Para emitir FR - SAP" (FIA): FAD_FIA_RAT(N)="FIA" + Situação(F)="Medida"
    + Faturado SIM ou NÃO(AB)="Não faturado". */
+/* Reconsultado em 05/09/2026: os medidos de Mai/26 e Abr/26 do PCI (~R$ 2,99 mi) ja foram
+   faturados (coluna AB="Faturado") e saem do "Nao faturado" — so restou o Jan/25. */
 const RAW_FIA_MEDIDO = [
-{projeto:"PCI",mesano:"Jan/25",rs:45000},
-{projeto:"PCI",mesano:"Mai/26",rs:2033512.17604},
-{projeto:"PCI",mesano:"Abr/26",rs:963071.48}
+{projeto:"PCI",mesano:"Jan/25",rs:45000}
 ];
 
 /* Item 2.5 "Medido - Para emitir FR - SAP" (RATEIO): FAD_FIA_RAT(N)="RAT" + Situação(F)="Concluído"
    + Faturado SIM ou NÃO(AB)="Não faturado". */
+/* Reconsultado em 05/09/2026: uma parte do Mai/26 do PCI ja foi faturada, reduzindo o valor
+   (o restante desse mes e os demais meses seguem "Nao faturado"). */
 const RAW_RATEIO_MEDIDO = [
 {projeto:"PCI",mesano:"Nov/25",rs:71661.66},
-{projeto:"PCI",mesano:"Abr/26",rs:3268908.7865},
-{projeto:"PCI",mesano:"Mai/26",rs:2852797.0996},
+{projeto:"PCI",mesano:"Abr/26",rs:3268908.82},
+{projeto:"PCI",mesano:"Mai/26",rs:2814746.68},
 {projeto:"MOA",mesano:"Jan/26",rs:125499.01},
 {projeto:"MOA",mesano:"Abr/26",rs:151288.43}
 ];
 
 /* Detalhe por No FA (coluna D) das linhas que compoem 1.5 (FIA) e 2.5 (RATEIO) — usado no
    duplo-clique para mostrar quais FA/RATEIO especificos formam o valor daquela celula. */
-/* Reconsultado em 04/09/2026 junto com o Nº SAP Med. (coluna H, tratado como FR): a base mudou
-   desde a extracao original e o MOA nao tem mais linhas de FIA Medida/Nao-faturado (item 1.5
-   do MOA ficou zerado). RAW_FIA_MEDIDO abaixo foi atualizado para bater com esse detalhe. */
+/* Reconsultado em 05/09/2026 junto com o Nº SAP Med. (coluna H, tratado como FR): os medidos
+   do PCI (FIA_579412 e FIA_580604 de Mai/26, FIA_573101 de Abr/26) ja foram faturados e saem
+   do detalhe — so restou o Jan/25. */
 const RAW_FIA_MEDIDO_DETAIL = [
-{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_579412",numsapmed:"1013174971",rs:407379.15},
-{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",numsapmed:"1013183016",rs:476909.55128},
-{projeto:"PCI",mesano:"Jan/25",numfa:"FIA_432876",numsapmed:"1012286773",rs:45000},
-{projeto:"PCI",mesano:"Abr/26",numfa:"FIA_573101",numsapmed:"1013120669",rs:963071.48},
-{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",numsapmed:"1013183014",rs:229361.14},
-{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",numsapmed:"1013183015",rs:7339.03426},
-{projeto:"PCI",mesano:"Mai/26",numfa:"FIA_580604",numsapmed:"1013183017",rs:912523.3005}
+{projeto:"PCI",mesano:"Jan/25",numfa:"FIA_432876",numsapmed:"1012286773",rs:45000}
 ];
 const RAW_RATEIO_MEDIDO_DETAIL = [
 {projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",numsapmed:"1013249294",rs:273217.11},
 {projeto:"PCI",mesano:"Nov/25",numfa:"RAT_1403",numsapmed:"1012912104",rs:71661.66},
-{projeto:"PCI",mesano:"Abr/26",numfa:"RAT_1504",numsapmed:"1013172275",rs:3268908.7865},
+{projeto:"PCI",mesano:"Abr/26",numfa:"RAT_1504",numsapmed:"1013172275",rs:3268908.82},
 {projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1394",numsapmed:"",rs:30652.7},
-{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",numsapmed:"",rs:2541529.5596},
+{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",numsapmed:"",rs:2541529.57},
 {projeto:"MOA",mesano:"Abr/26",numfa:"RAT_1505",numsapmed:"1013172273",rs:151288.43},
 {projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1393",numsapmed:"",rs:94846.31}
 ];
