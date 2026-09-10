@@ -273,25 +273,26 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 
 <script>
 "use strict";
+var PRISTINE_HTML = document.documentElement.outerHTML;
 
 /* ================= DADOS (extraidos de Controle de horas x valores R$_jornal .xlsx) ================= */
-const RAW_EXTRATO = [{"projeto":"PCI","situacao":"Medida","mesano":"Nov/25","hh":118039.85,"rs":8687607.9267},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/26","hh":19411.56,"rs":1358743.2604},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/24","hh":39963.07333,"rs":2632093.139557},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/25","hh":38291.09665,"rs":2731838.19785},{"projeto":"MOA","situacao":"Medida","mesano":"Set/25","hh":54114.34332,"rs":3837959.963157},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/24","hh":14859.57,"rs":957522.387},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/26","hh":108129.17666,"rs":7552789.23394},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/25","hh":60213.09646,"rs":4132725.517601},{"projeto":"MOA","situacao":"Medida","mesano":"Ago/25","hh":48431.91574,"rs":3402679.514509},{"projeto":"MOA","situacao":"Medida","mesano":"Set/24","hh":29096.11,"rs":1953466.5248},{"projeto":"PCI","situacao":"Medida","mesano":"Set/25","hh":142998.51,"rs":9891184.4767},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/25","hh":57050.35662,"rs":3828812.175734},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/26","hh":938.44993,"rs":74864.619162},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/26","hh":80,"rs":6809.8},{"projeto":"PCI","situacao":"Medida","mesano":"Ago/25","hh":146454.32,"rs":10277875.0212},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/26","hh":30917.13,"rs":2221305.0909},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/25","hh":154423.04,"rs":10301428.2994},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/25","hh":58467.03333,"rs":4079663.925947},{"projeto":"PCI","situacao":"Medida","mesano":"Out/25","hh":140230.77666,"rs":9732655.277684},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/25","hh":59105.68658,"rs":3949382.706126},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/25","hh":69408.05,"rs":4324019.6152},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/26","hh":81573.10573,"rs":6248771.572465},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/26","hh":609.64,"rs":46682.6083},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/26","hh":2220.83981,"rs":206282.064415},{"projeto":"PCI","situacao":"Medida","mesano":"Out/24","hh":5486.08,"rs":352720.9366},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/26","hh":79765.53,"rs":5676773.8332},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Mai/26","hh":46.65,"rs":4518.5455},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/25","hh":50385.48329,"rs":3381259.02935},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/25","hh":33467.70999,"rs":2441820.94992},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Jun/26","hh":1397.19655,"rs":125909.61372},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/25","hh":51609.84663,"rs":3426686.863383},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/25","hh":101542.97,"rs":6082167.0288},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/25","hh":122494.1,"rs":8452364.2666},{"projeto":"MOA","situacao":"Medida","mesano":"Out/24","hh":38110.97,"rs":2526077.9389},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Jul/26","hh":2043.09989,"rs":192097.422739},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/26","hh":615.93331,"rs":54887.094396},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/26","hh":45,"rs":2606.04},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/25","hh":93744.48,"rs":6600363.5372},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/26","hh":85516.72,"rs":5975131.703},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/26","hh":2658.61642,"rs":236060.086649},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/25","hh":125178.75,"rs":8045632.3135},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/25","hh":58065.62,"rs":3771931.9096},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/24","hh":50323.30666,"rs":3279170.822462},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/24","hh":33037.67,"rs":2151539.3025},{"projeto":"MOA","situacao":"Medida","mesano":"Out/25","hh":53741.23665,"rs":3877832.351229},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/25","hh":115569.47666,"rs":7350310.31627},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/25","hh":52841.38324,"rs":3583487.106469},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/26","hh":30937.90985,"rs":2176904.864624}];
+let RAW_EXTRATO = [{"projeto":"PCI","situacao":"Medida","mesano":"Nov/25","hh":118039.85,"rs":8687607.9267},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/26","hh":19411.56,"rs":1358743.2604},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/24","hh":39963.07333,"rs":2632093.139557},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/25","hh":38291.09665,"rs":2731838.19785},{"projeto":"MOA","situacao":"Medida","mesano":"Set/25","hh":54114.34332,"rs":3837959.963157},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/24","hh":14859.57,"rs":957522.387},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/26","hh":108129.17666,"rs":7552789.23394},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/25","hh":60213.09646,"rs":4132725.517601},{"projeto":"MOA","situacao":"Medida","mesano":"Ago/25","hh":48431.91574,"rs":3402679.514509},{"projeto":"MOA","situacao":"Medida","mesano":"Set/24","hh":29096.11,"rs":1953466.5248},{"projeto":"PCI","situacao":"Medida","mesano":"Set/25","hh":142998.51,"rs":9891184.4767},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/25","hh":57050.35662,"rs":3828812.175734},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/26","hh":938.44993,"rs":74864.619162},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/26","hh":80,"rs":6809.8},{"projeto":"PCI","situacao":"Medida","mesano":"Ago/25","hh":146454.32,"rs":10277875.0212},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/26","hh":30917.13,"rs":2221305.0909},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/25","hh":154423.04,"rs":10301428.2994},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/25","hh":58467.03333,"rs":4079663.925947},{"projeto":"PCI","situacao":"Medida","mesano":"Out/25","hh":140230.77666,"rs":9732655.277684},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/25","hh":59105.68658,"rs":3949382.706126},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/25","hh":69408.05,"rs":4324019.6152},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/26","hh":81573.10573,"rs":6248771.572465},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/26","hh":609.64,"rs":46682.6083},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/26","hh":2220.83981,"rs":206282.064415},{"projeto":"PCI","situacao":"Medida","mesano":"Out/24","hh":5486.08,"rs":352720.9366},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/26","hh":79765.53,"rs":5676773.8332},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Mai/26","hh":46.65,"rs":4518.5455},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/25","hh":50385.48329,"rs":3381259.02935},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/25","hh":33467.70999,"rs":2441820.94992},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Jun/26","hh":1397.19655,"rs":125909.61372},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/25","hh":51609.84663,"rs":3426686.863383},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/25","hh":101542.97,"rs":6082167.0288},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/25","hh":122494.1,"rs":8452364.2666},{"projeto":"MOA","situacao":"Medida","mesano":"Out/24","hh":38110.97,"rs":2526077.9389},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Jul/26","hh":2043.09989,"rs":192097.422739},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/26","hh":615.93331,"rs":54887.094396},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/26","hh":45,"rs":2606.04},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/25","hh":93744.48,"rs":6600363.5372},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/26","hh":85516.72,"rs":5975131.703},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/26","hh":2658.61642,"rs":236060.086649},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/25","hh":125178.75,"rs":8045632.3135},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/25","hh":58065.62,"rs":3771931.9096},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/24","hh":50323.30666,"rs":3279170.822462},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/24","hh":33037.67,"rs":2151539.3025},{"projeto":"MOA","situacao":"Medida","mesano":"Out/25","hh":53741.23665,"rs":3877832.351229},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/25","hh":115569.47666,"rs":7350310.31627},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/25","hh":52841.38324,"rs":3583487.106469},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/26","hh":30937.90985,"rs":2176904.864624}];
 
-const RAW_PENDENCIAS = [{"projeto":"MOA","resumo":"Pendência de Saldo","mesano":"Jul/26","hh":93,"rs":6438.39},{"projeto":"PCI","resumo":"Pendência de Saldo","mesano":"Jun/26","hh":144.163,"rs":14113.65065},{"projeto":"MOA","resumo":"OS: 44128 Situação: Aguardando liberação tecnica","mesano":"Jul/26","hh":1627.045,"rs":114170.21971},{"projeto":"MOA","resumo":"Recurso não cadastrado no WebTerceiros","mesano":"Jun/26","hh":60,"rs":5394.8},{"projeto":"MOA","resumo":"Recurso não cadastrado no WebTerceiros","mesano":"Jul/26","hh":532.3329,"rs":41308.028433},{"projeto":"PCI","resumo":"Pendência de Saldo","mesano":"Jul/26","hh":1359.41,"rs":125196.97391},{"projeto":"MOA","resumo":"RDC não está aprovada","mesano":"Jul/26","hh":1934.6607,"rs":143229.578596},{"projeto":"MOA","resumo":"Pendência de Função","mesano":"Jul/26","hh":480.0823,"rs":38865.928364},{"projeto":"PCI","resumo":"RDC não está aprovada","mesano":"Jul/26","hh":16,"rs":1418.4}];
+let RAW_PENDENCIAS = [{"projeto":"MOA","resumo":"Pendência de Saldo","mesano":"Jul/26","hh":93,"rs":6438.39},{"projeto":"PCI","resumo":"Pendência de Saldo","mesano":"Jun/26","hh":144.163,"rs":14113.65065},{"projeto":"MOA","resumo":"OS: 44128 Situação: Aguardando liberação tecnica","mesano":"Jul/26","hh":1627.045,"rs":114170.21971},{"projeto":"MOA","resumo":"Recurso não cadastrado no WebTerceiros","mesano":"Jun/26","hh":60,"rs":5394.8},{"projeto":"MOA","resumo":"Recurso não cadastrado no WebTerceiros","mesano":"Jul/26","hh":532.3329,"rs":41308.028433},{"projeto":"PCI","resumo":"Pendência de Saldo","mesano":"Jul/26","hh":1359.41,"rs":125196.97391},{"projeto":"MOA","resumo":"RDC não está aprovada","mesano":"Jul/26","hh":1934.6607,"rs":143229.578596},{"projeto":"MOA","resumo":"Pendência de Função","mesano":"Jul/26","hh":480.0823,"rs":38865.928364},{"projeto":"PCI","resumo":"RDC não está aprovada","mesano":"Jul/26","hh":16,"rs":1418.4}];
 
-const RAW_FISCAL_PENDENTE = [{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Jun/26","hh":1397.19655,"rs":125909.61372},{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Mai/26","hh":46.65,"rs":4518.5455},{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Jul/26","hh":2043.09989,"rs":192097.422739}];
+let RAW_FISCAL_PENDENTE = [{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Jun/26","hh":1397.19655,"rs":125909.61372},{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Mai/26","hh":46.65,"rs":4518.5455},{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Jul/26","hh":2043.09989,"rs":192097.422739}];
 
 /* Item 3.3 "Medido - Para emitir FR - SAP": aba "FAD_FIA & RATEIO", filtrado por
    FAD_FIA_RAT(col N)="FAD" + Situação(col F)="Medida" + Faturado SIM ou NÃO(col AB)="Não faturado",
    agrupado por Projeto(col O) e Mês/Ano(col M). */
 /* Reconsultado em 05/09/2026: todo o saldo do PCI (Abr/26 e Mai/26, ~R$ 6,17 mi) ja foi faturado
    (coluna AB agora = "Faturado"), por isso saiu do "Nao faturado" e sobrou so o MOA Ago/25. */
-const RAW_MEDIDO_FR = [{"projeto":"MOA","mesano":"Ago/25","hh":30.98,"rs":1772.09}];
+let RAW_MEDIDO_FR = [{"projeto":"MOA","mesano":"Ago/25","hh":30.98,"rs":1772.09}];
 
 /* Detalhe por No Med. (coluna G) e No SAP Med. (coluna H, tratado aqui como "FR") das linhas
    que compoem o item 3.3 do FAD — usado no duplo-clique. Reconsultado em 05/09/2026 junto com
    o RAW_MEDIDO_FR acima: os medidos do PCI ja foram faturados e saem do detalhe. */
-const RAW_MEDIDO_FR_DETAIL = [{"projeto":"MOA","mesano":"Ago/25","med":"MED_79588","sapmed":"1012797875","hh":8.98,"rs":570.23},{"projeto":"MOA","mesano":"Ago/25","med":"MED_79528","sapmed":"1012797813","hh":22,"rs":1201.86}];
+let RAW_MEDIDO_FR_DETAIL = [{"projeto":"MOA","mesano":"Ago/25","med":"MED_79588","sapmed":"1012797875","hh":8.98,"rs":570.23},{"projeto":"MOA","mesano":"Ago/25","med":"MED_79528","sapmed":"1012797813","hh":22,"rs":1201.86}];
 
 /* FIA e RATEIO: aba "FAD_FIA & RATEIO", filtrado por TCT ou USM (col S) = "TECHINT" ou
    "TECHINT_RATEIO_RETROATIVO" (exclui linhas de responsabilidade Usiminas), agrupado por
@@ -301,21 +302,21 @@ const RAW_MEDIDO_FR_DETAIL = [{"projeto":"MOA","mesano":"Ago/25","med":"MED_7958
    + Faturado SIM ou NÃO(AB)="Não faturado". */
 /* Reconsultado em 05/09/2026: os medidos de Mai/26 e Abr/26 do PCI (~R$ 2,99 mi) ja foram
    faturados (coluna AB="Faturado") e saem do "Nao faturado" — so restou o Jan/25. */
-const RAW_FIA_MEDIDO = [{"projeto":"PCI","mesano":"Jan/25","rs":670814.49}];
+let RAW_FIA_MEDIDO = [{"projeto":"PCI","mesano":"Jan/25","rs":670814.49}];
 
 /* Item 2.5 "Medido - Para emitir FR - SAP" (RATEIO): FAD_FIA_RAT(N)="RAT" + Situação(F)="Concluído"
    + Faturado SIM ou NÃO(AB)="Não faturado". */
 /* Reconsultado em 05/09/2026: uma parte do Mai/26 do PCI ja foi faturada, reduzindo o valor
    (o restante desse mes e os demais meses seguem "Nao faturado"). */
-const RAW_RATEIO_MEDIDO = [{"projeto":"MOA","mesano":"Abr/26","rs":558196.51},{"projeto":"MOA","mesano":"Jan/26","rs":125499.01},{"projeto":"PCI","mesano":"Nov/25","rs":71661.66},{"projeto":"PCI","mesano":"Mai/26","rs":2814746.6696},{"projeto":"PCI","mesano":"Abr/26","rs":3268908.7865},{"projeto":"MOA","mesano":"Mai/26","rs":446169.2}];
+let RAW_RATEIO_MEDIDO = [{"projeto":"MOA","mesano":"Abr/26","rs":558196.51},{"projeto":"MOA","mesano":"Jan/26","rs":125499.01},{"projeto":"PCI","mesano":"Nov/25","rs":71661.66},{"projeto":"PCI","mesano":"Mai/26","rs":2814746.6696},{"projeto":"PCI","mesano":"Abr/26","rs":3268908.7865},{"projeto":"MOA","mesano":"Mai/26","rs":446169.2}];
 
 /* Detalhe por No FA (coluna D) das linhas que compoem 1.5 (FIA) e 2.5 (RATEIO) — usado no
    duplo-clique para mostrar quais FA/RATEIO especificos formam o valor daquela celula. */
 /* Reconsultado em 05/09/2026 junto com o Nº SAP Med. (coluna H, tratado como FR): os medidos
    do PCI (FIA_579412 e FIA_580604 de Mai/26, FIA_573101 de Abr/26) ja foram faturados e saem
    do detalhe — so restou o Jan/25. */
-const RAW_FIA_MEDIDO_DETAIL = [{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432873","numsapmed":"1012265728","rs":533047.83},{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432870","numsapmed":"1012286771","rs":55020},{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432876","numsapmed":"1012286773","rs":82746.66}];
-const RAW_RATEIO_MEDIDO_DETAIL = [{"projeto":"PCI","mesano":"Mai/26","numfa":"RAT_1523","numsapmed":"1013249294","rs":273217.11},{"projeto":"PCI","mesano":"Nov/25","numfa":"RAT_1403","numsapmed":"1012912104","rs":71661.66},{"projeto":"PCI","mesano":"Abr/26","numfa":"RAT_1504","numsapmed":"1013172275","rs":3268908.7865},{"projeto":"MOA","mesano":"Mai/26","numfa":"RAT_1519","numsapmed":"1013233800","rs":446169.2},{"projeto":"MOA","mesano":"Jan/26","numfa":"RAT_1394","numsapmed":"","rs":30652.7},{"projeto":"PCI","mesano":"Mai/26","numfa":"RAT_1523","numsapmed":"","rs":2541529.5596},{"projeto":"MOA","mesano":"Abr/26","numfa":"RAT_1505","numsapmed":"1013172273","rs":558196.51},{"projeto":"MOA","mesano":"Jan/26","numfa":"RAT_1393","numsapmed":"","rs":94846.31}];
+let RAW_FIA_MEDIDO_DETAIL = [{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432873","numsapmed":"1012265728","rs":533047.83},{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432870","numsapmed":"1012286771","rs":55020},{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432876","numsapmed":"1012286773","rs":82746.66}];
+let RAW_RATEIO_MEDIDO_DETAIL = [{"projeto":"PCI","mesano":"Mai/26","numfa":"RAT_1523","numsapmed":"1013249294","rs":273217.11},{"projeto":"PCI","mesano":"Nov/25","numfa":"RAT_1403","numsapmed":"1012912104","rs":71661.66},{"projeto":"PCI","mesano":"Abr/26","numfa":"RAT_1504","numsapmed":"1013172275","rs":3268908.7865},{"projeto":"MOA","mesano":"Mai/26","numfa":"RAT_1519","numsapmed":"1013233800","rs":446169.2},{"projeto":"MOA","mesano":"Jan/26","numfa":"RAT_1394","numsapmed":"","rs":30652.7},{"projeto":"PCI","mesano":"Mai/26","numfa":"RAT_1523","numsapmed":"","rs":2541529.5596},{"projeto":"MOA","mesano":"Abr/26","numfa":"RAT_1505","numsapmed":"1013172273","rs":558196.51},{"projeto":"MOA","mesano":"Jan/26","numfa":"RAT_1393","numsapmed":"","rs":94846.31}];
 
 /* Aba "FR'S emitidas" (montada manualmente pelo usuario): valores de FR ja emitidos/faturados,
    por FAD/FIA/RATEIO, com o BM (Boletim de Medicao) e periodo de cada um. */
@@ -357,12 +358,12 @@ const FRS_EMITIDAS = {
 /* Itens 1.1-1.4 (FIA): FAD_FIA_RAT(N)="FIA", agrupado por Projeto/Situação(F)/Mês. Hoje a base só
    tem Situação="Medida" para FIA — nenhum item 1.1-1.4 casa ainda, mas o lookup é dinâmico: se a
    base passar a ter lançamentos com o texto exato de um desses itens, eles entram automaticamente. */
-const RAW_FIA_EXTRATO = [{"projeto":"MOA","situacao":"Medida","mesano":"Ago/25","rs":252864.62654},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/26","rs":85922.415},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/26","rs":17610.8985},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/24","rs":217316.73314},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/25","rs":134389.18252},{"projeto":"MOA","situacao":"Medida","mesano":"Set/25","rs":164542.93168},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/24","rs":195308.1211},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/26","rs":1648348.8399},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/25","rs":172092.74814},{"projeto":"PCI","situacao":"Medida","mesano":"Set/25","rs":1503358.405},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/25","rs":1618051.08314},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/26","rs":116591.63096},{"projeto":"PCI","situacao":"Medida","mesano":"Ago/25","rs":1479202.6975},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/25","rs":2438678.635},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/25","rs":349284.66412},{"projeto":"PCI","situacao":"Medida","mesano":"Out/25","rs":1655261.0572},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/25","rs":367418.47926},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/25","rs":1780005.9952},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/25","rs":2137867.3612},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/24","rs":231868.9526},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/26","rs":1713163.07999},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/26","rs":1412235.2},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/26","rs":28319.5575},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/25","rs":268525.57222},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/25","rs":336781.12354},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/25","rs":261728.1266},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/25","rs":1824154.1932},{"projeto":"MOA","situacao":"Medida","mesano":"Out/24","rs":501225.0336},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/26","rs":2708671.3405},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/25","rs":2212086.332},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/25","rs":125800.62344},{"projeto":"PCI","situacao":"Medida","mesano":"Set/24","rs":19764661.1},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/26","rs":19371.1095},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/25","rs":1451215.8225},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/26","rs":1339295.542},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/26","rs":2033512.17604},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/25","rs":1842753.8868},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/26","rs":148141.64612},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/24","rs":1873696.255},{"projeto":"MOA","situacao":"Medida","mesano":"Out/25","rs":141183.28388},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/25","rs":2005311.4226},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/25","rs":350325.1957},{"projeto":"MOA","situacao":"Medida","mesano":"Set/24","rs":116068.7312}];
+let RAW_FIA_EXTRATO = [{"projeto":"MOA","situacao":"Medida","mesano":"Ago/25","rs":252864.62654},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/26","rs":85922.415},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/26","rs":17610.8985},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/24","rs":217316.73314},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/25","rs":134389.18252},{"projeto":"MOA","situacao":"Medida","mesano":"Set/25","rs":164542.93168},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/24","rs":195308.1211},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/26","rs":1648348.8399},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/25","rs":172092.74814},{"projeto":"PCI","situacao":"Medida","mesano":"Set/25","rs":1503358.405},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/25","rs":1618051.08314},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/26","rs":116591.63096},{"projeto":"PCI","situacao":"Medida","mesano":"Ago/25","rs":1479202.6975},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/25","rs":2438678.635},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/25","rs":349284.66412},{"projeto":"PCI","situacao":"Medida","mesano":"Out/25","rs":1655261.0572},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/25","rs":367418.47926},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/25","rs":1780005.9952},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/25","rs":2137867.3612},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/24","rs":231868.9526},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/26","rs":1713163.07999},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/26","rs":1412235.2},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/26","rs":28319.5575},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/25","rs":268525.57222},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/25","rs":336781.12354},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/25","rs":261728.1266},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/25","rs":1824154.1932},{"projeto":"MOA","situacao":"Medida","mesano":"Out/24","rs":501225.0336},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/26","rs":2708671.3405},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/25","rs":2212086.332},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/25","rs":125800.62344},{"projeto":"PCI","situacao":"Medida","mesano":"Set/24","rs":19764661.1},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/26","rs":19371.1095},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/25","rs":1451215.8225},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/26","rs":1339295.542},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/26","rs":2033512.17604},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/25","rs":1842753.8868},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/26","rs":148141.64612},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/24","rs":1873696.255},{"projeto":"MOA","situacao":"Medida","mesano":"Out/25","rs":141183.28388},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/25","rs":2005311.4226},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/25","rs":350325.1957},{"projeto":"MOA","situacao":"Medida","mesano":"Set/24","rs":116068.7312}];
 
 /* Itens 2.1-2.4 (RATEIO): FAD_FIA_RAT(N)="RAT", agrupado por Projeto/Situação(F)/Mês. Hoje a base
    só tem Situação="Aprovação"/"Cancelado/Reprovado"/"Concluído" para RATEIO — nenhum item 2.1-2.4
    casa ainda (o texto exato não existe na base), mesma logica de auto-populacao do item 1.1-1.4. */
-const RAW_RATEIO_EXTRATO = [{"projeto":"MOA","situacao":"Concluído","mesano":"Out/24","rs":1729633.922},{"projeto":"PCI","situacao":"Aprovação","mesano":"Fev/26","rs":2199313.9267},{"projeto":"MOA","situacao":"Concluído","mesano":"Out/25","rs":2172106.7861},{"projeto":"MOA","situacao":"Concluído","mesano":"Jan/26","rs":1825141.70234},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Jul/26","rs":48478.489362},{"projeto":"PCI","situacao":"Concluído","mesano":"Jan/25","rs":2075545.57537},{"projeto":"MOA","situacao":"Concluído","mesano":"Fev/26","rs":1741198.3296},{"projeto":"MOA","situacao":"Concluído","mesano":"Mai/25","rs":4059774.5733},{"projeto":"MOA","situacao":"Concluído","mesano":"Set/24","rs":1712387.32933},{"projeto":"MOA","situacao":"Concluído","mesano":"Jan/25","rs":2288713.00393},{"projeto":"PCI","situacao":"Concluído","mesano":"Mai/26","rs":2852797.0996},{"projeto":"PCI","situacao":"Concluído","mesano":"Mar/25","rs":2822226.0799},{"projeto":"PCI","situacao":"Concluído","mesano":"Dez/25","rs":2619012.8808},{"projeto":"PCI","situacao":"Concluído","mesano":"Jun/25","rs":3476725.5835},{"projeto":"PCI","situacao":"Concluído","mesano":"Fev/25","rs":2324355.271},{"projeto":"PCI","situacao":"Concluído","mesano":"Dez/24","rs":1419778.6338},{"projeto":"MOA","situacao":"Concluído","mesano":"Abr/26","rs":151288.43},{"projeto":"MOA","situacao":"Concluído","mesano":"Dez/24","rs":2082727.655},{"projeto":"MOA","situacao":"Concluído","mesano":"Jul/25","rs":2334825.1314},{"projeto":"MOA","situacao":"Concluído","mesano":"Nov/24","rs":2312206.9132},{"projeto":"PCI","situacao":"Concluído","mesano":"Set/25","rs":4165814.6583},{"projeto":"PCI","situacao":"Concluído","mesano":"Abr/25","rs":3117760.8197},{"projeto":"PCI","situacao":"Concluído","mesano":"Jan/26","rs":3874254.1559},{"projeto":"PCI","situacao":"Concluído","mesano":"Out/25","rs":7688846.1606},{"projeto":"PCI","situacao":"Cancelado/Reprovado","mesano":"Set/24","rs":188274.1041},{"projeto":"PCI","situacao":"Concluído","mesano":"Mai/25","rs":5755616.2562},{"projeto":"PCI","situacao":"Concluído","mesano":"Nov/24","rs":906076.3044},{"projeto":"PCI","situacao":"Concluído","mesano":"Nov/25","rs":3170677.8337},{"projeto":"MOA","situacao":"Concluído","mesano":"Mar/25","rs":2344197.72017},{"projeto":"PCI","situacao":"Concluído","mesano":"Ago/25","rs":3948540.509},{"projeto":"PCI","situacao":"Aprovação","mesano":"Mar/26","rs":952101.93},{"projeto":"MOA","situacao":"Concluído","mesano":"Ago/25","rs":2130611.8955},{"projeto":"MOA","situacao":"Concluído","mesano":"Mar/26","rs":1021318.78},{"projeto":"MOA","situacao":"Concluído","mesano":"Set/25","rs":2472815.4286},{"projeto":"PCI","situacao":"Concluído","mesano":"Set/24","rs":188274.1041},{"projeto":"PCI","situacao":"Concluído","mesano":"Jul/25","rs":4271778.6369},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Ago/26","rs":1355435.55498},{"projeto":"MOA","situacao":"Aprovação","mesano":"Mar/26","rs":1745204.1255},{"projeto":"PCI","situacao":"Concluído","mesano":"Abr/26","rs":3471070.8065},{"projeto":"MOA","situacao":"Concluído","mesano":"Jun/25","rs":2229088.0458},{"projeto":"PCI","situacao":"Concluído","mesano":"Mar/26","rs":2612840.6707},{"projeto":"MOA","situacao":"Concluído","mesano":"Abr/25","rs":2306830.1581},{"projeto":"MOA","situacao":"Concluído","mesano":"Fev/25","rs":2210387.7832},{"projeto":"PCI","situacao":"Concluído","mesano":"Out/24","rs":785784.68},{"projeto":"MOA","situacao":"Concluído","mesano":"Dez/25","rs":1996137.4269},{"projeto":"MOA","situacao":"Concluído","mesano":"Nov/25","rs":1954420.7653},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Jun/26","rs":64389.915899}];
+let RAW_RATEIO_EXTRATO = [{"projeto":"MOA","situacao":"Concluído","mesano":"Out/24","rs":1729633.922},{"projeto":"PCI","situacao":"Aprovação","mesano":"Fev/26","rs":2199313.9267},{"projeto":"MOA","situacao":"Concluído","mesano":"Out/25","rs":2172106.7861},{"projeto":"MOA","situacao":"Concluído","mesano":"Jan/26","rs":1825141.70234},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Jul/26","rs":48478.489362},{"projeto":"PCI","situacao":"Concluído","mesano":"Jan/25","rs":2075545.57537},{"projeto":"MOA","situacao":"Concluído","mesano":"Fev/26","rs":1741198.3296},{"projeto":"MOA","situacao":"Concluído","mesano":"Mai/25","rs":4059774.5733},{"projeto":"MOA","situacao":"Concluído","mesano":"Set/24","rs":1712387.32933},{"projeto":"MOA","situacao":"Concluído","mesano":"Jan/25","rs":2288713.00393},{"projeto":"PCI","situacao":"Concluído","mesano":"Mai/26","rs":2852797.0996},{"projeto":"PCI","situacao":"Concluído","mesano":"Mar/25","rs":2822226.0799},{"projeto":"PCI","situacao":"Concluído","mesano":"Dez/25","rs":2619012.8808},{"projeto":"PCI","situacao":"Concluído","mesano":"Jun/25","rs":3476725.5835},{"projeto":"PCI","situacao":"Concluído","mesano":"Fev/25","rs":2324355.271},{"projeto":"PCI","situacao":"Concluído","mesano":"Dez/24","rs":1419778.6338},{"projeto":"MOA","situacao":"Concluído","mesano":"Abr/26","rs":151288.43},{"projeto":"MOA","situacao":"Concluído","mesano":"Dez/24","rs":2082727.655},{"projeto":"MOA","situacao":"Concluído","mesano":"Jul/25","rs":2334825.1314},{"projeto":"MOA","situacao":"Concluído","mesano":"Nov/24","rs":2312206.9132},{"projeto":"PCI","situacao":"Concluído","mesano":"Set/25","rs":4165814.6583},{"projeto":"PCI","situacao":"Concluído","mesano":"Abr/25","rs":3117760.8197},{"projeto":"PCI","situacao":"Concluído","mesano":"Jan/26","rs":3874254.1559},{"projeto":"PCI","situacao":"Concluído","mesano":"Out/25","rs":7688846.1606},{"projeto":"PCI","situacao":"Cancelado/Reprovado","mesano":"Set/24","rs":188274.1041},{"projeto":"PCI","situacao":"Concluído","mesano":"Mai/25","rs":5755616.2562},{"projeto":"PCI","situacao":"Concluído","mesano":"Nov/24","rs":906076.3044},{"projeto":"PCI","situacao":"Concluído","mesano":"Nov/25","rs":3170677.8337},{"projeto":"MOA","situacao":"Concluído","mesano":"Mar/25","rs":2344197.72017},{"projeto":"PCI","situacao":"Concluído","mesano":"Ago/25","rs":3948540.509},{"projeto":"PCI","situacao":"Aprovação","mesano":"Mar/26","rs":952101.93},{"projeto":"MOA","situacao":"Concluído","mesano":"Ago/25","rs":2130611.8955},{"projeto":"MOA","situacao":"Concluído","mesano":"Mar/26","rs":1021318.78},{"projeto":"MOA","situacao":"Concluído","mesano":"Set/25","rs":2472815.4286},{"projeto":"PCI","situacao":"Concluído","mesano":"Set/24","rs":188274.1041},{"projeto":"PCI","situacao":"Concluído","mesano":"Jul/25","rs":4271778.6369},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Ago/26","rs":1355435.55498},{"projeto":"MOA","situacao":"Aprovação","mesano":"Mar/26","rs":1745204.1255},{"projeto":"PCI","situacao":"Concluído","mesano":"Abr/26","rs":3471070.8065},{"projeto":"MOA","situacao":"Concluído","mesano":"Jun/25","rs":2229088.0458},{"projeto":"PCI","situacao":"Concluído","mesano":"Mar/26","rs":2612840.6707},{"projeto":"MOA","situacao":"Concluído","mesano":"Abr/25","rs":2306830.1581},{"projeto":"MOA","situacao":"Concluído","mesano":"Fev/25","rs":2210387.7832},{"projeto":"PCI","situacao":"Concluído","mesano":"Out/24","rs":785784.68},{"projeto":"MOA","situacao":"Concluído","mesano":"Dez/25","rs":1996137.4269},{"projeto":"MOA","situacao":"Concluído","mesano":"Nov/25","rs":1954420.7653},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Jun/26","rs":64389.915899}];
 
 const CONTRATOS = { MOA:"4600185340 / 4600185359", PCI:"4600184457", GERAL:"4600184457 / 4600185340 / 4600185359" };
 
@@ -414,7 +415,7 @@ function getUpdateDateStr(){
   return d+'/'+m+'/'+y;
 }
 
-const ALL_MONTHS = Array.from(new Set([
+let ALL_MONTHS = Array.from(new Set([
   ...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano), ...RAW_FISCAL_PENDENTE.map(r=>r.mesano),
   ...RAW_MEDIDO_FR.map(r=>r.mesano), ...RAW_FIA_MEDIDO.map(r=>r.mesano), ...RAW_RATEIO_MEDIDO.map(r=>r.mesano),
   ...RAW_FIA_EXTRATO.map(r=>r.mesano), ...RAW_RATEIO_EXTRATO.map(r=>r.mesano)
@@ -1163,15 +1164,406 @@ window.addEventListener('resize', ()=>{
   el.addEventListener('change', render);
 }
 
-/* ---------------- Botao de atualizar dados ---------------- */
-{
-  const btn = document.getElementById('btn-refresh-data');
-  btn.addEventListener('click', ()=>{
-    btn.classList.add('spinning');
-    btn.disabled = true;
-    setTimeout(()=>{ window.location.reload(); }, 400);
+/* ==================================================================================
+   Botao de atualizar dados: le a planilha .xlsx inteira dentro do proprio navegador
+   (nenhum arquivo sai da maquina), refaz os 11 arrays RAW_* seguindo exatamente as
+   mesmas regras documentadas nas Notas metodologicas, e re-renderiza na hora. Nao
+   existe forma de o navegador "vigiar" o arquivo sozinho (bloqueado por seguranca),
+   entao o gatilho e sempre este clique manual. Depois de atualizar, um botao permite
+   baixar o HTML atualizado para substituir este arquivo no projeto.
+   ================================================================================== */
+(function(){
+
+  /* ---- leitura de .xlsx sem bibliotecas externas (ZIP + DEFLATE + XML nativos do navegador) ---- */
+  function readEOCD(buf){
+    var view = new DataView(buf), len = buf.byteLength, minPos = Math.max(0, len - 65557);
+    for (var i = len - 22; i >= minPos; i--){
+      if (view.getUint32(i, true) === 0x06054b50){
+        return { entryCount: view.getUint16(i+10, true), cdOffset: view.getUint32(i+16, true) };
+      }
+    }
+    throw new Error('Arquivo não parece ser um .xlsx válido.');
+  }
+  function readCentralDirectory(buf, eocd){
+    var view = new DataView(buf), bytes = new Uint8Array(buf), dec = new TextDecoder('utf-8');
+    var entries = [], pos = eocd.cdOffset;
+    for (var i=0; i<eocd.entryCount; i++){
+      if (view.getUint32(pos, true) !== 0x02014b50) break;
+      var compMethod = view.getUint16(pos+10, true), compSize = view.getUint32(pos+20, true);
+      var nameLen = view.getUint16(pos+28, true), extraLen = view.getUint16(pos+30, true), commentLen = view.getUint16(pos+32, true);
+      var localOffset = view.getUint32(pos+42, true), name = dec.decode(bytes.subarray(pos+46, pos+46+nameLen));
+      entries.push({ name:name, compMethod:compMethod, compSize:compSize, localOffset:localOffset });
+      pos += 46 + nameLen + extraLen + commentLen;
+    }
+    return entries;
+  }
+  async function inflateRaw(bytes){
+    var ds = new DecompressionStream('deflate-raw');
+    var stream = new Blob([bytes]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  async function readZipEntry(buf, entry){
+    var view = new DataView(buf), bytes = new Uint8Array(buf);
+    var nameLen = view.getUint16(entry.localOffset+26, true), extraLen = view.getUint16(entry.localOffset+28, true);
+    var dataStart = entry.localOffset + 30 + nameLen + extraLen;
+    var raw = bytes.subarray(dataStart, dataStart + entry.compSize);
+    var outBytes = entry.compMethod===0 ? raw : await inflateRaw(raw);
+    return new TextDecoder('utf-8').decode(outBytes);
+  }
+  function colLetterToIndex(ref){
+    var m = ref.match(/^[A-Z]+/); if(!m) return 0;
+    var s=m[0], n=0; for (var i=0;i<s.length;i++){ n = n*26 + (s.charCodeAt(i)-64); } return n-1;
+  }
+  function colLetterOffset(letter){
+    var n=0; for (var i=0;i<letter.length;i++){ n = n*26 + (letter.charCodeAt(i)-64); } return n-1;
+  }
+  function parseSharedStrings(xmlText){
+    if(!xmlText) return [];
+    var out = [], re = /<si\b[^>]*>([\s\S]*?)<\/si>/g, m;
+    while ((m = re.exec(xmlText))){ out.push(extractAllText(m[1])); }
+    return out;
+  }
+  /* Extrai linhas/celulas por regex, sem montar uma arvore DOM inteira — a aba
+     "FAD_FIA & RATEIO" (363 mil linhas x 30 colunas) gera um XML grande demais
+     (centenas de MB) para o DOMParser processar em tempo aceitavel no navegador. */
+  function decodeXmlEntities(s){
+    return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+  }
+  function extractAllText(s){
+    var out='', re=/<t[^>]*>([\s\S]*?)<\/t>/g, m;
+    while((m=re.exec(s))){ out+=decodeXmlEntities(m[1]); }
+    return out;
+  }
+  var ROW_RE = /<row\b[^>]*>([\s\S]*?)<\/row>/g;
+  var CELL_RE = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+  var REF_RE = /\br="([A-Z]+)\d+"/;
+  var TYPE_RE = /\bt="([a-zA-Z]+)"/;
+  var V_RE = /<v[^>]*>([\s\S]*?)<\/v>/;
+  function parseSheetRows(xmlText, sharedStrings){
+    var rows = [];
+    ROW_RE.lastIndex = 0;
+    var rowMatch;
+    while ((rowMatch = ROW_RE.exec(xmlText))){
+      var rowArr = [];
+      CELL_RE.lastIndex = 0;
+      var cellMatch, autoIdx = 0;
+      while ((cellMatch = CELL_RE.exec(rowMatch[1]))){
+        var attrs = cellMatch[1], inner = cellMatch[2] || '';
+        var refM = attrs.match(REF_RE);
+        var idx = refM ? colLetterToIndex(refM[1]) : autoIdx;
+        autoIdx = idx + 1;
+        var typeM = attrs.match(TYPE_RE);
+        var t = typeM ? typeM[1] : 'n', val = null;
+        if (t === 's'){
+          var vM = inner.match(V_RE);
+          if (vM){ var si = parseInt(vM[1],10); val = sharedStrings[si] !== undefined ? sharedStrings[si] : ''; }
+        } else if (t === 'inlineStr'){
+          val = extractAllText(inner);
+        } else if (t === 'str'){
+          var vM2 = inner.match(V_RE); val = vM2 ? decodeXmlEntities(vM2[1]) : '';
+        } else if (t === 'b'){
+          var vM3 = inner.match(V_RE); val = vM3 ? (vM3[1] === '1') : false;
+        } else if (t !== 'e'){
+          var vM4 = inner.match(V_RE); val = vM4 ? parseFloat(vM4[1]) : null;
+        }
+        rowArr[idx] = val;
+      }
+      rows.push(rowArr);
+    }
+    return rows;
+  }
+  function normTxt(s){
+    var t = (s===null||s===undefined?'':String(s)).normalize('NFD');
+    t = t.replace(new RegExp('[\\u0300-\\u036f]', 'g'), '');
+    return t.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  async function loadWorkbookSheets(file, wanted){
+    var buf = await file.arrayBuffer();
+    var eocd = readEOCD(buf);
+    var entries = readCentralDirectory(buf, eocd);
+    var byName = {}; entries.forEach(function(e){ byName[e.name] = e; });
+    var wbXml = await readZipEntry(buf, byName['xl/workbook.xml']);
+    var relsXml = await readZipEntry(buf, byName['xl/_rels/workbook.xml.rels']);
+    var wbDoc = new DOMParser().parseFromString(wbXml, 'application/xml');
+    var relsDoc = new DOMParser().parseFromString(relsXml, 'application/xml');
+    var ridToTarget = {};
+    Array.prototype.forEach.call(relsDoc.getElementsByTagName('Relationship'), function(rel){
+      ridToTarget[rel.getAttribute('Id')] = rel.getAttribute('Target');
+    });
+    var sheetEls = Array.prototype.slice.call(wbDoc.getElementsByTagName('sheet'));
+    var sharedStrings = [];
+    if (byName['xl/sharedStrings.xml']){
+      sharedStrings = parseSharedStrings(await readZipEntry(buf, byName['xl/sharedStrings.xml']));
+    }
+    var result = {};
+    for (var key in wanted){
+      var pats = wanted[key];
+      var match = sheetEls.find(function(s){
+        var n = normTxt(s.getAttribute('name'));
+        return pats.every(function(p){ return n.indexOf(p) !== -1; });
+      });
+      if (!match) throw new Error('Não encontrei a aba de "'+key+'" no arquivo (procurando por: '+pats.join(' + ')+').');
+      var rid = match.getAttribute('r:id') || match.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');
+      var target = ridToTarget[rid];
+      var path = target.indexOf('/')===0 ? target.slice(1) : 'xl/'+target.replace(/^\.\//,'');
+      if (!byName[path]) throw new Error('Aba "'+match.getAttribute('name')+'" não encontrada dentro do arquivo.');
+      var xml = await readZipEntry(buf, byName[path]);
+      result[key] = { sheetName: match.getAttribute('name'), rows: parseSheetRows(xml, sharedStrings) };
+    }
+    return result;
+  }
+
+  function findHeaderRow(rows, mustContainAll, maxScan){
+    maxScan = maxScan || 40;
+    for (var i=0; i<Math.min(maxScan, rows.length); i++){
+      var row = rows[i]; if (!row) continue;
+      var texts = row.map(normTxt);
+      var ok = mustContainAll.every(function(needle){ return texts.some(function(t){ return t.indexOf(needle)!==-1; }); });
+      if (ok) return i;
+    }
+    return -1;
+  }
+  function cellAt(row, idx){ return row ? row[idx] : undefined; }
+  function isBlankV(v){ return v===null||v===undefined||(typeof v==='string'&&v.trim()===''); }
+
+  var MES_BR = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'};
+  function mesAnoFromMY(v){
+    if (typeof v === 'number'){
+      var d = new Date(Math.round((v-25569)*86400000));
+      return MES_BR[d.getUTCMonth()+1]+'/'+String(d.getUTCFullYear()).slice(2);
+    }
+    if (typeof v === 'string' && v.trim()!==''){
+      var m = v.trim().split('/');
+      if (m.length===2){
+        var mm = parseInt(m[0],10), yy = parseInt(m[1],10)%100;
+        if (MES_BR[mm]) return MES_BR[mm]+'/'+String(yy).padStart(2,'0');
+      }
+    }
+    return null;
+  }
+  var CONTRATO_PROJ = {'4600184457':'PCI','4600185340':'MOA','4600185359':'MOA'};
+
+  /* ---- regras de extracao (identicas ao script de geracao original) ---- */
+  async function regenerateFromFile(file){
+    var sheets = await loadWorkbookSheets(file, {
+      rateio: ['fad','rateio'],
+      extrato: ['extrato','sge'],
+      pend: ['pendencia']
+    });
+
+    // FAD_FIA & RATEIO
+    var rRows = sheets.rateio.rows;
+    var hdrIdx = findHeaderRow(rRows, ['situacao','contrato'], 5);
+    if (hdrIdx === -1) hdrIdx = 0;
+    var C = { fa:colLetterOffset('D'), sit:colLetterOffset('F'), nmed:colLetterOffset('G'), sapmed:colLetterOffset('H'),
+      avun:colLetterOffset('K'), valor:colLetterOffset('L'), mesano:colLetterOffset('M'), tipo:colLetterOffset('N'),
+      proj:colLetterOffset('O'), tct:colLetterOffset('S'), fatsn:colLetterOffset('AB') };
+    var hdrRowR = rRows[hdrIdx];
+    if (normTxt(cellAt(hdrRowR,C.sit)).indexOf('situacao')===-1 || normTxt(cellAt(hdrRowR,C.proj)).indexOf('projeto')===-1){
+      throw new Error('O layout da aba "'+sheets.rateio.sheetName+'" mudou (colunas F/O não são mais Situação/Projeto) — avise para eu ajustar o mapeamento antes de confiar nestes números.');
+    }
+
+    var fiaExtratoAgg={}, rateioExtratoAgg={}, fiaMedidoAgg={}, rateioMedidoAgg={}, fiaMedidoDetail={}, rateioMedidoDetail={}, fadMedidoAgg={}, fadMedidoDetail={};
+    for (var r=hdrIdx+1; r<rRows.length; r++){
+      var row = rRows[r]; if (!row) continue;
+      var fa=cellAt(row,C.fa), proj=cellAt(row,C.proj), tipo=cellAt(row,C.tipo);
+      if (isBlankV(fa) && isBlankV(proj)) continue;
+      var valor=cellAt(row,C.valor); var rs = typeof valor==='number' ? valor : 0;
+      var mes = mesAnoFromMY(cellAt(row,C.mesano));
+      if (!mes) continue;
+      var projS = isBlankV(proj)?'?':String(proj);
+      var situS = isBlankV(cellAt(row,C.sit))?'':String(cellAt(row,C.sit));
+      var tipoS = isBlankV(tipo)?'':String(tipo);
+      var tctS = isBlankV(cellAt(row,C.tct))?'':String(cellAt(row,C.tct));
+      var fatS = isBlankV(cellAt(row,C.fatsn))?'':String(cellAt(row,C.fatsn));
+      var isTechint = tctS==='TECHINT' || tctS==='TECHINT_RATEIO_RETROATIVO';
+      var sapmedS = isBlankV(cellAt(row,C.sapmed)) ? '' : String(cellAt(row,C.sapmed));
+      var nmedS = isBlankV(cellAt(row,C.nmed)) ? '' : String(cellAt(row,C.nmed));
+
+      if (tipoS==='FIA' && isTechint){
+        var k=projS+'|'+situS+'|'+mes;
+        if(!fiaExtratoAgg[k]) fiaExtratoAgg[k]={projeto:projS,situacao:situS,mesano:mes,rs:0};
+        fiaExtratoAgg[k].rs+=rs;
+      }
+      if (tipoS==='RAT' && isTechint){
+        var k2=projS+'|'+situS+'|'+mes;
+        if(!rateioExtratoAgg[k2]) rateioExtratoAgg[k2]={projeto:projS,situacao:situS,mesano:mes,rs:0};
+        rateioExtratoAgg[k2].rs+=rs;
+      }
+      if (tipoS==='FIA' && situS==='Medida' && fatS==='Não faturado'){
+        var k3=projS+'|'+mes; if(!fiaMedidoAgg[k3]) fiaMedidoAgg[k3]={projeto:projS,mesano:mes,rs:0}; fiaMedidoAgg[k3].rs+=rs;
+        var fk=projS+'|'+mes+'|'+fa+'|'+sapmedS; if(!fiaMedidoDetail[fk]) fiaMedidoDetail[fk]={projeto:projS,mesano:mes,numfa:String(fa),numsapmed:sapmedS,rs:0}; fiaMedidoDetail[fk].rs+=rs;
+      }
+      if (tipoS==='RAT' && situS==='Concluído' && fatS==='Não faturado'){
+        var k4=projS+'|'+mes; if(!rateioMedidoAgg[k4]) rateioMedidoAgg[k4]={projeto:projS,mesano:mes,rs:0}; rateioMedidoAgg[k4].rs+=rs;
+        var fk2=projS+'|'+mes+'|'+fa+'|'+sapmedS; if(!rateioMedidoDetail[fk2]) rateioMedidoDetail[fk2]={projeto:projS,mesano:mes,numfa:String(fa),numsapmed:sapmedS,rs:0}; rateioMedidoDetail[fk2].rs+=rs;
+      }
+      if (tipoS==='FAD' && situS==='Medida' && fatS==='Não faturado'){
+        var avunV=cellAt(row,C.avun); var hh = typeof avunV==='number'?avunV:0;
+        var k5=projS+'|'+mes; if(!fadMedidoAgg[k5]) fadMedidoAgg[k5]={projeto:projS,mesano:mes,hh:0,rs:0};
+        fadMedidoAgg[k5].hh+=hh; fadMedidoAgg[k5].rs+=rs;
+        var fk3=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fadMedidoDetail[fk3]) fadMedidoDetail[fk3]={projeto:projS,mesano:mes,med:nmedS,sapmed:sapmedS,hh:0,rs:0};
+        fadMedidoDetail[fk3].hh+=hh; fadMedidoDetail[fk3].rs+=rs;
+      }
+    }
+
+    // Extrato SGE (FAD)
+    var eRows = sheets.extrato.rows;
+    var eHdrIdx = findHeaderRow(eRows, ['situacao','fiscal'], 40);
+    if (eHdrIdx === -1) throw new Error('Não encontrei o cabeçalho na aba "'+sheets.extrato.sheetName+'" (procurando Situação + Fiscal nas primeiras 40 linhas).');
+    var E = { contrato:colLetterOffset('F'), sit:colLetterOffset('G'), fiscal:colLetterOffset('J'), hh:colLetterOffset('L'), rs:colLetterOffset('M'), mes:colLetterOffset('X') };
+    var eHdrRow = eRows[eHdrIdx];
+    if (normTxt(cellAt(eHdrRow,E.sit)).indexOf('situacao')===-1 || normTxt(cellAt(eHdrRow,E.fiscal)).indexOf('fiscal')===-1){
+      throw new Error('O layout da aba "'+sheets.extrato.sheetName+'" mudou (colunas G/J não são mais Situação/Fiscal).');
+    }
+    var extratoAgg={}, fiscalAgg={};
+    for (var r2=eHdrIdx+1; r2<eRows.length; r2++){
+      var row2=eRows[r2]; if(!row2) continue;
+      var contrato=cellAt(row2,E.contrato), mesE=cellAt(row2,E.mes);
+      if (isBlankV(contrato) || isBlankV(mesE)) continue;
+      var ct=String(contrato).trim(), projE=CONTRATO_PROJ[ct]; if(!projE) continue;
+      var situES=isBlankV(cellAt(row2,E.sit))?'':String(cellAt(row2,E.sit));
+      var mesES=String(mesE);
+      var hhv=cellAt(row2,E.hh); var hhE=typeof hhv==='number'?hhv:0;
+      var rsv=cellAt(row2,E.rs); var rsE=typeof rsv==='number'?rsv:0;
+      var ke=projE+'|'+situES+'|'+mesES;
+      if(!extratoAgg[ke]) extratoAgg[ke]={projeto:projE,situacao:situES,mesano:mesES,hh:0,rs:0};
+      extratoAgg[ke].hh+=hhE; extratoAgg[ke].rs+=rsE;
+      if (situES==='Pendente de aprovação'){
+        var fiscalV=cellAt(row2,E.fiscal); var fiscalS=isBlankV(fiscalV)?'(sem fiscal)':String(fiscalV);
+        var kf=projE+'|'+fiscalS+'|'+mesES;
+        if(!fiscalAgg[kf]) fiscalAgg[kf]={projeto:projE,fiscal:fiscalS,mesano:mesES,hh:0,rs:0};
+        fiscalAgg[kf].hh+=hhE; fiscalAgg[kf].rs+=rsE;
+      }
+    }
+
+    // Pendencias MOA_PCI
+    var pRows = sheets.pend.rows;
+    var pHdrIdx = findHeaderRow(pRows, ['resumo','projeto'], 10);
+    if (pHdrIdx === -1) throw new Error('Não encontrei o cabeçalho na aba "'+sheets.pend.sheetName+'" (procurando RESUMO + Projeto nas primeiras 10 linhas).');
+    var P = { proj:colLetterOffset('A'), rs:colLetterOffset('Q'), resumo:colLetterOffset('T'), hh:colLetterOffset('U'), mes:colLetterOffset('AI') };
+    var pHdrRow = pRows[pHdrIdx];
+    if (normTxt(cellAt(pHdrRow,P.resumo)).indexOf('resumo')===-1){
+      throw new Error('O layout da aba "'+sheets.pend.sheetName+'" mudou (coluna T não é mais RESUMO).');
+    }
+    var pendAgg={};
+    for (var r3=pHdrIdx+1; r3<pRows.length; r3++){
+      var row3=pRows[r3]; if(!row3) continue;
+      var projP=cellAt(row3,P.proj), resumoP=cellAt(row3,P.resumo), mesP=cellAt(row3,P.mes);
+      if (isBlankV(projP)||isBlankV(mesP)||isBlankV(resumoP)) continue;
+      var projPS=String(projP), resumoPS=String(resumoP).trim(), mesPS=String(mesP);
+      var hhv2=cellAt(row3,P.hh); var hhP=typeof hhv2==='number'?hhv2:0;
+      var rsv2=cellAt(row3,P.rs); var rsP=typeof rsv2==='number'?rsv2:0;
+      var kp=projPS+'|'+resumoPS+'|'+mesPS;
+      if(!pendAgg[kp]) pendAgg[kp]={projeto:projPS,resumo:resumoPS,mesano:mesPS,hh:0,rs:0};
+      pendAgg[kp].hh+=hhP; pendAgg[kp].rs+=rsP;
+    }
+
+    function vals(o){ return Object.keys(o).map(function(k){ return o[k]; }); }
+    return {
+      RAW_EXTRATO: vals(extratoAgg), RAW_PENDENCIAS: vals(pendAgg), RAW_FISCAL_PENDENTE: vals(fiscalAgg),
+      RAW_MEDIDO_FR: vals(fadMedidoAgg), RAW_MEDIDO_FR_DETAIL: vals(fadMedidoDetail),
+      RAW_FIA_MEDIDO: vals(fiaMedidoAgg), RAW_RATEIO_MEDIDO: vals(rateioMedidoAgg),
+      RAW_FIA_MEDIDO_DETAIL: vals(fiaMedidoDetail), RAW_RATEIO_MEDIDO_DETAIL: vals(rateioMedidoDetail),
+      RAW_FIA_EXTRATO: vals(fiaExtratoAgg), RAW_RATEIO_EXTRATO: vals(rateioExtratoAgg)
+    };
+  }
+
+  function applyNewData(nd){
+    RAW_EXTRATO = nd.RAW_EXTRATO;
+    RAW_PENDENCIAS = nd.RAW_PENDENCIAS;
+    RAW_FISCAL_PENDENTE = nd.RAW_FISCAL_PENDENTE;
+    RAW_MEDIDO_FR = nd.RAW_MEDIDO_FR;
+    RAW_MEDIDO_FR_DETAIL = nd.RAW_MEDIDO_FR_DETAIL;
+    RAW_FIA_MEDIDO = nd.RAW_FIA_MEDIDO;
+    RAW_RATEIO_MEDIDO = nd.RAW_RATEIO_MEDIDO;
+    RAW_FIA_MEDIDO_DETAIL = nd.RAW_FIA_MEDIDO_DETAIL;
+    RAW_RATEIO_MEDIDO_DETAIL = nd.RAW_RATEIO_MEDIDO_DETAIL;
+    RAW_FIA_EXTRATO = nd.RAW_FIA_EXTRATO;
+    RAW_RATEIO_EXTRATO = nd.RAW_RATEIO_EXTRATO;
+    ALL_MONTHS = Array.from(new Set([
+      ...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano), ...RAW_FISCAL_PENDENTE.map(r=>r.mesano),
+      ...RAW_MEDIDO_FR.map(r=>r.mesano), ...RAW_FIA_MEDIDO.map(r=>r.mesano), ...RAW_RATEIO_MEDIDO.map(r=>r.mesano),
+      ...RAW_FIA_EXTRATO.map(r=>r.mesano), ...RAW_RATEIO_EXTRATO.map(r=>r.mesano)
+    ])).sort((a,b)=>mesKey(a)-mesKey(b));
+    DISPLAY_MONTHS = ALL_MONTHS.slice(-3);
+    buildMonthFilterPanel();
+    render();
+  }
+
+  function currentRawValues(){
+    return { RAW_EXTRATO, RAW_PENDENCIAS, RAW_FISCAL_PENDENTE, RAW_MEDIDO_FR, RAW_MEDIDO_FR_DETAIL,
+      RAW_FIA_MEDIDO, RAW_RATEIO_MEDIDO, RAW_FIA_MEDIDO_DETAIL, RAW_RATEIO_MEDIDO_DETAIL,
+      RAW_FIA_EXTRATO, RAW_RATEIO_EXTRATO };
+  }
+
+  function buildUpdatedHTML(){
+    var names = Object.keys(currentRawValues());
+    var current = currentRawValues();
+    var doc = PRISTINE_HTML;
+    names.forEach(function(name){
+      var re = new RegExp('(?:const|let)\\s+'+name+'\\s*=\\s*\\[[\\s\\S]*?\\];');
+      doc = doc.replace(re, 'let '+name+' = '+JSON.stringify(current[name])+';');
+    });
+    return '<!doctype html>\n' + doc;
+  }
+
+  function downloadUpdatedReport(){
+    var html = buildUpdatedHTML();
+    var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'Relatorio_Horas_Valores.html';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  }
+
+  var toastEl = document.createElement('div');
+  toastEl.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:999;max-width:380px;display:none;';
+  document.body.appendChild(toastEl);
+  var toastTimer;
+  function showUpdateToast(msg, isErr){
+    toastEl.textContent = msg;
+    toastEl.style.background = isErr ? 'var(--danger)' : 'var(--navy)';
+    toastEl.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.style.display='none'; }, isErr ? 12000 : 7000);
+  }
+
+  var btn = document.getElementById('btn-refresh-data');
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.accept = '.xlsx'; fileInput.style.display = 'none';
+  document.body.appendChild(fileInput);
+
+  var dlBtn = document.createElement('button');
+  dlBtn.type = 'button';
+  dlBtn.textContent = '💾 Baixar relatório atualizado';
+  dlBtn.title = 'Salva o HTML atualizado — depois é só substituir o arquivo do projeto por este';
+  dlBtn.style.cssText = 'display:none;margin-left:8px;font-size:12px;font-weight:700;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--green);color:var(--navy);cursor:pointer;white-space:nowrap;';
+  btn.parentNode.appendChild(dlBtn);
+  dlBtn.addEventListener('click', downloadUpdatedReport);
+
+  btn.addEventListener('click', function(){ fileInput.click(); });
+
+  fileInput.addEventListener('change', async function(){
+    var file = fileInput.files[0];
+    fileInput.value = '';
+    if (!file) return;
+    btn.classList.add('spinning'); btn.disabled = true;
+    try{
+      var nd = await regenerateFromFile(file);
+      applyNewData(nd);
+      dlBtn.style.display = 'inline-flex';
+      showUpdateToast('Dados atualizados a partir de "'+file.name+'". Clique em "Baixar relatório atualizado" para salvar no projeto.', false);
+    } catch(err){
+      console.error(err);
+      showUpdateToast('Falha ao atualizar: ' + err.message, true);
+    } finally {
+      btn.classList.remove('spinning'); btn.disabled = false;
+    }
   });
-}
+})();
 
 render();
 </script>
