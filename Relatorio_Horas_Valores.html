@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -275,107 +275,23 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 "use strict";
 
 /* ================= DADOS (extraidos de Controle de horas x valores R$_jornal .xlsx) ================= */
-const RAW_EXTRATO = [
-{projeto:"PCI",situacao:"Medida",mesano:"Abr/25",hh:115569.47666000093,rs:7350310.3162696194},
-{projeto:"PCI",situacao:"Medida",mesano:"Abr/26",hh:81573.105730000578,rs:6248771.5724646933},
-{projeto:"PCI",situacao:"Medida",mesano:"Ago/25",hh:146454.32000000152,rs:10277875.021199968},
-{projeto:"PCI",situacao:"Medida",mesano:"Dez/24",hh:33037.669999999984,rs:2151539.3024999951},
-{projeto:"PCI",situacao:"Medida",mesano:"Dez/25",hh:93744.480000000971,rs:6600363.5371999927},
-{projeto:"PCI",situacao:"Medida",mesano:"Fev/25",hh:69408.050000000163,rs:4324019.6151999952},
-{projeto:"PCI",situacao:"Medida",mesano:"Fev/26",hh:85516.720000000947,rs:5975131.7029999942},
-{projeto:"PCI",situacao:"Medida",mesano:"Jan/25",hh:58065.620000000075,rs:3771931.9095999952},
-{projeto:"PCI",situacao:"Medida",mesano:"Jan/26",hh:79765.5300000004,rs:5676773.8331999918},
-{projeto:"PCI",situacao:"Medida",mesano:"Jul/25",hh:154423.04000000039,rs:10301428.299399968},
-{projeto:"PCI",situacao:"Medida",mesano:"Jul/26",hh:938.44993,rs:74864.619161899987},
-{projeto:"PCI",situacao:"Medida",mesano:"Jun/25",hh:122494.1000000014,rs:8452364.2666000146},
-{projeto:"PCI",situacao:"Medida",mesano:"Jun/26",hh:2220.83981,rs:206282.06441540009},
-{projeto:"PCI",situacao:"Medida",mesano:"Mai/25",hh:125178.75000000096,rs:8045632.31349998},
-{projeto:"PCI",situacao:"Medida",mesano:"Mai/26",hh:2658.6164200000007,rs:236060.08664890009},
-{projeto:"PCI",situacao:"Medida",mesano:"Mar/25",hh:101542.97000000082,rs:6082167.0287999865},
-{projeto:"PCI",situacao:"Medida",mesano:"Mar/26",hh:108129.17666000135,rs:7552789.2339402},
-{projeto:"PCI",situacao:"Medida",mesano:"Nov/24",hh:14859.569999999951,rs:957522.387},
-{projeto:"PCI",situacao:"Medida",mesano:"Nov/25",hh:118039.8500000012,rs:8687607.9266999979},
-{projeto:"PCI",situacao:"Medida",mesano:"Out/24",hh:5486.0800000000008,rs:352720.9366},
-{projeto:"PCI",situacao:"Medida",mesano:"Out/25",hh:140230.77666000367,rs:9732655.2776843477},
-{projeto:"PCI",situacao:"Medida",mesano:"Set/25",hh:142998.51000000312,rs:9891184.4766999837},
-{projeto:"PCI",situacao:"Pendente de aprovação",mesano:"Jul/26",hh:2043.0998899999997,rs:192097.4227388},
-{projeto:"PCI",situacao:"Pendente de aprovação",mesano:"Jun/26",hh:1397.1965500000001,rs:125909.61371979999},
-{projeto:"PCI",situacao:"Pendente de aprovação",mesano:"Mai/26",hh:46.65,rs:4518.5455},
-{projeto:"MOA",situacao:"Medida",mesano:"Abr/25",hh:51192.283240000186,rs:3474222.8736686069},
-{projeto:"MOA",situacao:"Medida",mesano:"Abr/26",hh:222.71,rs:17013.9209},
-{projeto:"MOA",situacao:"Medida",mesano:"Ago/25",hh:46799.699079999977,rs:3293046.7977048047},
-{projeto:"MOA",situacao:"Medida",mesano:"Dez/24",hh:50323.306660000133,rs:3279170.8224622034},
-{projeto:"MOA",situacao:"Medida",mesano:"Dez/25",hh:35101.836649999845,rs:2509952.5902503952},
-{projeto:"MOA",situacao:"Medida",mesano:"Fev/25",hh:50264.823290000219,rs:3374820.8847499066},
-{projeto:"MOA",situacao:"Medida",mesano:"Fev/26",hh:22593.426579999894,rs:1590294.7245936969},
-{projeto:"MOA",situacao:"Medida",mesano:"Jan/25",hh:51475.34663000016,rs:3416771.3273825031},
-{projeto:"MOA",situacao:"Medida",mesano:"Jan/26",hh:25761.669999999929,rs:1865675.083899999},
-{projeto:"MOA",situacao:"Medida",mesano:"Jul/25",hh:57635.506460000295,rs:3945188.3417004989},
-{projeto:"MOA",situacao:"Medida",mesano:"Jul/26",hh:615.93330999999989,rs:54887.0943959},
-{projeto:"MOA",situacao:"Medida",mesano:"Jun/25",hh:56127.363330000262,rs:3924241.508346606},
-{projeto:"MOA",situacao:"Medida",mesano:"Jun/26",hh:80,rs:6809.8},
-{projeto:"MOA",situacao:"Medida",mesano:"Mai/25",hh:56983.666580000354,rs:3815101.0306256213},
-{projeto:"MOA",situacao:"Medida",mesano:"Mai/26",hh:45,rs:2606.04},
-{projeto:"MOA",situacao:"Medida",mesano:"Mar/25",hh:54898.396620000007,rs:3690267.1918342058},
-{projeto:"MOA",situacao:"Medida",mesano:"Mar/26",hh:10824.719999999959,rs:779422.36420000019},
-{projeto:"MOA",situacao:"Medida",mesano:"Nov/24",hh:39963.073329999854,rs:2632093.139557011},
-{projeto:"MOA",situacao:"Medida",mesano:"Nov/25",hh:33178.869989999861,rs:2419847.9080199013},
-{projeto:"MOA",situacao:"Medida",mesano:"Out/24",hh:38110.970000000008,rs:2526077.9389000032},
-{projeto:"MOA",situacao:"Medida",mesano:"Out/25",hh:53541.586650000208,rs:3862413.4617285994},
-{projeto:"MOA",situacao:"Medida",mesano:"Set/24",hh:29096.109999999986,rs:1953466.5248000012},
-{projeto:"MOA",situacao:"Medida",mesano:"Set/25",hh:53819.523320000248,rs:3814730.8779567955},
-{projeto:"MOA",situacao:"Medida",mesano:"Abr/25",hh:1649.1,rs:109264.23280000001},
-{projeto:"MOA",situacao:"Medida",mesano:"Abr/26",hh:386.93,rs:29668.687399999995},
-{projeto:"MOA",situacao:"Medida",mesano:"Ago/25",hh:1632.21666,rs:109632.71680420001},
-{projeto:"MOA",situacao:"Medida",mesano:"Dez/25",hh:3189.2600000000025,rs:221885.60760000013},
-{projeto:"MOA",situacao:"Medida",mesano:"Fev/25",hh:120.66000000000001,rs:6438.1446},
-{projeto:"MOA",situacao:"Medida",mesano:"Fev/26",hh:8344.48326999999,rs:586610.14003029966},
-{projeto:"MOA",situacao:"Medida",mesano:"Jan/25",hh:134.5,rs:9915.536},
-{projeto:"MOA",situacao:"Medida",mesano:"Jan/26",hh:5155.46,rs:355630.00699999969},
-{projeto:"MOA",situacao:"Medida",mesano:"Jul/25",hh:2577.5900000000015,rs:187537.17590000003},
-{projeto:"MOA",situacao:"Medida",mesano:"Jun/25",hh:2339.6699999999992,rs:155422.41760000002},
-{projeto:"MOA",situacao:"Medida",mesano:"Mai/25",hh:2122.02,rs:134281.67549999998},
-{projeto:"MOA",situacao:"Medida",mesano:"Mar/25",hh:2151.9600000000005,rs:138544.98390000005},
-{projeto:"MOA",situacao:"Medida",mesano:"Mar/26",hh:8586.8399999999911,rs:579320.89620000066},
-{projeto:"MOA",situacao:"Medida",mesano:"Nov/25",hh:288.84000000000003,rs:21973.0419},
-{projeto:"MOA",situacao:"Medida",mesano:"Out/25",hh:199.64999999999998,rs:15418.889500000001},
-{projeto:"MOA",situacao:"Medida",mesano:"Set/25",hh:294.82000000000005,rs:23229.0852}
-];
+const RAW_EXTRATO = [{"projeto":"PCI","situacao":"Medida","mesano":"Nov/25","hh":118039.85,"rs":8687607.9267},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/26","hh":19411.56,"rs":1358743.2604},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/24","hh":39963.07333,"rs":2632093.139557},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/25","hh":38291.09665,"rs":2731838.19785},{"projeto":"MOA","situacao":"Medida","mesano":"Set/25","hh":54114.34332,"rs":3837959.963157},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/24","hh":14859.57,"rs":957522.387},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/26","hh":108129.17666,"rs":7552789.23394},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/25","hh":60213.09646,"rs":4132725.517601},{"projeto":"MOA","situacao":"Medida","mesano":"Ago/25","hh":48431.91574,"rs":3402679.514509},{"projeto":"MOA","situacao":"Medida","mesano":"Set/24","hh":29096.11,"rs":1953466.5248},{"projeto":"PCI","situacao":"Medida","mesano":"Set/25","hh":142998.51,"rs":9891184.4767},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/25","hh":57050.35662,"rs":3828812.175734},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/26","hh":938.44993,"rs":74864.619162},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/26","hh":80,"rs":6809.8},{"projeto":"PCI","situacao":"Medida","mesano":"Ago/25","hh":146454.32,"rs":10277875.0212},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/26","hh":30917.13,"rs":2221305.0909},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/25","hh":154423.04,"rs":10301428.2994},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/25","hh":58467.03333,"rs":4079663.925947},{"projeto":"PCI","situacao":"Medida","mesano":"Out/25","hh":140230.77666,"rs":9732655.277684},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/25","hh":59105.68658,"rs":3949382.706126},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/25","hh":69408.05,"rs":4324019.6152},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/26","hh":81573.10573,"rs":6248771.572465},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/26","hh":609.64,"rs":46682.6083},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/26","hh":2220.83981,"rs":206282.064415},{"projeto":"PCI","situacao":"Medida","mesano":"Out/24","hh":5486.08,"rs":352720.9366},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/26","hh":79765.53,"rs":5676773.8332},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Mai/26","hh":46.65,"rs":4518.5455},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/25","hh":50385.48329,"rs":3381259.02935},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/25","hh":33467.70999,"rs":2441820.94992},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Jun/26","hh":1397.19655,"rs":125909.61372},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/25","hh":51609.84663,"rs":3426686.863383},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/25","hh":101542.97,"rs":6082167.0288},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/25","hh":122494.1,"rs":8452364.2666},{"projeto":"MOA","situacao":"Medida","mesano":"Out/24","hh":38110.97,"rs":2526077.9389},{"projeto":"PCI","situacao":"Pendente de aprovação","mesano":"Jul/26","hh":2043.09989,"rs":192097.422739},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/26","hh":615.93331,"rs":54887.094396},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/26","hh":45,"rs":2606.04},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/25","hh":93744.48,"rs":6600363.5372},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/26","hh":85516.72,"rs":5975131.703},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/26","hh":2658.61642,"rs":236060.086649},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/25","hh":125178.75,"rs":8045632.3135},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/25","hh":58065.62,"rs":3771931.9096},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/24","hh":50323.30666,"rs":3279170.822462},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/24","hh":33037.67,"rs":2151539.3025},{"projeto":"MOA","situacao":"Medida","mesano":"Out/25","hh":53741.23665,"rs":3877832.351229},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/25","hh":115569.47666,"rs":7350310.31627},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/25","hh":52841.38324,"rs":3583487.106469},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/26","hh":30937.90985,"rs":2176904.864624}];
 
-const RAW_PENDENCIAS = [
-{projeto:"MOA",resumo:"OS: 44128 Situação: Aguardando liberação tecnica",mesano:"Jul/26",hh:1627.045000000001,rs:114170.2204},
-{projeto:"MOA",resumo:"Pendência de Função",mesano:"Jul/26",hh:480.08230000000003,rs:38865.9284},
-{projeto:"MOA",resumo:"Pendência de Saldo",mesano:"Jul/26",hh:93,rs:6438.39},
-{projeto:"MOA",resumo:"RDC não está aprovada",mesano:"Jul/26",hh:1934.6607000000008,rs:143229.5788},
-{projeto:"MOA",resumo:"Recurso não cadastrado no WebTerceiros",mesano:"Jul/26",hh:532.3329,rs:41308.0285},
-{projeto:"MOA",resumo:"Recurso não cadastrado no WebTerceiros",mesano:"Jun/26",hh:60,rs:5394.8},
-{projeto:"PCI",resumo:"Pendência de Saldo",mesano:"Jul/26",hh:1359.4100000000017,rs:125196.9718},
-{projeto:"PCI",resumo:"Pendência de Saldo",mesano:"Jun/26",hh:144.163,rs:14113.6506},
-{projeto:"PCI",resumo:"RDC não está aprovada",mesano:"Jul/26",hh:16,rs:1418.4}
-];
+const RAW_PENDENCIAS = [{"projeto":"MOA","resumo":"Pendência de Saldo","mesano":"Jul/26","hh":93,"rs":6438.39},{"projeto":"PCI","resumo":"Pendência de Saldo","mesano":"Jun/26","hh":144.163,"rs":14113.65065},{"projeto":"MOA","resumo":"OS: 44128 Situação: Aguardando liberação tecnica","mesano":"Jul/26","hh":1627.045,"rs":114170.21971},{"projeto":"MOA","resumo":"Recurso não cadastrado no WebTerceiros","mesano":"Jun/26","hh":60,"rs":5394.8},{"projeto":"MOA","resumo":"Recurso não cadastrado no WebTerceiros","mesano":"Jul/26","hh":532.3329,"rs":41308.028433},{"projeto":"PCI","resumo":"Pendência de Saldo","mesano":"Jul/26","hh":1359.41,"rs":125196.97391},{"projeto":"MOA","resumo":"RDC não está aprovada","mesano":"Jul/26","hh":1934.6607,"rs":143229.578596},{"projeto":"MOA","resumo":"Pendência de Função","mesano":"Jul/26","hh":480.0823,"rs":38865.928364},{"projeto":"PCI","resumo":"RDC não está aprovada","mesano":"Jul/26","hh":16,"rs":1418.4}];
 
-const RAW_FISCAL_PENDENTE = [
-{projeto:"PCI",fiscal:"Gustavo Silveira Carvalho",mesano:"Jul/26",hh:2043.09989,rs:192097.4227388},
-{projeto:"PCI",fiscal:"Gustavo Silveira Carvalho",mesano:"Jun/26",hh:1397.19655,rs:125909.6137198},
-{projeto:"PCI",fiscal:"Gustavo Silveira Carvalho",mesano:"Mai/26",hh:46.65,rs:4518.5455}
-];
+const RAW_FISCAL_PENDENTE = [{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Jun/26","hh":1397.19655,"rs":125909.61372},{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Mai/26","hh":46.65,"rs":4518.5455},{"projeto":"PCI","fiscal":"Gustavo Silveira Carvalho","mesano":"Jul/26","hh":2043.09989,"rs":192097.422739}];
 
 /* Item 3.3 "Medido - Para emitir FR - SAP": aba "FAD_FIA & RATEIO", filtrado por
    FAD_FIA_RAT(col N)="FAD" + Situação(col F)="Medida" + Faturado SIM ou NÃO(col AB)="Não faturado",
    agrupado por Projeto(col O) e Mês/Ano(col M). */
 /* Reconsultado em 05/09/2026: todo o saldo do PCI (Abr/26 e Mai/26, ~R$ 6,17 mi) ja foi faturado
    (coluna AB agora = "Faturado"), por isso saiu do "Nao faturado" e sobrou so o MOA Ago/25. */
-const RAW_MEDIDO_FR = [
-{projeto:"MOA",mesano:"Ago/25",hh:30.98,rs:1772.09}
-];
+const RAW_MEDIDO_FR = [{"projeto":"MOA","mesano":"Ago/25","hh":30.98,"rs":1772.09}];
 
 /* Detalhe por No Med. (coluna G) e No SAP Med. (coluna H, tratado aqui como "FR") das linhas
    que compoem o item 3.3 do FAD — usado no duplo-clique. Reconsultado em 05/09/2026 junto com
    o RAW_MEDIDO_FR acima: os medidos do PCI ja foram faturados e saem do detalhe. */
-const RAW_MEDIDO_FR_DETAIL = [
-{projeto:"MOA",mesano:"Ago/25",med:"MED_79588",sapmed:"1012797875",hh:8.98,rs:570.23},
-{projeto:"MOA",mesano:"Ago/25",med:"MED_79528",sapmed:"1012797813",hh:22,rs:1201.86}
-];
+const RAW_MEDIDO_FR_DETAIL = [{"projeto":"MOA","mesano":"Ago/25","med":"MED_79588","sapmed":"1012797875","hh":8.98,"rs":570.23},{"projeto":"MOA","mesano":"Ago/25","med":"MED_79528","sapmed":"1012797813","hh":22,"rs":1201.86}];
 
 /* FIA e RATEIO: aba "FAD_FIA & RATEIO", filtrado por TCT ou USM (col S) = "TECHINT" ou
    "TECHINT_RATEIO_RETROATIVO" (exclui linhas de responsabilidade Usiminas), agrupado por
@@ -385,39 +301,21 @@ const RAW_MEDIDO_FR_DETAIL = [
    + Faturado SIM ou NÃO(AB)="Não faturado". */
 /* Reconsultado em 05/09/2026: os medidos de Mai/26 e Abr/26 do PCI (~R$ 2,99 mi) ja foram
    faturados (coluna AB="Faturado") e saem do "Nao faturado" — so restou o Jan/25. */
-const RAW_FIA_MEDIDO = [
-{projeto:"PCI",mesano:"Jan/25",rs:45000}
-];
+const RAW_FIA_MEDIDO = [{"projeto":"PCI","mesano":"Jan/25","rs":670814.49}];
 
 /* Item 2.5 "Medido - Para emitir FR - SAP" (RATEIO): FAD_FIA_RAT(N)="RAT" + Situação(F)="Concluído"
    + Faturado SIM ou NÃO(AB)="Não faturado". */
 /* Reconsultado em 05/09/2026: uma parte do Mai/26 do PCI ja foi faturada, reduzindo o valor
    (o restante desse mes e os demais meses seguem "Nao faturado"). */
-const RAW_RATEIO_MEDIDO = [
-{projeto:"PCI",mesano:"Nov/25",rs:71661.66},
-{projeto:"PCI",mesano:"Abr/26",rs:3268908.82},
-{projeto:"PCI",mesano:"Mai/26",rs:2814746.68},
-{projeto:"MOA",mesano:"Jan/26",rs:125499.01},
-{projeto:"MOA",mesano:"Abr/26",rs:151288.43}
-];
+const RAW_RATEIO_MEDIDO = [{"projeto":"MOA","mesano":"Abr/26","rs":558196.51},{"projeto":"MOA","mesano":"Jan/26","rs":125499.01},{"projeto":"PCI","mesano":"Nov/25","rs":71661.66},{"projeto":"PCI","mesano":"Mai/26","rs":2814746.6696},{"projeto":"PCI","mesano":"Abr/26","rs":3268908.7865},{"projeto":"MOA","mesano":"Mai/26","rs":446169.2}];
 
 /* Detalhe por No FA (coluna D) das linhas que compoem 1.5 (FIA) e 2.5 (RATEIO) — usado no
    duplo-clique para mostrar quais FA/RATEIO especificos formam o valor daquela celula. */
 /* Reconsultado em 05/09/2026 junto com o Nº SAP Med. (coluna H, tratado como FR): os medidos
    do PCI (FIA_579412 e FIA_580604 de Mai/26, FIA_573101 de Abr/26) ja foram faturados e saem
    do detalhe — so restou o Jan/25. */
-const RAW_FIA_MEDIDO_DETAIL = [
-{projeto:"PCI",mesano:"Jan/25",numfa:"FIA_432876",numsapmed:"1012286773",rs:45000}
-];
-const RAW_RATEIO_MEDIDO_DETAIL = [
-{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",numsapmed:"1013249294",rs:273217.11},
-{projeto:"PCI",mesano:"Nov/25",numfa:"RAT_1403",numsapmed:"1012912104",rs:71661.66},
-{projeto:"PCI",mesano:"Abr/26",numfa:"RAT_1504",numsapmed:"1013172275",rs:3268908.82},
-{projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1394",numsapmed:"",rs:30652.7},
-{projeto:"PCI",mesano:"Mai/26",numfa:"RAT_1523",numsapmed:"",rs:2541529.57},
-{projeto:"MOA",mesano:"Abr/26",numfa:"RAT_1505",numsapmed:"1013172273",rs:151288.43},
-{projeto:"MOA",mesano:"Jan/26",numfa:"RAT_1393",numsapmed:"",rs:94846.31}
-];
+const RAW_FIA_MEDIDO_DETAIL = [{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432873","numsapmed":"1012265728","rs":533047.83},{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432870","numsapmed":"1012286771","rs":55020},{"projeto":"PCI","mesano":"Jan/25","numfa":"FIA_432876","numsapmed":"1012286773","rs":82746.66}];
+const RAW_RATEIO_MEDIDO_DETAIL = [{"projeto":"PCI","mesano":"Mai/26","numfa":"RAT_1523","numsapmed":"1013249294","rs":273217.11},{"projeto":"PCI","mesano":"Nov/25","numfa":"RAT_1403","numsapmed":"1012912104","rs":71661.66},{"projeto":"PCI","mesano":"Abr/26","numfa":"RAT_1504","numsapmed":"1013172275","rs":3268908.7865},{"projeto":"MOA","mesano":"Mai/26","numfa":"RAT_1519","numsapmed":"1013233800","rs":446169.2},{"projeto":"MOA","mesano":"Jan/26","numfa":"RAT_1394","numsapmed":"","rs":30652.7},{"projeto":"PCI","mesano":"Mai/26","numfa":"RAT_1523","numsapmed":"","rs":2541529.5596},{"projeto":"MOA","mesano":"Abr/26","numfa":"RAT_1505","numsapmed":"1013172273","rs":558196.51},{"projeto":"MOA","mesano":"Jan/26","numfa":"RAT_1393","numsapmed":"","rs":94846.31}];
 
 /* Aba "FR'S emitidas" (montada manualmente pelo usuario): valores de FR ja emitidos/faturados,
    por FAD/FIA/RATEIO, com o BM (Boletim de Medicao) e periodo de cada um. */
@@ -459,101 +357,12 @@ const FRS_EMITIDAS = {
 /* Itens 1.1-1.4 (FIA): FAD_FIA_RAT(N)="FIA", agrupado por Projeto/Situação(F)/Mês. Hoje a base só
    tem Situação="Medida" para FIA — nenhum item 1.1-1.4 casa ainda, mas o lookup é dinâmico: se a
    base passar a ter lançamentos com o texto exato de um desses itens, eles entram automaticamente. */
-const RAW_FIA_EXTRATO = [
-{projeto:"MOA",situacao:"Medida",mesano:"Ago/25",rs:252864.62654},
-{projeto:"MOA",situacao:"Medida",mesano:"Mar/26",rs:85922.415},
-{projeto:"MOA",situacao:"Medida",mesano:"Nov/24",rs:217316.73314},
-{projeto:"MOA",situacao:"Medida",mesano:"Dez/25",rs:134389.18252},
-{projeto:"MOA",situacao:"Medida",mesano:"Set/25",rs:164542.93168},
-{projeto:"PCI",situacao:"Medida",mesano:"Nov/24",rs:195308.1211},
-{projeto:"PCI",situacao:"Medida",mesano:"Mar/26",rs:1648348.8399},
-{projeto:"MOA",situacao:"Medida",mesano:"Jul/25",rs:172092.74814},
-{projeto:"PCI",situacao:"Medida",mesano:"Mai/25",rs:2137867.3612},
-{projeto:"MOA",situacao:"Medida",mesano:"Set/24",rs:116068.7312},
-{projeto:"PCI",situacao:"Medida",mesano:"Set/25",rs:1503358.405},
-{projeto:"PCI",situacao:"Medida",mesano:"Nov/25",rs:1618051.08314},
-{projeto:"MOA",situacao:"Medida",mesano:"Jun/26",rs:17610.8985},
-{projeto:"PCI",situacao:"Medida",mesano:"Ago/25",rs:1479202.6975},
-{projeto:"MOA",situacao:"Medida",mesano:"Jan/26",rs:116591.63096},
-{projeto:"PCI",situacao:"Medida",mesano:"Jul/25",rs:2438678.635},
-{projeto:"MOA",situacao:"Medida",mesano:"Jun/25",rs:349284.66412},
-{projeto:"PCI",situacao:"Medida",mesano:"Out/25",rs:1655261.0572},
-{projeto:"MOA",situacao:"Medida",mesano:"Mai/25",rs:367418.47926},
-{projeto:"PCI",situacao:"Medida",mesano:"Fev/25",rs:1780005.9952},
-{projeto:"PCI",situacao:"Medida",mesano:"Abr/26",rs:2708671.3405},
-{projeto:"MOA",situacao:"Medida",mesano:"Dez/24",rs:231868.9526},
-{projeto:"PCI",situacao:"Medida",mesano:"Jun/26",rs:1713163.07999},
-{projeto:"PCI",situacao:"Medida",mesano:"Jan/26",rs:1412235.2},
-{projeto:"PCI",situacao:"Medida",mesano:"Abr/25",rs:2005311.4226},
-{projeto:"MOA",situacao:"Medida",mesano:"Out/25",rs:141183.28388},
-{projeto:"MOA",situacao:"Medida",mesano:"Fev/25",rs:268525.57222},
-{projeto:"MOA",situacao:"Medida",mesano:"Mar/25",rs:336781.12354},
-{projeto:"MOA",situacao:"Medida",mesano:"Jan/25",rs:261728.1266},
-{projeto:"PCI",situacao:"Medida",mesano:"Mar/25",rs:1824154.1932},
-{projeto:"MOA",situacao:"Medida",mesano:"Out/24",rs:501225.0336},
-{projeto:"PCI",situacao:"Medida",mesano:"Jun/25",rs:2212086.332},
-{projeto:"PCI",situacao:"Medida",mesano:"Set/24",rs:19764661.1},
-{projeto:"MOA",situacao:"Medida",mesano:"Mai/26",rs:19371.1095},
-{projeto:"PCI",situacao:"Medida",mesano:"Dez/25",rs:1451215.8225},
-{projeto:"PCI",situacao:"Medida",mesano:"Fev/26",rs:1339295.542},
-{projeto:"PCI",situacao:"Medida",mesano:"Mai/26",rs:2033512.17604},
-{projeto:"PCI",situacao:"Medida",mesano:"Jan/25",rs:1842753.8868},
-{projeto:"PCI",situacao:"Medida",mesano:"Dez/24",rs:1873696.255},
-{projeto:"MOA",situacao:"Medida",mesano:"Nov/25",rs:125800.62344},
-{projeto:"MOA",situacao:"Medida",mesano:"Abr/26",rs:28319.5575},
-{projeto:"MOA",situacao:"Medida",mesano:"Abr/25",rs:350325.1957},
-{projeto:"MOA",situacao:"Medida",mesano:"Fev/26",rs:148141.64612}
-];
+const RAW_FIA_EXTRATO = [{"projeto":"MOA","situacao":"Medida","mesano":"Ago/25","rs":252864.62654},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/26","rs":85922.415},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/26","rs":17610.8985},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/24","rs":217316.73314},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/25","rs":134389.18252},{"projeto":"MOA","situacao":"Medida","mesano":"Set/25","rs":164542.93168},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/24","rs":195308.1211},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/26","rs":1648348.8399},{"projeto":"MOA","situacao":"Medida","mesano":"Jul/25","rs":172092.74814},{"projeto":"PCI","situacao":"Medida","mesano":"Set/25","rs":1503358.405},{"projeto":"PCI","situacao":"Medida","mesano":"Nov/25","rs":1618051.08314},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/26","rs":116591.63096},{"projeto":"PCI","situacao":"Medida","mesano":"Ago/25","rs":1479202.6975},{"projeto":"PCI","situacao":"Medida","mesano":"Jul/25","rs":2438678.635},{"projeto":"MOA","situacao":"Medida","mesano":"Jun/25","rs":349284.66412},{"projeto":"PCI","situacao":"Medida","mesano":"Out/25","rs":1655261.0572},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/25","rs":367418.47926},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/25","rs":1780005.9952},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/25","rs":2137867.3612},{"projeto":"MOA","situacao":"Medida","mesano":"Dez/24","rs":231868.9526},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/26","rs":1713163.07999},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/26","rs":1412235.2},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/26","rs":28319.5575},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/25","rs":268525.57222},{"projeto":"MOA","situacao":"Medida","mesano":"Mar/25","rs":336781.12354},{"projeto":"MOA","situacao":"Medida","mesano":"Jan/25","rs":261728.1266},{"projeto":"PCI","situacao":"Medida","mesano":"Mar/25","rs":1824154.1932},{"projeto":"MOA","situacao":"Medida","mesano":"Out/24","rs":501225.0336},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/26","rs":2708671.3405},{"projeto":"PCI","situacao":"Medida","mesano":"Jun/25","rs":2212086.332},{"projeto":"MOA","situacao":"Medida","mesano":"Nov/25","rs":125800.62344},{"projeto":"PCI","situacao":"Medida","mesano":"Set/24","rs":19764661.1},{"projeto":"MOA","situacao":"Medida","mesano":"Mai/26","rs":19371.1095},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/25","rs":1451215.8225},{"projeto":"PCI","situacao":"Medida","mesano":"Fev/26","rs":1339295.542},{"projeto":"PCI","situacao":"Medida","mesano":"Mai/26","rs":2033512.17604},{"projeto":"PCI","situacao":"Medida","mesano":"Jan/25","rs":1842753.8868},{"projeto":"MOA","situacao":"Medida","mesano":"Fev/26","rs":148141.64612},{"projeto":"PCI","situacao":"Medida","mesano":"Dez/24","rs":1873696.255},{"projeto":"MOA","situacao":"Medida","mesano":"Out/25","rs":141183.28388},{"projeto":"PCI","situacao":"Medida","mesano":"Abr/25","rs":2005311.4226},{"projeto":"MOA","situacao":"Medida","mesano":"Abr/25","rs":350325.1957},{"projeto":"MOA","situacao":"Medida","mesano":"Set/24","rs":116068.7312}];
 
 /* Itens 2.1-2.4 (RATEIO): FAD_FIA_RAT(N)="RAT", agrupado por Projeto/Situação(F)/Mês. Hoje a base
    só tem Situação="Aprovação"/"Cancelado/Reprovado"/"Concluído" para RATEIO — nenhum item 2.1-2.4
    casa ainda (o texto exato não existe na base), mesma logica de auto-populacao do item 1.1-1.4. */
-const RAW_RATEIO_EXTRATO = [
-{projeto:"MOA",situacao:"Concluído",mesano:"Out/24",rs:1729633.922},
-{projeto:"PCI",situacao:"Aprovação",mesano:"Fev/26",rs:2199313.9267},
-{projeto:"MOA",situacao:"Concluído",mesano:"Jan/26",rs:1825141.70234},
-{projeto:"PCI",situacao:"Concluído",mesano:"Jan/25",rs:2075545.57537},
-{projeto:"MOA",situacao:"Concluído",mesano:"Mai/25",rs:4059774.5733},
-{projeto:"MOA",situacao:"Concluído",mesano:"Set/24",rs:1712387.32933},
-{projeto:"MOA",situacao:"Concluído",mesano:"Jan/25",rs:2288713.00393},
-{projeto:"PCI",situacao:"Concluído",mesano:"Mai/26",rs:2852797.0996},
-{projeto:"PCI",situacao:"Concluído",mesano:"Mar/25",rs:2822226.0799},
-{projeto:"PCI",situacao:"Concluído",mesano:"Dez/25",rs:2619012.8808},
-{projeto:"MOA",situacao:"Concluído",mesano:"Mar/26",rs:1021318.78},
-{projeto:"PCI",situacao:"Concluído",mesano:"Fev/25",rs:2324355.271},
-{projeto:"PCI",situacao:"Concluído",mesano:"Dez/24",rs:1419778.6338},
-{projeto:"MOA",situacao:"Concluído",mesano:"Abr/26",rs:151288.43},
-{projeto:"MOA",situacao:"Concluído",mesano:"Dez/24",rs:2082727.655},
-{projeto:"PCI",situacao:"Concluído",mesano:"Nov/24",rs:906076.3044},
-{projeto:"MOA",situacao:"Concluído",mesano:"Jul/25",rs:2334825.1314},
-{projeto:"MOA",situacao:"Concluído",mesano:"Nov/24",rs:2312206.9132},
-{projeto:"MOA",situacao:"Concluído",mesano:"Out/25",rs:2172106.7861},
-{projeto:"PCI",situacao:"Concluído",mesano:"Abr/25",rs:3117760.8197},
-{projeto:"PCI",situacao:"Concluído",mesano:"Jan/26",rs:3874254.1559},
-{projeto:"PCI",situacao:"Cancelado/Reprovado",mesano:"Set/24",rs:188274.1041},
-{projeto:"PCI",situacao:"Concluído",mesano:"Mai/25",rs:5755616.2562},
-{projeto:"PCI",situacao:"Concluído",mesano:"Out/25",rs:7688846.1606},
-{projeto:"PCI",situacao:"Concluído",mesano:"Nov/25",rs:3170677.8337},
-{projeto:"MOA",situacao:"Concluído",mesano:"Mar/25",rs:2344197.72017},
-{projeto:"MOA",situacao:"Concluído",mesano:"Fev/26",rs:1741198.3296},
-{projeto:"PCI",situacao:"Concluído",mesano:"Jun/25",rs:3476725.5835},
-{projeto:"PCI",situacao:"Aprovação",mesano:"Mar/26",rs:952101.93},
-{projeto:"MOA",situacao:"Concluído",mesano:"Ago/25",rs:2130611.8955},
-{projeto:"PCI",situacao:"Concluído",mesano:"Set/25",rs:4165814.6583},
-{projeto:"PCI",situacao:"Concluído",mesano:"Ago/25",rs:3948540.509},
-{projeto:"MOA",situacao:"Concluído",mesano:"Set/25",rs:2472815.4286},
-{projeto:"PCI",situacao:"Concluído",mesano:"Set/24",rs:188274.1041},
-{projeto:"PCI",situacao:"Concluído",mesano:"Jul/25",rs:4271778.6369},
-{projeto:"MOA",situacao:"Aprovação",mesano:"Mar/26",rs:1745204.1255},
-{projeto:"PCI",situacao:"Concluído",mesano:"Abr/26",rs:3471070.8065},
-{projeto:"MOA",situacao:"Concluído",mesano:"Jun/25",rs:2229088.0458},
-{projeto:"PCI",situacao:"Concluído",mesano:"Mar/26",rs:2612840.6707},
-{projeto:"MOA",situacao:"Concluído",mesano:"Abr/25",rs:2306830.1581},
-{projeto:"MOA",situacao:"Concluído",mesano:"Fev/25",rs:2210387.7832},
-{projeto:"PCI",situacao:"Concluído",mesano:"Out/24",rs:785784.68},
-{projeto:"MOA",situacao:"Concluído",mesano:"Dez/25",rs:1996137.4269},
-{projeto:"MOA",situacao:"Concluído",mesano:"Nov/25",rs:1954420.7653}
-];
+const RAW_RATEIO_EXTRATO = [{"projeto":"MOA","situacao":"Concluído","mesano":"Out/24","rs":1729633.922},{"projeto":"PCI","situacao":"Aprovação","mesano":"Fev/26","rs":2199313.9267},{"projeto":"MOA","situacao":"Concluído","mesano":"Out/25","rs":2172106.7861},{"projeto":"MOA","situacao":"Concluído","mesano":"Jan/26","rs":1825141.70234},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Jul/26","rs":48478.489362},{"projeto":"PCI","situacao":"Concluído","mesano":"Jan/25","rs":2075545.57537},{"projeto":"MOA","situacao":"Concluído","mesano":"Fev/26","rs":1741198.3296},{"projeto":"MOA","situacao":"Concluído","mesano":"Mai/25","rs":4059774.5733},{"projeto":"MOA","situacao":"Concluído","mesano":"Set/24","rs":1712387.32933},{"projeto":"MOA","situacao":"Concluído","mesano":"Jan/25","rs":2288713.00393},{"projeto":"PCI","situacao":"Concluído","mesano":"Mai/26","rs":2852797.0996},{"projeto":"PCI","situacao":"Concluído","mesano":"Mar/25","rs":2822226.0799},{"projeto":"PCI","situacao":"Concluído","mesano":"Dez/25","rs":2619012.8808},{"projeto":"PCI","situacao":"Concluído","mesano":"Jun/25","rs":3476725.5835},{"projeto":"PCI","situacao":"Concluído","mesano":"Fev/25","rs":2324355.271},{"projeto":"PCI","situacao":"Concluído","mesano":"Dez/24","rs":1419778.6338},{"projeto":"MOA","situacao":"Concluído","mesano":"Abr/26","rs":151288.43},{"projeto":"MOA","situacao":"Concluído","mesano":"Dez/24","rs":2082727.655},{"projeto":"MOA","situacao":"Concluído","mesano":"Jul/25","rs":2334825.1314},{"projeto":"MOA","situacao":"Concluído","mesano":"Nov/24","rs":2312206.9132},{"projeto":"PCI","situacao":"Concluído","mesano":"Set/25","rs":4165814.6583},{"projeto":"PCI","situacao":"Concluído","mesano":"Abr/25","rs":3117760.8197},{"projeto":"PCI","situacao":"Concluído","mesano":"Jan/26","rs":3874254.1559},{"projeto":"PCI","situacao":"Concluído","mesano":"Out/25","rs":7688846.1606},{"projeto":"PCI","situacao":"Cancelado/Reprovado","mesano":"Set/24","rs":188274.1041},{"projeto":"PCI","situacao":"Concluído","mesano":"Mai/25","rs":5755616.2562},{"projeto":"PCI","situacao":"Concluído","mesano":"Nov/24","rs":906076.3044},{"projeto":"PCI","situacao":"Concluído","mesano":"Nov/25","rs":3170677.8337},{"projeto":"MOA","situacao":"Concluído","mesano":"Mar/25","rs":2344197.72017},{"projeto":"PCI","situacao":"Concluído","mesano":"Ago/25","rs":3948540.509},{"projeto":"PCI","situacao":"Aprovação","mesano":"Mar/26","rs":952101.93},{"projeto":"MOA","situacao":"Concluído","mesano":"Ago/25","rs":2130611.8955},{"projeto":"MOA","situacao":"Concluído","mesano":"Mar/26","rs":1021318.78},{"projeto":"MOA","situacao":"Concluído","mesano":"Set/25","rs":2472815.4286},{"projeto":"PCI","situacao":"Concluído","mesano":"Set/24","rs":188274.1041},{"projeto":"PCI","situacao":"Concluído","mesano":"Jul/25","rs":4271778.6369},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Ago/26","rs":1355435.55498},{"projeto":"MOA","situacao":"Aprovação","mesano":"Mar/26","rs":1745204.1255},{"projeto":"PCI","situacao":"Concluído","mesano":"Abr/26","rs":3471070.8065},{"projeto":"MOA","situacao":"Concluído","mesano":"Jun/25","rs":2229088.0458},{"projeto":"PCI","situacao":"Concluído","mesano":"Mar/26","rs":2612840.6707},{"projeto":"MOA","situacao":"Concluído","mesano":"Abr/25","rs":2306830.1581},{"projeto":"MOA","situacao":"Concluído","mesano":"Fev/25","rs":2210387.7832},{"projeto":"PCI","situacao":"Concluído","mesano":"Out/24","rs":785784.68},{"projeto":"MOA","situacao":"Concluído","mesano":"Dez/25","rs":1996137.4269},{"projeto":"MOA","situacao":"Concluído","mesano":"Nov/25","rs":1954420.7653},{"projeto":"PCI","situacao":"Em Criação RATEIO no sistema SGE","mesano":"Jun/26","rs":64389.915899}];
 
 const CONTRATOS = { MOA:"4600185340 / 4600185359", PCI:"4600184457", GERAL:"4600184457 / 4600185340 / 4600185359" };
 
