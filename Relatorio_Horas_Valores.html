@@ -928,7 +928,7 @@ function renderChartsPanel(proj, data){
     ['FAD','FIA','RATEIO'], [fadRS, fiaRS, rateioRS],
     [CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global');
 
-  const emitido = frsTotalGeralFor(proj);
+  const emitido = HIDE_FRS_EMITIDAS ? 0 : frsTotalGeralFor(proj);
   const pronto = data.totalMedidoFR['__TOTAL__'].rs;
   const totalG = data.totalGlobal['__TOTAL__'].rs;
   const restante = Math.max(0, totalG - emitido - pronto);
