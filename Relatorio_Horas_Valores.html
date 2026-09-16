@@ -67,6 +67,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .month-filter, .item-filter{position:relative;}
 .mf-toggle, .if-toggle{padding:10px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--navy);font-weight:700;font-size:13px;cursor:pointer;box-shadow:var(--shadow);}
 .mf-toggle:hover, .if-toggle:hover{background:var(--navy-100);}
+.if-toggle.frs-hidden-active{background:var(--navy);color:#fff;border-color:var(--navy);}
 .mf-panel, .if-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 30px rgba(0,43,92,.18);padding:10px;z-index:80;max-height:280px;overflow-y:auto;min-width:150px;}
 .mf-panel.open, .if-panel.open{display:block;}
 .mf-panel label, .if-panel label{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:12.5px;border-radius:5px;cursor:pointer;white-space:nowrap;}
@@ -227,6 +228,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
       <button type="button" class="if-toggle" id="if-toggle">&#128203; Itens: <span id="if-summary">todos</span> &#9662;</button>
       <div class="if-panel" id="if-panel"></div>
     </div>
+    <button type="button" class="if-toggle" id="btn-toggle-frs">&#128065; FR'S Emitidas: <span id="frs-toggle-label">mostrando</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
   </div>
 
@@ -265,7 +267,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
       <li><b>(%) do bloco FIA/RATEIO:</b> os subitens (1.1-1.5 / 2.1-2.5) sao % do total da <b>propria</b> secao (FIA ou RATEIO); as linhas "1 FIA" e "2 RATEIO" sao % do "Total Geral (FIA + RATEIO)"; e "Total Geral (FIA+RATEIO)" e "Total Medido" sao % do "Total Global (FADS FIA &amp; RATEIO)".</li>
       <li><b>Linha "Total Medido - Para emitir FR"</b> (destaque azul) = soma de todas as linhas "Medido - Para emitir FR - SAP" do relatorio (3.3 do FAD + 1.5 da FIA + 2.5 do RATEIO) — o total pronto para faturar (FR liberada).</li>
       <li>Nos itens <b>1.5 (FIA)</b> e <b>2.5 (RATEIO)</b>, valores diferentes de zero aceitam <b>duplo-clique</b> no R$ para abrir a lista dos numeros de FIA/RATEIO (coluna "Nº FA") junto com o "Nº SAP Med." (coluna H, tratado aqui como FR) de cada um — quando a base ainda nao tem esse numero preenchido aparece "—". O item <b>3.3 (FAD)</b> tambem aceita duplo-clique, mostrando o "Nº Med." (coluna G) e o "Nº SAP Med." (coluna H) de cada medicao.</li>
-      <li><b>"FR'S Emitidas"</b> vem da aba homonima da planilha (montada manualmente pelo usuario) — mostra o resumo por FAD/FIA/RATEIO (valores ja emitidos/faturados) nas tres abas, inclusive na Geral (combinado MOA + PCI). <b>Duplo-clique</b> no R$ de uma linha abre o detalhe por BM e periodo daquele tipo.</li>
+      <li><b>"FR'S Emitidas"</b> vem da aba homonima da planilha (montada manualmente pelo usuario) — mostra o resumo por FAD/FIA/RATEIO (valores ja emitidos/faturados) nas tres abas, inclusive na Geral (combinado MOA + PCI). <b>Duplo-clique</b> no R$ de uma linha abre o detalhe por BM e periodo daquele tipo. Uma linha (FAD/FIA/RATEIO) so aparece se tiver valor emitido — quando esta zerada (nada digitado naquela aba/subitem) ela some sozinha, em vez de mostrar "0"; se as tres estiverem zeradas, o bloco inteiro (incluindo o cartao "FR'S Emitidas" no topo) some junto. O botao <b>"👁️ FR'S Emitidas"</b> na barra de ferramentas oculta manualmente o bloco inteiro (tabela e cartao) em todas as abas, mesmo quando ha valores.</li>
       <li><b>Coluna "Observações"</b> (Techint/Usiminas) indica a responsabilidade de cada etapa, com base no print de referencia. Para a Secao 1 ("Apresentou pendência") nao havia exemplo no print — assumi "TECHINT" por serem etapas internas de cadastro/regularizacao; ajuste se estiver incorreto.</li>
     </ul>
   </details>
@@ -423,6 +425,7 @@ let ALL_MONTHS = Array.from(new Set([
 let DISPLAY_MONTHS = ALL_MONTHS.slice(-3);
 let SELECTED_SECTIONS = new Set([1,2,3,4]);
 const SECTION_LABELS = { 1:'1 - Apresentou pendência', 2:'2 - Carregamento no SGE', 3:'3 - Aprovado', 4:'FIA / RATEIO' };
+let HIDE_FRS_EMITIDAS = false;
 
 function filterProj(rows, proj){ return proj==='GERAL' ? rows : rows.filter(r=>r.projeto===proj); }
 
@@ -798,6 +801,9 @@ function frsItemsFor(proj, tipo){
   return FRS_EMITIDAS[proj].groups.find(g=>g.tipo===tipo).items.map(it=>({...it, proj}));
 }
 function renderFrsEmitidasHTML(proj){
+  if (HIDE_FRS_EMITIDAS) return '';
+  const groups = frsGroupsFor(proj).filter(g=>Math.round(g.rs)!==0);
+  if (!groups.length) return '';
   let html = '<div class="fiscal-block">';
   html += '<h3>FR\'S Emitidas</h3>';
   const obs = proj==='GERAL' ? FRS_EMITIDAS.PCI.obs+' (MOA + PCI)' : FRS_EMITIDAS[proj].obs;
@@ -805,9 +811,8 @@ function renderFrsEmitidasHTML(proj){
   html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
   html += '<colgroup><col style="width:150px"><col style="width:110px"><col style="width:130px"></colgroup>';
   html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
-  frsGroupsFor(proj).forEach(g=>{
-    const clickable = Math.round(g.rs)!==0;
-    const rsAttrs = clickable ? ' class="num fa-detail" data-frs-tipo="'+esc(g.tipo)+'" data-frs-proj="'+esc(proj)+'" title="Duplo clique para ver o(s) BM/mes"' : ' class="num"';
+  groups.forEach(g=>{
+    const rsAttrs = ' class="num fa-detail" data-frs-tipo="'+esc(g.tipo)+'" data-frs-proj="'+esc(proj)+'" title="Duplo clique para ver o(s) BM/mes"';
     html += '<tr><td class="ft-resp">'+esc(g.tipo)+'</td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td'+rsAttrs+'>'+fmtBRL(g.rs)+'</td></tr>';
   });
   html += '<tr class="ft-total"><td class="ft-resp">Total Geral</td><td class="num"></td><td class="num ft-geral">'+fmtBRL(frsTotalGeralFor(proj))+'</td></tr>';
@@ -936,9 +941,11 @@ function renderKpiStrip(proj, data){
   const cards = [
     { icon:'💰', cls:'kpi-navy', label:'Total Geral', value:'R$ '+fmtBRL(totalGlobalRS) },
     { icon:'⏱️', cls:'kpi-blue', label:'Total HH', value:fmtInt(totalHH) },
-    { icon:'✅', cls:'kpi-green', label:'Pronto p/ Faturar', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' },
-    { icon:'📄', cls:'kpi-warn', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido) }
+    { icon:'✅', cls:'kpi-green', label:'Pronto p/ Faturar', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' }
   ];
+  if (!HIDE_FRS_EMITIDAS && Math.round(frsEmitido)!==0){
+    cards.push({ icon:'📄', cls:'kpi-warn', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido) });
+  }
   return cards.map(c=>
     '<div class="kpi-card '+c.cls+'"><div class="kpi-icon">'+c.icon+'</div><div><div class="kpi-label">'+esc(c.label)+'</div><div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
   ).join('');
@@ -1141,6 +1148,12 @@ function exportPDF(){
   window.print();
 }
 document.getElementById('btn-export-pdf').addEventListener('click', exportPDF);
+document.getElementById('btn-toggle-frs').addEventListener('click', ()=>{
+  HIDE_FRS_EMITIDAS = !HIDE_FRS_EMITIDAS;
+  document.getElementById('frs-toggle-label').textContent = HIDE_FRS_EMITIDAS ? 'ocultas' : 'mostrando';
+  document.getElementById('btn-toggle-frs').classList.toggle('frs-hidden-active', HIDE_FRS_EMITIDAS);
+  render();
+});
 window.addEventListener('afterprint', ()=>{ document.getElementById('print-content').innerHTML = ''; applyAutoZoom(); });
 
 /* ---------------- Zoom automatico (ajusta a pagina para caber na tela) ---------------- */
