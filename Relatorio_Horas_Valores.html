@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relatorio Gerencial - Controle de Horas x Valores</title>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
   --navy:#002B5C; --navy-700:#0A3B70; --navy-100:#E6EDF4;
@@ -235,6 +236,7 @@ body.printing .fa-sub{margin-bottom:2px !important;}
     </div>
     <button type="button" class="if-toggle" id="btn-toggle-frs">&#128065; FR'S Emitidas: <span id="frs-toggle-label">mostrando</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
+    <button type="button" class="if-toggle" id="btn-copy-image">&#128203; Copiar imagem (aba atual)</button>
   </div>
 
   <div class="update-date-box" id="update-date-box">
@@ -575,16 +577,16 @@ function buildTable(proj){
   };
 }
 
-// Larguras das colunas de mes/total no modo impressao: distribui o espaco util da pagina
-// paisagem (ver mesma conta em fitPrintPagesToOnePage) entre os meses selecionados, em vez de
-// usar um tamanho fixo pensado pro pior caso (muitos meses) — com poucos meses (ex.: 4), cada
-// coluna ganha mais espaco e fica mais legivel; o piso (152px por grupo) evita ficar menor do
-// que o tamanho antigo quando muitos meses estao selecionados (o ajuste de escala de
-// fitPrintPagesToOnePage cuida de encaixar tudo numa pagina de qualquer forma).
+// Larguras das colunas no modo impressao. Nao precisa mais caber exatamente na largura da
+// pagina em escala 1 — fitPrintPagesToOnePage() calcula uma escala horizontal (scaleX) separada
+// da vertical (scaleY) pra compensar o que sobrar, entao aqui da pra ser generoso: a coluna
+// "Descricao" ganhou espaco fixo maior (195 -> 240px) pra parar de quebrar em 2 linhas nos
+// textos mais longos (ex.: "Recurso nao cadastrado no WebTerceiros"), e as colunas de
+// HH/R$/(%) de cada mes se distribuem pelo espaco restante, ficando mais largas quando poucos
+// meses estao selecionados.
 function printColWidths(nGroups){
-  const PRINT_PAGE_W = (297 - 12) * 96/25.4;
-  const item = 36, desc = 195, obs = 54;
-  const perGroup = Math.max(152, (PRINT_PAGE_W - item - desc - obs) / Math.max(nGroups, 1));
+  const item = 40, desc = 240, obs = 60;
+  const perGroup = Math.max(140, 760 / Math.max(nGroups, 1) + 40);
   const unit = perGroup / 3.8; // proporcao original: hh 1.1 : rs 1.7 : pct 1.0
   return { item, desc, obs, hh: unit*1.1, rs: unit*1.7, pct: unit*1.0 };
 }
@@ -1202,6 +1204,49 @@ window.addEventListener('afterprint', function(){
   document.querySelectorAll('#print-content .print-page').forEach(function(el){ el.style.width = ''; el.style.height = ''; });
 });
 document.getElementById('btn-export-pdf').addEventListener('click', exportPDF);
+
+// Copia o resumo da aba atual como imagem PNG em alta resolucao (direto pra area de
+// transferencia, pra colar com Ctrl+V no corpo de um e-mail) — alternativa a tirar print da
+// tela, que sai borrado por causa do zoom/DPI da captura. Usa o mesmo HTML de impressao
+// (renderTableHTML em modo impressao + fitPrintPagesToOnePage) e rasteriza com html2canvas
+// numa escala 3x, o que da nitidez de sobra mesmo colando num e-mail.
+async function copyCurrentTabAsImage(){
+  const btn = document.getElementById('btn-copy-image');
+  const proj = document.querySelector('.tab-btn.active').dataset.proj;
+  const origLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Gerando imagem...';
+  const container = document.getElementById('print-content');
+  try {
+    container.innerHTML = '<div class="print-page"><div class="print-page-fit"><div class="print-proj-title">'+esc(PROJ_TITLES[proj])+'</div>' +
+      renderTableHTML(buildTable(proj), true) + (proj==='GERAL' ? '' : renderFiscalDetailHTML(proj)) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj) +
+      '</div></div>';
+    document.body.classList.add('printing');
+    fitPrintPagesToOnePage();
+    const pageEl = container.querySelector('.print-page');
+    const canvas = await html2canvas(pageEl, { scale: 3, backgroundColor: '#ffffff' });
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      btn.textContent = '✅ Copiado! Cole com Ctrl+V';
+    } catch(clipErr){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'Resumo_' + proj + '.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      btn.textContent = '💾 Sem permissão p/ copiar — baixei o PNG';
+    }
+  } catch(err){
+    console.error(err);
+    btn.textContent = '❌ Falha ao gerar imagem';
+  } finally {
+    document.body.classList.remove('printing');
+    container.innerHTML = '';
+    setTimeout(function(){ btn.textContent = origLabel; btn.disabled = false; }, 4000);
+  }
+}
+document.getElementById('btn-copy-image').addEventListener('click', copyCurrentTabAsImage);
 document.getElementById('btn-toggle-frs').addEventListener('click', ()=>{
   HIDE_FRS_EMITIDAS = !HIDE_FRS_EMITIDAS;
   document.getElementById('frs-toggle-label').textContent = HIDE_FRS_EMITIDAS ? 'ocultas' : 'mostrando';
