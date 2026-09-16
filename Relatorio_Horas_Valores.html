@@ -575,15 +575,27 @@ function buildTable(proj){
   };
 }
 
+// Larguras das colunas de mes/total no modo impressao: distribui o espaco util da pagina
+// paisagem (ver mesma conta em fitPrintPagesToOnePage) entre os meses selecionados, em vez de
+// usar um tamanho fixo pensado pro pior caso (muitos meses) — com poucos meses (ex.: 4), cada
+// coluna ganha mais espaco e fica mais legivel; o piso (152px por grupo) evita ficar menor do
+// que o tamanho antigo quando muitos meses estao selecionados (o ajuste de escala de
+// fitPrintPagesToOnePage cuida de encaixar tudo numa pagina de qualquer forma).
+function printColWidths(nGroups){
+  const PRINT_PAGE_W = (297 - 12) * 96/25.4;
+  const item = 36, desc = 195, obs = 54;
+  const perGroup = Math.max(152, (PRINT_PAGE_W - item - desc - obs) / Math.max(nGroups, 1));
+  const unit = perGroup / 3.8; // proporcao original: hh 1.1 : rs 1.7 : pct 1.0
+  return { item, desc, obs, hh: unit*1.1, rs: unit*1.7, pct: unit*1.0 };
+}
+
 function renderTableHTML(data, printMode){
   const { proj, cols } = data;
   const nCols = 2 + cols.length*3 + 1;
   // no modo impressao as colunas ficam um pouco mais estreitas para o total da tabela
   // caber com folga na largura util da pagina paisagem (evita o navegador "encolher" a
   // pagina inteira pra caber, o que deixa as letras borradas).
-  const W = printMode
-    ? {item:36, desc:195, hh:44, rs:68, pct:40, obs:54}
-    : {item:40, desc:195, hh:56, rs:84, pct:50, obs:66};
+  const W = printMode ? printColWidths(cols.length) : {item:40, desc:195, hh:56, rs:84, pct:50, obs:66};
   let html = '<div class="table-wrap"><table class="rep">';
 
   // colgroup fixo: garante que as colunas fiquem com a mesma largura em todas as abas,
@@ -1173,10 +1185,15 @@ function fitPrintPagesToOnePage(){
     inner.style.transform = 'none';
     inner.style.width = pageW + 'px';
     const w = inner.scrollWidth, h = inner.scrollHeight;
-    const scale = Math.min(pageW / w, pageH / h, 1.5) * SAFETY;
-    inner.style.transform = 'scale(' + scale + ')';
+    // escala X e Y calculadas separadamente (em vez de uma unica escala uniforme): a largura
+    // quase sempre ja cabe quase inteira (as colunas de impressao usam o espaco da pagina toda,
+    // ver printColWidths), entao nao faz sentido espremer as colunas junto so por causa do
+    // encolhimento vertical, que normalmente e bem maior (motivado pela quantidade de linhas).
+    const scaleX = Math.min(pageW / w, 1.3) * SAFETY;
+    const scaleY = Math.min(pageH / h, 1.3) * SAFETY;
+    inner.style.transform = 'scale(' + scaleX + ',' + scaleY + ')';
     pageEl.style.width = pageW + 'px';
-    pageEl.style.height = Math.min(h * scale, pageH) + 'px';
+    pageEl.style.height = Math.min(h * scaleY, pageH) + 'px';
   });
 }
 window.addEventListener('afterprint', function(){
