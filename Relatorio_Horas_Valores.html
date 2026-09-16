@@ -1651,30 +1651,117 @@ window.addEventListener('resize', ()=>{
   var dlBtn = document.createElement('button');
   dlBtn.type = 'button';
   dlBtn.textContent = '💾 Baixar relatório atualizado';
-  dlBtn.title = 'Salva o HTML atualizado — depois é só substituir o arquivo do projeto por este';
+  dlBtn.title = 'Salva o HTML atualizado — depois é só substituir o arquivo do projeto por este (e comitar/publicar, pra quem abre em outro computador ver tambem)';
   dlBtn.style.cssText = 'display:none;margin-left:8px;font-size:12px;font-weight:700;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--green);color:var(--navy);cursor:pointer;white-space:nowrap;';
   btn.parentNode.appendChild(dlBtn);
   dlBtn.addEventListener('click', downloadUpdatedReport);
 
-  btn.addEventListener('click', function(){ fileInput.click(); });
+  /* ---- persistencia do arquivo entre reaberturas (File System Access API + IndexedDB) ----
+     Sem isso, cada "Atualizar dados" so vale pra aquela sessao: ao reabrir a pagina, os RAW_*
+     embutidos no HTML (da ultima vez que alguem baixou/publicou o relatorio) voltam a valer,
+     dando a impressao de que a atualizacao "nao segura". Guardando o handle do arquivo (so
+     funciona no mesmo navegador/computador onde ele foi escolhido — nao sincroniza entre
+     dispositivos, isso exigiria realmente publicar o HTML atualizado via "Baixar relatorio
+     atualizado"), da pra reler o arquivo do disco automaticamente a cada abertura. */
+  var supportsFSAccess = 'showOpenFilePicker' in window;
+  var HANDLE_DB = 'horas_valores_handles', HANDLE_STORE = 'handles';
+  function openHandleDB(){
+    return new Promise(function(resolve, reject){
+      var req = indexedDB.open(HANDLE_DB, 1);
+      req.onupgradeneeded = function(){ req.result.createObjectStore(HANDLE_STORE); };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  }
+  async function saveFileHandle(handle){
+    var db = await openHandleDB();
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction(HANDLE_STORE, 'readwrite');
+      tx.objectStore(HANDLE_STORE).put(handle, 'xlsx');
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  }
+  async function loadFileHandle(){
+    var db = await openHandleDB();
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction(HANDLE_STORE, 'readonly');
+      var req = tx.objectStore(HANDLE_STORE).get('xlsx');
+      req.onsuccess = function(){ resolve(req.result || null); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  }
+  async function pickXlsxHandle(){
+    var handles = await window.showOpenFilePicker({
+      types: [{ description: 'Planilha Excel', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
+      excludeAcceptAllOption: false,
+      multiple: false
+    });
+    return handles[0];
+  }
 
-  fileInput.addEventListener('change', async function(){
-    var file = fileInput.files[0];
-    fileInput.value = '';
-    if (!file) return;
+  async function processFile(file){
     btn.classList.add('spinning'); btn.disabled = true;
     try{
       var nd = await regenerateFromFile(file);
       applyNewData(nd);
       dlBtn.style.display = 'inline-flex';
-      showUpdateToast('Dados atualizados a partir de "'+file.name+'". Clique em "Baixar relatório atualizado" para salvar no projeto.', false);
+      showUpdateToast('Dados atualizados a partir de "'+file.name+'". Ficam valendo automaticamente da próxima vez que abrir este relatório neste computador — clique em "Baixar relatório atualizado" só se quiser publicar essa versão pra outras pessoas/dispositivos.', false);
     } catch(err){
       console.error(err);
       showUpdateToast('Falha ao atualizar: ' + err.message, true);
     } finally {
       btn.classList.remove('spinning'); btn.disabled = false;
     }
+  }
+
+  btn.addEventListener('click', async function(){
+    if (!supportsFSAccess){ fileInput.click(); return; }
+    try{
+      var handle = await loadFileHandle();
+      if (!handle){
+        handle = await pickXlsxHandle();
+        await saveFileHandle(handle);
+      } else {
+        var perm = await handle.requestPermission({ mode: 'read' });
+        if (perm !== 'granted') throw new Error('Permissão de leitura negada para o arquivo salvo.');
+      }
+      var file = await handle.getFile();
+      await processFile(file);
+    } catch(err){
+      if (err && err.name === 'AbortError') return; // usuario cancelou o seletor de arquivo
+      console.error(err);
+      showUpdateToast('Falha ao atualizar: ' + err.message, true);
+    }
   });
+
+  fileInput.addEventListener('change', async function(){
+    var file = fileInput.files[0];
+    fileInput.value = '';
+    if (!file) return;
+    await processFile(file);
+  });
+
+  async function attemptAutoLoad(){
+    if (!supportsFSAccess) return;
+    try{
+      var handle = await loadFileHandle();
+      if (!handle) return;
+      var perm = await handle.queryPermission({ mode: 'read' });
+      if (perm === 'granted'){
+        var file = await handle.getFile();
+        var nd = await regenerateFromFile(file);
+        applyNewData(nd);
+        dlBtn.style.display = 'inline-flex';
+        showUpdateToast('Dados carregados automaticamente a partir de "'+file.name+'" (versão mais recente salva no seu computador).', false);
+      } else {
+        showUpdateToast('Clique em "🔄 Atualizar dados" pra permitir a leitura automática da planilha salva ("'+(handle.name||'')+'") a cada abertura.', false);
+      }
+    } catch(err){
+      console.error('attemptAutoLoad falhou:', err);
+    }
+  }
+  attemptAutoLoad();
 })();
 
 render();
