@@ -159,42 +159,47 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 #print-content{display:none;}
 #print-content .print-proj-title{font-size:16px;font-weight:800;color:var(--navy);margin:0 0 10px;}
 @page{size:landscape;margin:6mm;}
-@media print{
-  body{zoom:1 !important;}
-  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;
-    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
-  html, body, .app, .update-date-box{background:#fff !important;}
-  .update-date-box{border-color:#fff !important;box-shadow:none !important;}
-  .confronto-banner, .toolbar, .notes, .header, .update-date-box, .kpi-strip{display:none !important;}
-  .sticky-topbar{position:static !important;box-shadow:none !important;}
-  #content{display:none !important;}
-  #print-content{display:block !important;}
-  #print-content .print-page{padding-top:2px;}
-  #print-content .print-page:not(:last-child){page-break-after:always;}
-  /* forca o mesmo tamanho de fonte em TUDO dentro da area de impressao, em vez de contar com
-     heranca (varias classes tem font-size proprio e nao seriam sobrescritas so pelo <table>).
-     Tamanho maior que antes (era 7.2px) para ficar nitido — as colunas da tabela (ver W em
-     renderTableHTML) foram estreitadas no modo impressao para compensar e continuar cabendo
-     na largura da folha paisagem. */
-  #print-content, #print-content *{font-size:8.6px !important;line-height:1.3 !important;}
-  #print-content .print-proj-title{font-size:12px !important;margin:0 0 4px !important;}
-  #print-content .title-band{font-size:10px !important;padding:3px 6px !important;}
-  #print-content .title-band-lg{font-size:11px !important;padding:3px 6px !important;}
-  #print-content .fiscal-block h3{font-size:10px !important;margin:0 0 3px !important;}
-  #print-content th.grp-head{white-space:nowrap !important;}
-  table.rep{min-width:0 !important;width:auto !important;}
-  table.rep thead{display:table-header-group;}
-  table.rep th, table.rep td{padding:2px 4px !important;}
-  table.rep tr{break-inside:avoid;page-break-inside:avoid;}
-  tr.sep-row td{height:2px !important;}
-  .table-wrap{overflow:visible !important;border:none;box-shadow:none;}
-  .chart-block, .fiscal-block{border-top:1px solid var(--border);margin-top:5px !important;padding-top:5px !important;break-inside:avoid;page-break-inside:avoid;}
-  .fiscal-block table.rep tr{break-inside:avoid;page-break-inside:avoid;}
-  .freenote-block{margin-top:5px !important;padding:4px 6px !important;break-inside:avoid;page-break-inside:avoid;}
-  .freenote-block label{margin-bottom:1px !important;}
-  .freenote-block textarea{min-height:16px !important;padding:1.5px 3px !important;}
-  .fa-sub{margin-bottom:2px !important;}
-}
+/* Regras de impressao ativadas via classe (em vez de @media print) porque exportPDF() precisa
+   medir a altura/largura reais de cada resumo ANTES de chamar window.print(), para calcular o
+   fator de escala que enquadra cada resumo (GERAL/MOA/PCI) em uma unica pagina. A classe
+   "printing" e adicionada ao <body> nesse momento e so e removida depois (evento afterprint),
+   entao ela tambem esta presente durante a impressao/exportacao de fato. */
+body.printing{zoom:1 !important;}
+body.printing *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+body.printing html, body.printing, body.printing .app, body.printing .update-date-box{background:#fff !important;}
+body.printing .update-date-box{border-color:#fff !important;box-shadow:none !important;}
+body.printing .confronto-banner, body.printing .toolbar, body.printing .notes, body.printing .header, body.printing .update-date-box, body.printing .kpi-strip{display:none !important;}
+body.printing .sticky-topbar{position:static !important;box-shadow:none !important;}
+body.printing #content{display:none !important;}
+body.printing #print-content{display:block !important;}
+body.printing #print-content .print-page{padding-top:2px;overflow:hidden;}
+body.printing #print-content .print-page:not(:last-child){page-break-after:always;}
+body.printing #print-content .print-page-fit{transform-origin:top left;}
+/* forca o mesmo tamanho de fonte em TUDO dentro da area de impressao, em vez de contar com
+   heranca (varias classes tem font-size proprio e nao seriam sobrescritas so pelo <table>).
+   O tamanho base agora e so o ponto de partida: exportPDF() aplica ainda uma escala por
+   resumo (para cima ou para baixo) para preencher a pagina inteira, o que deixa o texto mais
+   nitido em resumos com pouco conteudo (MOA/PCI) sem deixar os com mais conteudo (GERAL)
+   estourarem a pagina. */
+body.printing #print-content, body.printing #print-content *{font-size:9.4px !important;line-height:1.3 !important;}
+body.printing #print-content .print-proj-title{font-size:13px !important;margin:0 0 4px !important;}
+body.printing #print-content .title-band{font-size:10.5px !important;padding:3px 6px !important;}
+body.printing #print-content .title-band-lg{font-size:11.5px !important;padding:3px 6px !important;}
+body.printing #print-content .fiscal-block h3{font-size:10.5px !important;margin:0 0 3px !important;}
+body.printing #print-content th.grp-head{white-space:nowrap !important;}
+body.printing table.rep{min-width:0 !important;width:auto !important;}
+body.printing table.rep thead{display:table-header-group;}
+body.printing table.rep th, body.printing table.rep td{padding:2px 4px !important;}
+body.printing table.rep tr{break-inside:avoid;page-break-inside:avoid;}
+body.printing tr.sep-row td{height:2px !important;}
+body.printing .table-wrap{overflow:visible !important;border:none;box-shadow:none;}
+body.printing .chart-block, body.printing .fiscal-block{border-top:1px solid var(--border);margin-top:5px !important;padding-top:5px !important;break-inside:avoid;page-break-inside:avoid;}
+body.printing .fiscal-block table.rep tr{break-inside:avoid;page-break-inside:avoid;}
+body.printing .freenote-block{margin-top:5px !important;padding:4px 6px !important;break-inside:avoid;page-break-inside:avoid;}
+body.printing .freenote-block label{margin-bottom:1px !important;}
+body.printing .freenote-block textarea{min-height:16px !important;padding:1.5px 3px !important;}
+body.printing .fa-sub{margin-bottom:2px !important;}
 </style>
 </head>
 <body>
@@ -1140,13 +1145,40 @@ function exportPDF(){
   const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
   container.innerHTML = projs.map(p => {
-    return '<div class="print-page"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
+    return '<div class="print-page"><div class="print-page-fit"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
       renderTableHTML(buildTable(p), true) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
-      '</div>';
+      '</div></div>';
   }).join('');
+  document.body.classList.add('printing');
   document.body.style.zoom = 1;
+  fitPrintPagesToOnePage();
   window.print();
 }
+// Escala cada resumo (GERAL/MOA/PCI) para caber inteiro numa unica pagina impressa, usando
+// para cima ou para baixo (ate um limite) o espaco util da folha paisagem — em vez de um
+// tamanho de fonte fixo que ora sobra, ora estoura para 2 paginas dependendo de quantos meses
+// estao selecionados no filtro. Precisa rodar com a classe "printing" ja aplicada (mesmas
+// regras de CSS que valem na impressao de fato), senao a medida sai errada.
+function fitPrintPagesToOnePage(){
+  const MM2PX = 96/25.4;
+  const pageW = (297 - 12) * MM2PX; // A4 paisagem menos as margens de 6mm do @page
+  const pageH = (210 - 12) * MM2PX;
+  document.querySelectorAll('#print-content .print-page').forEach(function(pageEl){
+    const inner = pageEl.querySelector('.print-page-fit');
+    inner.style.transform = 'none';
+    inner.style.width = pageW + 'px';
+    const w = inner.scrollWidth, h = inner.scrollHeight;
+    const scale = Math.min(pageW / w, pageH / h, 1.5);
+    inner.style.transform = 'scale(' + scale + ')';
+    pageEl.style.width = pageW + 'px';
+    pageEl.style.height = Math.min(h * scale, pageH) + 'px';
+  });
+}
+window.addEventListener('afterprint', function(){
+  document.body.classList.remove('printing');
+  document.querySelectorAll('#print-content .print-page-fit').forEach(function(el){ el.style.transform = ''; el.style.width = ''; });
+  document.querySelectorAll('#print-content .print-page').forEach(function(el){ el.style.width = ''; el.style.height = ''; });
+});
 document.getElementById('btn-export-pdf').addEventListener('click', exportPDF);
 document.getElementById('btn-toggle-frs').addEventListener('click', ()=>{
   HIDE_FRS_EMITIDAS = !HIDE_FRS_EMITIDAS;
