@@ -981,7 +981,7 @@ function chartsPanelHTML(prefix){
     donutBlock('Pipeline de Faturamento', 'Emitido, pronto e em processo — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
     '</div>';
 }
-function svgDonutHTML(values, colors, size, strokeWidth, centerBig, centerSmall){
+function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, centerSmall){
   const total = values.reduce((a,b)=>a+b,0);
   const r = (size - strokeWidth) / 2;
   const cx = size/2, cy = size/2;
@@ -994,8 +994,10 @@ function svgDonutHTML(values, colors, size, strokeWidth, centerBig, centerSmall)
     const gap = circ - dash;
     const offset = -cum*circ;
     cum += frac;
+    // <title> = tooltip nativo do navegador: passar o mouse na fatia mostra label/valor/%
+    const tip = esc(labels[i])+': R$ '+fmtBRL(v)+' ('+fmtPct(frac)+')';
     segs += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+colors[i]+'" stroke-width="'+strokeWidth+'" stroke-linecap="round" '+
-      'stroke-dasharray="'+dash.toFixed(2)+' '+gap.toFixed(2)+'" stroke-dashoffset="'+offset.toFixed(2)+'" transform="rotate(-90 '+cx+' '+cy+')"></circle>';
+      'stroke-dasharray="'+dash.toFixed(2)+' '+gap.toFixed(2)+'" stroke-dashoffset="'+offset.toFixed(2)+'" transform="rotate(-90 '+cx+' '+cy+')"><title>'+tip+'</title></circle>';
   });
   const bigLen = String(centerBig).length;
   const bigFontSize = bigLen<=6 ? 17 : bigLen<=8 ? 14.5 : bigLen<=10 ? 12.5 : 11;
@@ -1005,7 +1007,7 @@ function svgDonutHTML(values, colors, size, strokeWidth, centerBig, centerSmall)
     '</svg>';
 }
 function renderDonutCard(ringId, legendId, labels, values, colors, centerBig, centerSmall){
-  document.getElementById(ringId).innerHTML = svgDonutHTML(values, colors, 150, 22, centerBig, centerSmall);
+  document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 150, 22, centerBig, centerSmall);
   const total = values.reduce((a,b)=>a+b,0);
   document.getElementById(legendId).innerHTML = labels.map((l,i)=>{
     const pct = total ? (values[i]/total*100) : 0;
