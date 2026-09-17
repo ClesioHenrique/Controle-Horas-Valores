@@ -1083,9 +1083,13 @@ function updateMonthFilterSummary(){
 function buildMonthFilterPanel(){
   const panel = document.getElementById('mf-panel');
   const selected = new Set(DISPLAY_MONTHS);
-  panel.innerHTML = ALL_MONTHS.map(m =>
-    '<label><input type="checkbox" value="'+m+'"'+(selected.has(m)?' checked':'')+'> '+m+'</label>'
-  ).join('') + '<div class="mf-actions"><button type="button" id="mf-last3">Últimos 3</button><button type="button" id="mf-all">Todos</button></div>';
+  // lista aparece do mes mais novo pro mais antigo (ALL_MONTHS continua em ordem crescente,
+  // usada por "Últimos 3" e outras contas — so a exibicao no dropdown e invertida). Botoes
+  // "Últimos 3"/"Todos" ficam no topo, antes da lista, pra nao precisar rolar ate o fim.
+  panel.innerHTML = '<div class="mf-actions mf-actions-top"><button type="button" id="mf-last3">Últimos 3</button><button type="button" id="mf-all">Todos</button></div>' +
+    ALL_MONTHS.slice().reverse().map(m =>
+      '<label><input type="checkbox" value="'+m+'"'+(selected.has(m)?' checked':'')+'> '+m+'</label>'
+    ).join('');
 
   panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
