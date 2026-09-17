@@ -48,6 +48,8 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .kpi-card.kpi-blue{border-left:4px solid var(--info-blue);}
 .kpi-card.kpi-navy{border-left:4px solid var(--navy);}
 .kpi-card.kpi-warn{border-left:4px solid var(--warn);}
+.kpi-card.kpi-frs-clickable{cursor:pointer;}
+.kpi-card.kpi-frs-clickable:hover{filter:brightness(0.97);}
 .kpi-charts-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:22px;}
 .kpi-chart-card{background:linear-gradient(180deg,var(--surface),var(--navy-100) 260%);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px 6px;}
 .kpi-chart-card h4{margin:0 0 2px;font-size:13.5px;color:var(--navy);}
@@ -143,6 +145,8 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 .fa-modal th{background:var(--navy-100);color:var(--navy);}
 .fa-modal td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .fa-modal tr.fa-total td{font-weight:800;background:var(--navy-100);}
+.fa-modal tr.fa-comp-row{cursor:pointer;}
+.fa-modal tr.fa-comp-row:hover td{background:#eaf3fb;}
 .fa-modal-close{float:right;border:none;background:none;font-size:18px;cursor:pointer;color:var(--text-muted);line-height:1;}
 .freenote-block{margin:10px 0 0;background:#fffbea;border:1px solid #e8c96b;border-radius:6px;padding:10px 12px;}
 .freenote-block label{display:block;font-size:11.5px;font-weight:700;color:var(--navy);margin-bottom:4px;}
@@ -872,6 +876,32 @@ function openFrsModal(proj, tipo){
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
+// Clique no card de KPI "FR'S Emitidas" abre a composição FAD/FIA/RATEIO (a "abertura" pedida) —
+// e cada linha dessa composição, por sua vez, abre o mesmo detalhe por BM/mês do openFrsModal.
+function openFrsCompositionModal(proj){
+  const groups = frsGroupsFor(proj).filter(g=>Math.round(g.rs)!==0);
+  const total = frsTotalGeralFor(proj);
+  document.getElementById('fa-modal-title').textContent = 'FR\'S Emitidas — Composição';
+  document.getElementById('fa-modal-sub').textContent = (proj==='GERAL'?'MOA & PCI':proj)+' — clique numa linha para ver o(s) BM/mês';
+  let body = '<table><tr><th>FAD / FIA / RATEIO</th><th class="num">HH</th><th class="num">R$</th><th class="num">%</th></tr>';
+  groups.forEach(g=>{
+    const pct = total ? (g.rs/total*100) : 0;
+    body += '<tr class="fa-comp-row" data-tipo="'+esc(g.tipo)+'" data-proj="'+esc(proj)+'"><td>'+esc(g.tipo)+'</td><td class="num">'+(g.hh==null?'n/a':fmtInt(g.hh))+'</td><td class="num">'+fmtBRL(g.rs)+'</td><td class="num">'+fmtPct(pct/100)+'</td></tr>';
+  });
+  body += '<tr class="fa-total"><td>Total</td><td></td><td class="num">'+fmtBRL(total)+'</td><td class="num">100,0%</td></tr></table>';
+  document.getElementById('fa-modal-body').innerHTML = body;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+}
+document.getElementById('fa-modal-body').addEventListener('click', e=>{
+  const row = e.target.closest('.fa-comp-row');
+  if (!row) return;
+  openFrsModal(row.dataset.proj, row.dataset.tipo);
+});
+document.getElementById('kpi-strip').addEventListener('click', e=>{
+  const card = e.target.closest('[data-frs-kpi]');
+  if (!card) return;
+  openFrsCompositionModal(card.dataset.proj);
+});
 
 const CHART_GREEN = '#92D050', CHART_WARN = '#E8A33D', CHART_INFO_BLUE = '#2E7BC4';
 let chartDetailsOpen = true;
@@ -977,10 +1007,10 @@ function renderKpiStrip(proj, data){
     { icon:'✅', cls:'kpi-green', label:'Pronto p/ Faturar', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' }
   ];
   if (!HIDE_FRS_EMITIDAS && Math.round(frsEmitido)!==0){
-    cards.push({ icon:'📄', cls:'kpi-warn', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido) });
+    cards.push({ icon:'📄', cls:'kpi-warn kpi-frs-clickable', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido), clickProj:proj });
   }
   return cards.map(c=>
-    '<div class="kpi-card '+c.cls+'"><div class="kpi-icon">'+c.icon+'</div><div><div class="kpi-label">'+esc(c.label)+'</div><div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
+    '<div class="kpi-card '+c.cls+'"'+(c.clickProj?' data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+'><div class="kpi-icon">'+c.icon+'</div><div><div class="kpi-label">'+esc(c.label)+'</div><div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
   ).join('');
 }
 
