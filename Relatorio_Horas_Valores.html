@@ -76,6 +76,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .mf-panel label, .if-panel label{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:12.5px;border-radius:5px;cursor:pointer;white-space:nowrap;}
 .mf-panel label:hover, .if-panel label:hover{background:var(--navy-100);}
 .mf-panel .mf-actions{display:flex;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
+.mf-panel .mf-actions.mf-actions-top{margin-top:0;padding-top:0;border-top:none;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border);}
 .mf-panel .mf-actions button{flex:1;font-size:11px;padding:5px;border:1px solid var(--border);border-radius:5px;background:var(--navy-100);cursor:pointer;color:var(--navy);}
 .tab-panel{display:none;}
 .tab-panel.active{display:block;}
@@ -196,6 +197,18 @@ body.printing #print-content .print-page-fit{transform-origin:top left;}
    nitido em resumos com pouco conteudo (MOA/PCI) sem deixar os com mais conteudo (GERAL)
    estourarem a pagina. */
 body.printing #print-content, body.printing #print-content *{font-size:9.4px !important;line-height:1.3 !important;}
+/* graficos (donut) na impressao, quando a opcao "Graficos na impressao" esta ligada: o texto
+   dentro do SVG (valor central e legenda) tambem seria forcado pra 9.4px pela regra acima —
+   restaura tamanhos legiveis pros dois <text> que svgDonutHTML sempre gera nessa ordem. */
+body.printing #print-content .kpi-charts-panel{margin-bottom:6px !important;break-inside:avoid;page-break-inside:avoid;}
+body.printing #print-content .kpi-chart-card{padding:6px 8px 4px !important;}
+body.printing #print-content .kpi-chart-card h4{font-size:10px !important;margin:0 !important;}
+body.printing #print-content .kpi-chart-sub{font-size:8px !important;margin-bottom:1px !important;}
+body.printing #print-content .donut-ring{width:80px !important;height:80px !important;flex:0 0 80px !important;}
+body.printing #print-content .donut-ring svg text:first-of-type{font-size:13px !important;}
+body.printing #print-content .donut-ring svg text:last-of-type{font-size:6px !important;}
+body.printing #print-content .donut-legend-text .lbl{font-size:8px !important;}
+body.printing #print-content .donut-legend-text .val{font-size:7px !important;}
 body.printing #print-content .print-proj-title{font-size:13px !important;margin:0 0 4px !important;}
 body.printing #print-content .title-band{font-size:10.5px !important;padding:3px 6px !important;}
 body.printing #print-content .title-band-lg{font-size:11.5px !important;padding:3px 6px !important;}
@@ -255,6 +268,7 @@ body.printing .fa-sub{margin-bottom:2px !important;}
       <button type="button" class="mf-toggle" id="frsforn-toggle">&#127970; Fornecedor FR: <span id="frsforn-summary">todos</span> &#9662;</button>
       <div class="mf-panel" id="frsforn-panel"></div>
     </div>
+    <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
     <button type="button" class="if-toggle" id="btn-copy-image">&#128203; Copiar imagem (aba atual)</button>
   </div>
@@ -937,10 +951,11 @@ function renderStatusChart(data, chartId){
   }, { displaylogo:false, responsive:true });
 }
 
-function chartsPanelHTML(){
+function chartsPanelHTML(prefix){
+  prefix = prefix || '';
   const donutBlock = (title, sub, ringId, legendId) =>
     '<div class="kpi-chart-card"><h4>'+title+'</h4><div class="kpi-chart-sub">'+sub+'</div>'+
-    '<div class="donut-row"><div id="'+ringId+'" class="donut-ring"></div><div id="'+legendId+'" class="donut-legend"></div></div></div>';
+    '<div class="donut-row"><div id="'+prefix+ringId+'" class="donut-ring"></div><div id="'+prefix+legendId+'" class="donut-legend"></div></div></div>';
   return '<div class="kpi-charts-panel">'+
     donutBlock('Distribuição por Status', '% do valor (R$) — Total Geral "FADS"', 'donut-status-ring', 'donut-status-legend')+
     donutBlock('FAD / FIA / RATEIO', 'Participação de cada frente — Total Global', 'donut-category-ring', 'donut-category-legend')+
@@ -979,19 +994,20 @@ function renderDonutCard(ringId, legendId, labels, values, colors, centerBig, ce
       '<div class="donut-legend-text"><div class="lbl">'+esc(l)+'</div><div class="val">R$ '+fmtBRL(values[i])+' ('+fmtPct(pct/100)+')</div></div></div>';
   }).join('');
 }
-function renderChartsPanel(proj, data){
+function renderChartsPanel(proj, data, prefix){
+  prefix = prefix || '';
   const t = data.totalGeral['__TOTAL__'];
   const s1 = SELECTED_SECTIONS.has(1) ? data.s1values['__TOTAL__'].total.rs : 0;
   const s2 = SELECTED_SECTIONS.has(2) ? data.s2values['__TOTAL__'].total.rs : 0;
   const s3 = SELECTED_SECTIONS.has(3) ? data.s3values['__TOTAL__'].rs : 0;
-  renderDonutCard('donut-status-ring', 'donut-status-legend',
+  renderDonutCard(prefix+'donut-status-ring', prefix+'donut-status-legend',
     ['1 - Apresentou pendência','2 - Carregamento no SGE','3 - Aprovado'], [s1,s2,s3],
     [CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], fmtBRL(t.rs), 'R$ Total FADS');
 
   const fadRS = t.rs;
   const fiaRS = data.fiaTotal['__TOTAL__'].rs;
   const rateioRS = data.rateioTotal['__TOTAL__'].rs;
-  renderDonutCard('donut-category-ring', 'donut-category-legend',
+  renderDonutCard(prefix+'donut-category-ring', prefix+'donut-category-legend',
     ['FAD','FIA','RATEIO'], [fadRS, fiaRS, rateioRS],
     [CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global');
 
@@ -999,7 +1015,7 @@ function renderChartsPanel(proj, data){
   const pronto = data.totalMedidoFR['__TOTAL__'].rs;
   const totalG = data.totalGlobal['__TOTAL__'].rs;
   const restante = Math.max(0, totalG - emitido - pronto);
-  renderDonutCard('donut-pipeline-ring', 'donut-pipeline-legend',
+  renderDonutCard(prefix+'donut-pipeline-ring', prefix+'donut-pipeline-legend',
     ['Já Emitido (FR)','Pronto p/ Faturar','Em processo'], [emitido, pronto, restante],
     ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global');
 }
@@ -1131,10 +1147,12 @@ function buildFrsDateFilterPanel(){
   const panel = document.getElementById('frsdate-panel');
   const selected = new Set(FRS_SELECTED_DATAS);
   // lista aparece da mais nova pra mais antiga (FRS_ALL_DATAS continua em ordem crescente,
-  // usada por "Última" e por outras contas — so a exibicao no dropdown e invertida)
-  panel.innerHTML = FRS_ALL_DATAS.slice().reverse().map(d =>
-    '<label><input type="checkbox" value="'+d+'"'+(selected.has(d)?' checked':'')+'> '+d+'</label>'
-  ).join('') + '<div class="mf-actions"><button type="button" id="frsdate-all">Todas</button><button type="button" id="frsdate-last">Última</button></div>';
+  // usada por "Última" e por outras contas — so a exibicao no dropdown e invertida). Botoes
+  // "Todas"/"Última" ficam no topo (antes da lista), pra nao precisar rolar ate o fim pra achar.
+  panel.innerHTML = '<div class="mf-actions mf-actions-top"><button type="button" id="frsdate-all">Todas</button><button type="button" id="frsdate-last">Última</button></div>' +
+    FRS_ALL_DATAS.slice().reverse().map(d =>
+      '<label><input type="checkbox" value="'+d+'"'+(selected.has(d)?' checked':'')+'> '+d+'</label>'
+    ).join('');
   panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const checked = Array.from(panel.querySelectorAll('input[type=checkbox]:checked')).map(c=>c.value);
@@ -1281,11 +1299,20 @@ const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral' };
 function exportPDF(){
   const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
+  const pageData = {};
   container.innerHTML = projs.map(p => {
+    pageData[p] = buildTable(p);
+    // prefixo por pagina (print-GERAL-, print-MOA-, print-PCI-) pra nao colidir com os ids dos
+    // graficos ja existentes na tela (#donut-status-ring etc.) nem entre as 3 paginas impressas
+    const charts = INCLUDE_CHARTS_IN_PRINT ? chartsPanelHTML('print-'+p+'-') : '';
     return '<div class="print-page"><div class="print-page-fit"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
-      renderTableHTML(buildTable(p), true) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
+      charts +
+      renderTableHTML(pageData[p], true) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
       '</div></div>';
   }).join('');
+  if (INCLUDE_CHARTS_IN_PRINT){
+    projs.forEach(p => renderChartsPanel(p, pageData[p], 'print-'+p+'-'));
+  }
   document.body.classList.add('printing');
   document.body.style.zoom = 1;
   fitPrintPagesToOnePage();
@@ -1394,6 +1421,12 @@ document.getElementById('btn-toggle-frs').addEventListener('click', ()=>{
   document.getElementById('frs-toggle-label').textContent = HIDE_FRS_EMITIDAS ? 'ocultas' : 'mostrando';
   document.getElementById('btn-toggle-frs').classList.toggle('frs-hidden-active', HIDE_FRS_EMITIDAS);
   render();
+});
+let INCLUDE_CHARTS_IN_PRINT = false;
+document.getElementById('btn-toggle-print-charts').addEventListener('click', ()=>{
+  INCLUDE_CHARTS_IN_PRINT = !INCLUDE_CHARTS_IN_PRINT;
+  document.getElementById('print-charts-label').textContent = INCLUDE_CHARTS_IN_PRINT ? 'sim' : 'não';
+  document.getElementById('btn-toggle-print-charts').classList.toggle('frs-hidden-active', INCLUDE_CHARTS_IN_PRINT);
 });
 window.addEventListener('afterprint', ()=>{ document.getElementById('print-content').innerHTML = ''; applyAutoZoom(); });
 
