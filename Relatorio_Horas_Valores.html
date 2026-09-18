@@ -325,6 +325,7 @@ let RAW_EXTRATO = [{"projeto":"MOA","situacao":"Medida","mesano":"Ago/25","hh":4
 let RAW_PENDENCIAS = [{"projeto":"MOA","resumo":"Pendência de Saldo","mesano":"Jul/26","hh":93,"rs":6438.39},{"projeto":"PCI","resumo":"Pendência de Saldo","mesano":"Jun/26","hh":144.163,"rs":14113.65065},{"projeto":"MOA","resumo":"OS: 44128 Situação: Aguardando liberação tecnica","mesano":"Jul/26","hh":1627.045,"rs":114170.21971},{"projeto":"MOA","resumo":"Recurso não cadastrado no WebTerceiros","mesano":"Jun/26","hh":60,"rs":5394.8},{"projeto":"MOA","resumo":"Recurso não cadastrado no WebTerceiros","mesano":"Jul/26","hh":532.3329,"rs":41308.028433},{"projeto":"PCI","resumo":"Pendência de Saldo","mesano":"Jul/26","hh":1359.41,"rs":125196.97391},{"projeto":"MOA","resumo":"RDC não está aprovada","mesano":"Jul/26","hh":1934.6607,"rs":143229.578596},{"projeto":"MOA","resumo":"Pendência de Função","mesano":"Jul/26","hh":480.0823,"rs":38865.928364},{"projeto":"PCI","resumo":"RDC não está aprovada","mesano":"Jul/26","hh":16,"rs":1418.4}];
 
 let RAW_FISCAL_PENDENTE = [{"projeto":"MOA","fiscal":"Guilherme Carvalho Cota","mesano":"Ago/26","hh":9,"rs":748.62},{"projeto":"MOA","fiscal":"EDUARDO EDSON DE LIMA","mesano":"Ago/26","hh":335,"rs":23689.67},{"projeto":"MOA","fiscal":"Eliabe Goncalves E Silva","mesano":"Ago/26","hh":2667.41657,"rs":181759.48931},{"projeto":"MOA","fiscal":"Leandro Leite Silva","mesano":"Ago/26","hh":29.67,"rs":2549.0941},{"projeto":"MOA","fiscal":"Mario Araujo Neto","mesano":"Ago/26","hh":1059.07993,"rs":82118.82418},{"projeto":"MOA","fiscal":"JOAO PEDRO DE SOUZA SANTANA","mesano":"Ago/26","hh":837.83331,"rs":46284.85853}];
+RAW_FISCAL_PENDENTE.forEach(r=>{ r.fiscal = titleCaseName(r.fiscal); });
 
 /* Item 3.3 "Medido - Para emitir FR - SAP": aba "FAD_FIA & RATEIO", filtrado por
    FAD_FIA_RAT(col N)="FAD" + Situação(col F)="Medida" + Faturado SIM ou NÃO(col AB)="Não faturado",
@@ -435,6 +436,13 @@ function fmtInt(v){ return Math.round(v).toLocaleString('pt-BR'); }
 function fmtBRL(v){ return v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function fmtPct(v){ return isFinite(v) ? (v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%' : '-'; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// Padroniza nomes de pessoas (ex.: "JOAO PEDRO DE SOUZA SANTANA" -> "Joao Pedro De Souza Santana")
+// pra ficar igual ao formato ja usado pela maioria ("Eliabe Goncalves E Silva") — a planilha
+// tem uma mistura de maiúsculas e capitalizado dependendo de quem digitou.
+function titleCaseName(s){
+  if (!s) return s;
+  return s.trim().split(/\s+/).map(w => w.length ? w.charAt(0).toUpperCase()+w.slice(1).toLowerCase() : w).join(' ');
+}
 function getUpdateDateStr(){
   const el = document.getElementById('update-date');
   if (!el || !el.value) return new Date().toLocaleDateString('pt-BR');
@@ -1795,7 +1803,7 @@ window.addEventListener('resize', ()=>{
       if(!extratoAgg[ke]) extratoAgg[ke]={projeto:projE,situacao:situES,mesano:mesES,hh:0,rs:0};
       extratoAgg[ke].hh+=hhE; extratoAgg[ke].rs+=rsE;
       if (situES==='Pendente de aprovação'){
-        var fiscalV=cellAt(row2,E.fiscal); var fiscalS=isBlankV(fiscalV)?'(sem fiscal)':String(fiscalV);
+        var fiscalV=cellAt(row2,E.fiscal); var fiscalS=isBlankV(fiscalV)?'(sem fiscal)':titleCaseName(String(fiscalV));
         var kf=projE+'|'+fiscalS+'|'+mesES;
         if(!fiscalAgg[kf]) fiscalAgg[kf]={projeto:projE,fiscal:fiscalS,mesano:mesES,hh:0,rs:0};
         fiscalAgg[kf].hh+=hhE; fiscalAgg[kf].rs+=rsE;
