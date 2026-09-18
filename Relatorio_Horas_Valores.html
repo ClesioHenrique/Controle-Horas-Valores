@@ -1687,6 +1687,23 @@ window.addEventListener('resize', ()=>{
     return null;
   }
   var CONTRATO_PROJ = {'4600184457':'PCI','4600185340':'MOA','4600185359':'MOA'};
+  // Data Referencia (col D da "Extrato SGE (FAD)"): serial de data (numero) ou texto "dd/mm/aaaa".
+  // Substitui a antiga coluna X "Meses / Ano", que estava fora do intervalo A-R (sera eliminada)
+  // e, pior, tinha linhas corrompidas (rotulos tipo "Out/145" em vez de mes valido).
+  function dataReferenciaToMesAno(v){
+    if (typeof v === 'number'){
+      var d = new Date(Math.round((v-25569)*86400000));
+      return MES_BR[d.getUTCMonth()+1]+'/'+String(d.getUTCFullYear()).slice(2);
+    }
+    if (typeof v === 'string' && v.trim()!==''){
+      var m = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m){
+        var mm = parseInt(m[2],10), yy = parseInt(m[3],10)%100;
+        if (MES_BR[mm]) return MES_BR[mm]+'/'+String(yy).padStart(2,'0');
+      }
+    }
+    return null;
+  }
 
   /* ---- regras de extracao (identicas ao script de geracao original) ---- */
   async function regenerateFromFile(file){
@@ -1756,19 +1773,22 @@ window.addEventListener('resize', ()=>{
     var eRows = sheets.extrato.rows;
     var eHdrIdx = findHeaderRow(eRows, ['situacao','fiscal'], 40);
     if (eHdrIdx === -1) throw new Error('Não encontrei o cabeçalho na aba "'+sheets.extrato.sheetName+'" (procurando Situação + Fiscal nas primeiras 40 linhas).');
-    var E = { contrato:colLetterOffset('F'), sit:colLetterOffset('G'), fiscal:colLetterOffset('J'), hh:colLetterOffset('L'), rs:colLetterOffset('M'), mes:colLetterOffset('X') };
+    var E = { contrato:colLetterOffset('F'), sit:colLetterOffset('G'), fiscal:colLetterOffset('J'), hh:colLetterOffset('L'), rs:colLetterOffset('M'), dataRef:colLetterOffset('D') };
     var eHdrRow = eRows[eHdrIdx];
     if (normTxt(cellAt(eHdrRow,E.sit)).indexOf('situacao')===-1 || normTxt(cellAt(eHdrRow,E.fiscal)).indexOf('fiscal')===-1){
       throw new Error('O layout da aba "'+sheets.extrato.sheetName+'" mudou (colunas G/J não são mais Situação/Fiscal).');
     }
+    if (normTxt(cellAt(eHdrRow,E.dataRef)).indexOf('data referencia')===-1){
+      throw new Error('O layout da aba "'+sheets.extrato.sheetName+'" mudou (coluna D não é mais Data Referência) — avise para eu ajustar o mapeamento antes de confiar nestes números.');
+    }
     var extratoAgg={}, fiscalAgg={};
     for (var r2=eHdrIdx+1; r2<eRows.length; r2++){
       var row2=eRows[r2]; if(!row2) continue;
-      var contrato=cellAt(row2,E.contrato), mesE=cellAt(row2,E.mes);
-      if (isBlankV(contrato) || isBlankV(mesE)) continue;
+      var contrato=cellAt(row2,E.contrato);
+      var mesES = dataReferenciaToMesAno(cellAt(row2,E.dataRef));
+      if (isBlankV(contrato) || !mesES) continue;
       var ct=String(contrato).trim(), projE=CONTRATO_PROJ[ct]; if(!projE) continue;
       var situES=isBlankV(cellAt(row2,E.sit))?'':String(cellAt(row2,E.sit));
-      var mesES=String(mesE);
       var hhv=cellAt(row2,E.hh); var hhE=typeof hhv==='number'?hhv:0;
       var rsv=cellAt(row2,E.rs); var rsE=typeof rsv==='number'?rsv:0;
       var ke=projE+'|'+situES+'|'+mesES;
