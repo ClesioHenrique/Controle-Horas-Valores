@@ -900,8 +900,6 @@ function renderFrsEmitidasHTML(proj){
   if (!groups.length) return '';
   let html = '<div class="fiscal-block">';
   html += '<h3>FR\'S Emitidas</h3>';
-  const obs = 'Consulta da aba "FR\'S emitidas" (col. I/T/F), composição via "FAD_FIA & RATEIO" (col. H/N)';
-  html += '<div class="fa-sub" style="margin-bottom:8px;">'+esc(obs)+'</div>';
   html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
   html += '<colgroup><col style="width:150px"><col style="width:110px"><col style="width:130px"></colgroup>';
   html += '<tr><th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">HH</th><th class="ft-band">R$</th></tr>';
@@ -1477,7 +1475,8 @@ function exportPDF(){
   const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
   const pageData = {};
-  const rdcPage = '<div class="print-page"><div class="print-page-fit"><div class="print-proj-title">'+esc(PROJ_TITLES.RDC)+'</div>'+renderRdcHTML()+renderFreeNoteHTML('RDC')+'</div></div>';
+  // sem o titulo amarelo (print-proj-title): a propria tabela ja traz o cabecalho "Pendencias — RDC nao esta aprovada"
+  const rdcPage = '<div class="print-page"><div class="print-page-fit">'+renderRdcHTML()+renderFreeNoteHTML('RDC')+'</div></div>';
   container.innerHTML = projs.map(p => {
     pageData[p] = buildTable(p);
     // prefixo por pagina (print-GERAL-, print-MOA-, print-PCI-) pra nao colidir com os ids dos
@@ -1556,7 +1555,7 @@ async function copyCurrentTabAsImage(){
   btn.textContent = '⏳ Gerando imagem...';
   const container = document.getElementById('print-content');
   try {
-    container.innerHTML = '<div class="print-page"><div class="print-page-fit"><div class="print-proj-title">'+esc(PROJ_TITLES[proj])+'</div>' +
+    container.innerHTML = '<div class="print-page"><div class="print-page-fit">'+(proj==='RDC' ? '' : '<div class="print-proj-title">'+esc(PROJ_TITLES[proj])+'</div>') +
       (proj==='RDC' ? renderRdcHTML() + renderFreeNoteHTML(proj) :
         renderTableHTML(buildTable(proj), true) + (proj==='GERAL' ? '' : renderFiscalDetailHTML(proj)) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj)) +
       '</div></div>';
