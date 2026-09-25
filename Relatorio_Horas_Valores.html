@@ -1156,6 +1156,10 @@ function renderRdcKpiStrip(){
 let lastChartData = null;
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
+  // filtros de Itens e de FR'S nao se aplicam a aba RDC (so o filtro de Meses vale): escondidos la
+  ['item-filter','btn-toggle-frs','frs-date-filter','frs-forn-filter'].forEach(id=>{
+    document.getElementById(id).style.display = active==='RDC' ? 'none' : '';
+  });
   if (active === 'RDC'){
     document.getElementById('content').innerHTML = renderRdcHTML() + renderFreeNoteHTML('RDC');
     document.getElementById('kpi-strip').innerHTML = renderRdcKpiStrip();
@@ -1494,7 +1498,8 @@ function exportPDF(){
     // prefixo por pagina (print-GERAL-, print-MOA-, print-PCI-) pra nao colidir com os ids dos
     // graficos ja existentes na tela (#donut-status-ring etc.) nem entre as 3 paginas impressas
     const charts = INCLUDE_CHARTS_IN_PRINT ? chartsPanelHTML('print-'+p+'-') : '';
-    return '<div class="print-page"><div class="print-page-fit"><div class="print-proj-title">'+esc(PROJ_TITLES[p])+'</div>' +
+    // sem titulo amarelo (print-proj-title) em nenhuma pagina: a propria tabela ja identifica o resumo
+    return '<div class="print-page"><div class="print-page-fit">' +
       charts +
       renderTableHTML(pageData[p], true) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
       '</div></div>';
@@ -1567,7 +1572,7 @@ async function copyCurrentTabAsImage(){
   btn.textContent = '⏳ Gerando imagem...';
   const container = document.getElementById('print-content');
   try {
-    container.innerHTML = '<div class="print-page"><div class="print-page-fit">'+(proj==='RDC' ? '' : '<div class="print-proj-title">'+esc(PROJ_TITLES[proj])+'</div>') +
+    container.innerHTML = '<div class="print-page"><div class="print-page-fit"> ' +
       (proj==='RDC' ? renderRdcHTML() + renderFreeNoteHTML(proj) :
         renderTableHTML(buildTable(proj), true) + (proj==='GERAL' ? '' : renderFiscalDetailHTML(proj)) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj)) +
       '</div></div>';
