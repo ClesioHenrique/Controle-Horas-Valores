@@ -207,7 +207,7 @@ body.printing #print-content .kpi-chart-card h4{font-size:10px !important;margin
 body.printing #print-content .kpi-chart-sub{font-size:8px !important;margin-bottom:1px !important;}
 body.printing #print-content .donut-ring{width:80px !important;height:80px !important;flex:0 0 80px !important;}
 body.printing #print-content .donut-ring svg text:first-of-type{font-size:13px !important;}
-body.printing #print-content .donut-ring svg text:last-of-type{font-size:6px !important;}
+body.printing #print-content .donut-ring svg text:nth-of-type(2), body.printing #print-content .donut-ring svg text:nth-of-type(3){font-size:6px !important;}
 body.printing #print-content .donut-legend-text .lbl{font-size:8px !important;}
 body.printing #print-content .donut-legend-text .val{font-size:7px !important;}
 body.printing #print-content .print-proj-title{font-size:13px !important;margin:0 0 4px !important;}
@@ -989,10 +989,10 @@ function chartsPanelHTML(prefix){
     donutBlock('Pipeline de Faturamento', 'Emitido, pronto e em processo — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
     '</div>';
 }
-function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, centerSmall){
+function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, centerSmall, progress, progressLabel){
   // Estilo "painel de instrumentos": mostrador escuro, arco de 240 graus segmentado por cor,
-  // marcacoes (ticks) e anel ciano interno. Sempre gera exatamente 2 <text> (valor e legenda),
-  // nessa ordem, pois o CSS de impressao depende de text:first-of-type / last-of-type.
+  // marcacoes (ticks) e anel ciano interno. Sempre gera 3 <text> (valor, legenda, andamento),
+  // nessa ordem, pois o CSS de impressao depende de text:nth-of-type.
   const total = values.reduce((a,b)=>a+b,0);
   const cx = size/2, cy = size/2;
   const rad = d => d*Math.PI/180;
@@ -1003,16 +1003,16 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
     const p0 = pt(r,a0), p1 = pt(r,a1);
     return 'M'+p0[0].toFixed(2)+' '+p0[1].toFixed(2)+' A'+r+' '+r+' 0 '+((a1-a0)>180?1:0)+' 1 '+p1[0].toFixed(2)+' '+p1[1].toFixed(2);
   };
-  let out = '<defs><radialGradient id="gg'+size+'" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#16263b"/><stop offset="1" stop-color="#08111d"/></radialGradient></defs>'+
-    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(size/2-1)+'" fill="url(#gg'+size+')" stroke="#2b3d55" stroke-width="1"/>';
-  out += '<path d="'+arcPath(rArc,START,START+SPAN)+'" fill="none" stroke="#22344b" stroke-width="'+sw+'"/>';
+  let out = '<defs><radialGradient id="gg'+size+'" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#f4f6f9"/><stop offset="1" stop-color="#dde3ea"/></radialGradient></defs>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(size/2-1)+'" fill="url(#gg'+size+')" stroke="#c3ccd8" stroke-width="1"/>';
+  out += '<path d="'+arcPath(rArc,START,START+SPAN)+'" fill="none" stroke="#cbd3dd" stroke-width="'+sw+'"/>';
   const N = 40;
   for (let i=0;i<=N;i++){
     const deg = START + SPAN*i/N, major = i%5===0;
     const p0 = pt(rArc-sw/2-3, deg), p1 = pt(rArc-sw/2-3-(major?8:4), deg);
-    out += '<line x1="'+p0[0].toFixed(2)+'" y1="'+p0[1].toFixed(2)+'" x2="'+p1[0].toFixed(2)+'" y2="'+p1[1].toFixed(2)+'" stroke="'+(major?'#e8eef6':'#7f93ab')+'" stroke-width="'+(major?1.4:0.8)+'"/>';
+    out += '<line x1="'+p0[0].toFixed(2)+'" y1="'+p0[1].toFixed(2)+'" x2="'+p1[0].toFixed(2)+'" y2="'+p1[1].toFixed(2)+'" stroke="'+(major?'#3a4a60':'#8795a8')+'" stroke-width="'+(major?1.4:0.8)+'"/>';
   }
-  out += '<path d="'+arcPath(rArc-sw/2-16,START,START+SPAN)+'" fill="none" stroke="#2fa8d8" stroke-width="1.2" opacity=".85"/>';
+  out += '<path d="'+arcPath(rArc-sw/2-16,START,START+SPAN)+'" fill="none" stroke="#2288b5" stroke-width="1.2" opacity=".8"/>';
   const nz = values.filter(x=>x>0).length;
   const gapDeg = nz>1 ? 1.6 : 0;
   let cum = 0;
@@ -1028,13 +1028,21 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
   });
   const bigLen = String(centerBig).length;
   const bigFontSize = bigLen<=6 ? 17 : bigLen<=8 ? 14.5 : bigLen<=10 ? 12.5 : 11;
-  return '<svg viewBox="0 0 '+size+' '+size+'" width="100%" height="100%" style="display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact;">'+out+
-    '<text x="'+cx+'" y="'+(cy+2)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
-    '<text x="'+cx+'" y="'+(cy+16)+'" text-anchor="middle" font-size="9" fill="#9fb3c8" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
+  // ponteiro vermelho: aponta o percentual de andamento (0..1) sobre o arco de 240 graus
+  const pr = Math.min(1, Math.max(0, progress||0));
+  const nAng = START + SPAN*pr, nLen = rArc-sw/2-14;
+  const tip1 = pt(nLen, nAng), b1 = pt(5, nAng+90), b2 = pt(5, nAng-90);
+  const plabel = (progressLabel||'Andamento');
+  const needle = '<polygon points="'+tip1[0].toFixed(2)+','+tip1[1].toFixed(2)+' '+b1[0].toFixed(2)+','+b1[1].toFixed(2)+' '+b2[0].toFixed(2)+','+b2[1].toFixed(2)+'" fill="#d62828"><title>'+esc(plabel)+': '+fmtPct(pr)+'</title></polygon>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="6" fill="#d62828" stroke="#ffffff" stroke-width="1.5"/>';
+  return '<svg viewBox="0 0 '+size+' '+size+'" width="100%" height="100%" style="display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact;">'+out+needle+
+    '<text x="'+cx+'" y="'+(cy+26)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#1b2733" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+38)+'" text-anchor="middle" font-size="8.5" fill="#647184" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+58)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="#d62828" font-family="Segoe UI, Arial, sans-serif">'+esc(plabel)+' '+fmtPct(pr)+'</text>'+
     '</svg>';
 }
-function renderDonutCard(ringId, legendId, labels, values, colors, centerBig, centerSmall){
-  document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 170, 22, centerBig, centerSmall);
+function renderDonutCard(ringId, legendId, labels, values, colors, centerBig, centerSmall, progress, progressLabel){
+  document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 170, 22, centerBig, centerSmall, progress, progressLabel);
   const total = values.reduce((a,b)=>a+b,0);
   document.getElementById(legendId).innerHTML = labels.map((l,i)=>{
     const pct = total ? (values[i]/total*100) : 0;
@@ -1050,14 +1058,14 @@ function renderChartsPanel(proj, data, prefix){
   const s3 = SELECTED_SECTIONS.has(3) ? data.s3values['__TOTAL__'].rs : 0;
   renderDonutCard(prefix+'donut-status-ring', prefix+'donut-status-legend',
     ['1 - Apresentou pendência','2 - Carregamento no SGE','3 - Aprovado'], [s1,s2,s3],
-    [CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], fmtBRL(t.rs), 'R$ Total FADS');
+    [CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], fmtBRL(t.rs), 'R$ Total FADS', t.rs ? s3/t.rs : 0, 'Aprovado');
 
   const fadRS = t.rs;
   const fiaRS = data.fiaTotal['__TOTAL__'].rs;
   const rateioRS = data.rateioTotal['__TOTAL__'].rs;
   renderDonutCard(prefix+'donut-category-ring', prefix+'donut-category-legend',
     ['FAD','FIA','RATEIO'], [fadRS, fiaRS, rateioRS],
-    [CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global');
+    [CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global', (fadRS+fiaRS+rateioRS) ? fadRS/(fadRS+fiaRS+rateioRS) : 0, 'FAD');
 
   const emitido = HIDE_FRS_EMITIDAS ? 0 : frsTotalGeralFor(proj);
   const pronto = data.totalMedidoFR['__TOTAL__'].rs;
@@ -1065,7 +1073,7 @@ function renderChartsPanel(proj, data, prefix){
   const restante = Math.max(0, totalG - emitido - pronto);
   renderDonutCard(prefix+'donut-pipeline-ring', prefix+'donut-pipeline-legend',
     ['Já Emitido (FR)','Pronto p/ Faturar','Em processo'], [emitido, pronto, restante],
-    ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global');
+    ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global', totalG ? (emitido+pronto)/totalG : 0, 'Emitido+Pronto');
 }
 
 function renderKpiStrip(proj, data){
