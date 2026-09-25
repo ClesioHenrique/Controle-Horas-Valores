@@ -55,7 +55,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .kpi-chart-card h4{margin:0 0 2px;font-size:13.5px;color:var(--navy);}
 .kpi-chart-card .kpi-chart-sub{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
 .donut-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:4px;}
-.donut-ring{width:150px;height:150px;flex:0 0 150px;}
+.donut-ring{width:170px;height:170px;flex:0 0 170px;}
 .donut-legend{display:flex;flex-direction:column;gap:10px;flex:0 1 auto;min-width:0;}
 .donut-legend-item{display:flex;align-items:center;gap:8px;}
 .donut-dot{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
@@ -990,32 +990,51 @@ function chartsPanelHTML(prefix){
     '</div>';
 }
 function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, centerSmall){
+  // Estilo "painel de instrumentos": mostrador escuro, arco de 240 graus segmentado por cor,
+  // marcacoes (ticks) e anel ciano interno. Sempre gera exatamente 2 <text> (valor e legenda),
+  // nessa ordem, pois o CSS de impressao depende de text:first-of-type / last-of-type.
   const total = values.reduce((a,b)=>a+b,0);
-  const r = (size - strokeWidth) / 2;
   const cx = size/2, cy = size/2;
-  const circ = 2*Math.PI*r;
-  let cum = 0, segs = '';
+  const rad = d => d*Math.PI/180;
+  const START = 150, SPAN = 240;
+  const rArc = size/2 - 9, sw = 10;
+  const pt = (r,deg) => [cx + r*Math.cos(rad(deg)), cy + r*Math.sin(rad(deg))];
+  const arcPath = (r,a0,a1) => {
+    const p0 = pt(r,a0), p1 = pt(r,a1);
+    return 'M'+p0[0].toFixed(2)+' '+p0[1].toFixed(2)+' A'+r+' '+r+' 0 '+((a1-a0)>180?1:0)+' 1 '+p1[0].toFixed(2)+' '+p1[1].toFixed(2);
+  };
+  let out = '<defs><radialGradient id="gg'+size+'" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#16263b"/><stop offset="1" stop-color="#08111d"/></radialGradient></defs>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(size/2-1)+'" fill="url(#gg'+size+')" stroke="#2b3d55" stroke-width="1"/>';
+  out += '<path d="'+arcPath(rArc,START,START+SPAN)+'" fill="none" stroke="#22344b" stroke-width="'+sw+'"/>';
+  const N = 40;
+  for (let i=0;i<=N;i++){
+    const deg = START + SPAN*i/N, major = i%5===0;
+    const p0 = pt(rArc-sw/2-3, deg), p1 = pt(rArc-sw/2-3-(major?8:4), deg);
+    out += '<line x1="'+p0[0].toFixed(2)+'" y1="'+p0[1].toFixed(2)+'" x2="'+p1[0].toFixed(2)+'" y2="'+p1[1].toFixed(2)+'" stroke="'+(major?'#e8eef6':'#7f93ab')+'" stroke-width="'+(major?1.4:0.8)+'"/>';
+  }
+  out += '<path d="'+arcPath(rArc-sw/2-16,START,START+SPAN)+'" fill="none" stroke="#2fa8d8" stroke-width="1.2" opacity=".85"/>';
+  const nz = values.filter(x=>x>0).length;
+  const gapDeg = nz>1 ? 1.6 : 0;
+  let cum = 0;
   values.forEach((v,i)=>{
     if (!total || v<=0) return;
     const frac = v/total;
-    const dash = Math.max(frac*circ - (values.filter(x=>x>0).length>1 ? 3 : 0), 0);
-    const gap = circ - dash;
-    const offset = -cum*circ;
+    const a0 = START + SPAN*cum + gapDeg/2, a1 = START + SPAN*(cum+frac) - gapDeg/2;
     cum += frac;
-    // <title> = tooltip nativo do navegador: passar o mouse na fatia mostra label/valor/%
+    if (a1<=a0) return;
+    // <title> = tooltip nativo do navegador: passar o mouse no arco mostra label/valor/%
     const tip = esc(labels[i])+': R$ '+fmtBRL(v)+' ('+fmtPct(frac)+')';
-    segs += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+colors[i]+'" stroke-width="'+strokeWidth+'" stroke-linecap="round" '+
-      'stroke-dasharray="'+dash.toFixed(2)+' '+gap.toFixed(2)+'" stroke-dashoffset="'+offset.toFixed(2)+'" transform="rotate(-90 '+cx+' '+cy+')"><title>'+tip+'</title></circle>';
+    out += '<path d="'+arcPath(rArc,a0,a1)+'" fill="none" stroke="'+colors[i]+'" stroke-width="'+sw+'" style="cursor:pointer"><title>'+tip+'</title></path>';
   });
   const bigLen = String(centerBig).length;
   const bigFontSize = bigLen<=6 ? 17 : bigLen<=8 ? 14.5 : bigLen<=10 ? 12.5 : 11;
-  return '<svg viewBox="0 0 '+size+' '+size+'" width="100%" height="100%" style="display:block;">'+segs+
-    '<text x="'+cx+'" y="'+(cy-3)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#1b2733" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
-    '<text x="'+cx+'" y="'+(cy+14)+'" text-anchor="middle" font-size="9" fill="#647184" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
+  return '<svg viewBox="0 0 '+size+' '+size+'" width="100%" height="100%" style="display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact;">'+out+
+    '<text x="'+cx+'" y="'+(cy+2)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+16)+'" text-anchor="middle" font-size="9" fill="#9fb3c8" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
     '</svg>';
 }
 function renderDonutCard(ringId, legendId, labels, values, colors, centerBig, centerSmall){
-  document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 150, 22, centerBig, centerSmall);
+  document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 170, 22, centerBig, centerSmall);
   const total = values.reduce((a,b)=>a+b,0);
   document.getElementById(legendId).innerHTML = labels.map((l,i)=>{
     const pct = total ? (values[i]/total*100) : 0;
