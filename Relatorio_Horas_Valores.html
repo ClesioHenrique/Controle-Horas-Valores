@@ -251,6 +251,7 @@ body.printing .fa-sub{margin-bottom:2px !important;}
       <button class="tab-btn active" data-proj="GERAL">MOA &amp; PCI - Geral</button>
       <button class="tab-btn" data-proj="MOA">MOA</button>
       <button class="tab-btn" data-proj="PCI">PCI</button>
+      <button class="tab-btn" data-proj="RDC">RDC não aprovada</button>
     </div>
     <div class="month-filter" id="month-filter">
       <button type="button" class="mf-toggle" id="mf-toggle">&#128197; Meses: <span id="mf-summary">últimos 3</span> &#9662;</button>
@@ -369,6 +370,9 @@ let RAW_RATEIO_MEDIDO_DETAIL = [{"projeto":"PCI","mesano":"Mai/26","numfa":"RAT_
 let RAW_PEND_APROVACAO_DETAIL = [{"noFA":"FAD_587560","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":7,"valor":470.96},{"noFA":"FAD_587560","item":"0000000797 - ENCARREGADO DE MONTAGEM MECÂNICA HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":7,"valor":935.9},{"noFA":"FAD_587560","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":538.24},{"noFA":"FAD_587560","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":6,"valor":403.68},{"noFA":"FAD_587561","item":"0000000801 - SOLDADOR TIG/MIG HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":718.88},{"noFA":"FAD_587561","item":"0000000801 - SOLDADOR TIG/MIG HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":718.88},{"noFA":"FAD_587564","item":"0000000782 - ENCARREGADO DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":942.84},{"noFA":"FAD_587563","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587563","item":"0000000801 - SOLDADOR TIG/MIG HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":89.86},{"noFA":"FAD_587564","item":"0000000782 - ENCARREGADO DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":942.84},{"noFA":"FAD_587564","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587562","item":"0000000794 - MECÂNICO MONTADOR HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":57.27},{"noFA":"FAD_587562","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587562","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":467.55},{"noFA":"FAD_587562","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587562","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587562","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587563","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587562","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.65,"valor":512.34},{"noFA":"FAD_587562","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587562","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587565","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587565","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587565","item":"0000000797 - ENCARREGADO DE MONTAGEM MECÂNICA HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":267.4},{"noFA":"FAD_587565","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587566","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587565","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587566","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587567","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587566","item":"0000000782 - ENCARREGADO DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":942.84},{"noFA":"FAD_587566","item":"0000000782 - ENCARREGADO DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":942.84},{"noFA":"FAD_587566","item":"0000000810 - ENCARREGADO DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":129.52},{"noFA":"FAD_587567","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587565","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":467.55},{"noFA":"FAD_587565","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587571","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":467.55},{"noFA":"FAD_587572","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587569","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587569","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587569","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587571","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":467.55},{"noFA":"FAD_587569","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.65,"valor":512.34},{"noFA":"FAD_587570","item":"0000000782 - ENCARREGADO DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":942.84},{"noFA":"FAD_587571","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587570","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587572","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587572","item":"0000000801 - SOLDADOR TIG/MIG HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":89.86},{"noFA":"FAD_587571","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.5,"valor":441.58},{"noFA":"FAD_587569","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587569","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587569","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587569","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587570","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587570","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587570","item":"0000000809 - MONTADOR DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":51.85},{"noFA":"FAD_587573","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587573","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587575","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587575","item":"0000000809 - MONTADOR DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":51.85},{"noFA":"FAD_587573","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587573","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587573","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587573","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587573","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587575","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587575","item":"0000000782 - ENCARREGADO DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":942.84},{"noFA":"FAD_587574","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.82,"valor":458.03},{"noFA":"FAD_587574","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":7,"valor":414.61},{"noFA":"FAD_587576","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587576","item":"0000000801 - SOLDADOR TIG/MIG HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":89.86},{"noFA":"FAD_587573","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587574","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":415.6},{"noFA":"FAD_587574","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":467.55},{"noFA":"FAD_587574","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.82,"valor":522.21},{"noFA":"FAD_587574","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587576","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587574","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.65,"valor":512.34},{"noFA":"FAD_587574","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":467.55},{"noFA":"FAD_587579","item":"0000000782 - ENCARREGADO DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":838.08},{"noFA":"FAD_587579","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":369.6},{"noFA":"FAD_587579","item":"0000000809 - MONTADOR DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":103.7},{"noFA":"FAD_587579","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":369.6},{"noFA":"FAD_587579","item":"0000000809 - MONTADOR DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":103.7},{"noFA":"FAD_587578","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":870.24},{"noFA":"FAD_587578","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":415.6},{"noFA":"FAD_587578","item":"0000000797 - ENCARREGADO DE MONTAGEM MECÂNICA HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":0.82,"valor":109.19},{"noFA":"FAD_587578","item":"0000000794 - MECÂNICO MONTADOR HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":57.27},{"noFA":"FAD_587578","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":473.84},{"noFA":"FAD_587578","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":7.82,"valor":462.98},{"noFA":"FAD_587578","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":0.82,"valor":54.94},{"noFA":"FAD_587580","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":665.44},{"noFA":"FAD_587580","item":"0000000801 - SOLDADOR TIG/MIG HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":89.86},{"noFA":"FAD_587578","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":473.84},{"noFA":"FAD_587578","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587578","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":473.84},{"noFA":"FAD_587578","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":67.28},{"noFA":"FAD_587580","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":665.44},{"noFA":"FAD_587583","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":538.24},{"noFA":"FAD_587583","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":538.24},{"noFA":"FAD_587583","item":"0000000797 - ENCARREGADO DE MONTAGEM MECÂNICA HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":6.9,"valor":922.53},{"noFA":"FAD_587583","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":7.48,"valor":503.48},{"noFA":"FAD_587583","item":"0000000794 - MECÂNICO MONTADOR HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":458.16},{"noFA":"FAD_587585","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587585","item":"0000000809 - MONTADOR DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":51.85},{"noFA":"FAD_587584","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587584","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587584","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":467.55},{"noFA":"FAD_587586","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587584","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587585","item":"0000000782 - ENCARREGADO DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":942.84},{"noFA":"FAD_587585","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587585","item":"0000000810 - ENCARREGADO DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":129.52},{"noFA":"FAD_587585","item":"0000000809 - MONTADOR DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":51.85},{"noFA":"FAD_587586","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587584","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587584","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.82,"valor":522.21},{"noFA":"FAD_587585","item":"0000000809 - MONTADOR DE ANDAIME HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":0.73,"valor":38.02},{"noFA":"FAD_587585","item":"0000000781 - MONTADOR DE ANDAIME HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":415.8},{"noFA":"FAD_587588","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587588","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587588","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":533.07},{"noFA":"FAD_587590","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587588","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8,"valor":415.6},{"noFA":"FAD_587588","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587588","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.5,"valor":503.46},{"noFA":"FAD_587589","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587589","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.82,"valor":522.21},{"noFA":"FAD_587590","item":"0000000773 - SOLDADOR TIG/MIG HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":748.62},{"noFA":"FAD_587589","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.82,"valor":458.03},{"noFA":"FAD_587591","item":"0000000851 - ENCANADOR/CALDEIREIRO HN20","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":6,"valor":438.12},{"noFA":"FAD_587591","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":134.56},{"noFA":"FAD_587591","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":3,"valor":177.69},{"noFA":"FAD_587591","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":3,"valor":155.85},{"noFA":"FAD_587591","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":3,"valor":177.69},{"noFA":"FAD_587591","item":"0000000851 - ENCANADOR/CALDEIREIRO HN20","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":6,"valor":438.12},{"noFA":"FAD_587591","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":134.56},{"noFA":"FAD_587591","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":3,"valor":177.69},{"noFA":"FAD_587591","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":3,"valor":326.34},{"noFA":"FAD_587591","item":"0000000853 - ENCARREGADO DE MONTAGEM MECÂNICA HN20","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":6,"valor":828.42},{"noFA":"FAD_587591","item":"0000000797 - ENCARREGADO DE MONTAGEM MECÂNICA HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":267.4},{"noFA":"FAD_587594","item":"0000000766 - MECÂNICO MONTADOR HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.82,"valor":458.03},{"noFA":"FAD_587591","item":"0000000850 - MECÂNICO MONTADOR HN20","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":6,"valor":381.96},{"noFA":"FAD_587591","item":"0000000851 - ENCANADOR/CALDEIREIRO HN20","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":6,"valor":438.12},{"noFA":"FAD_587591","item":"0000000794 - MECÂNICO MONTADOR HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":114.54},{"noFA":"FAD_587591","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":134.56},{"noFA":"FAD_587594","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":8.82,"valor":522.21},{"noFA":"FAD_587591","item":"0000000767 - ENCANADOR/CALDEIREIRO HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":3,"valor":177.69},{"noFA":"FAD_587591","item":"0000000851 - ENCANADOR/CALDEIREIRO HN20","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":6,"valor":438.12},{"noFA":"FAD_587591","item":"0000000795 - ENCANADOR/CALDEIREIRO HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":2,"valor":134.56},{"noFA":"FAD_587594","item":"0000000769 - ENCARREGADO DE MONTAGEM MECÂNICA HN","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":9,"valor":979.02},{"noFA":"FAD_587594","item":"0000000797 - ENCARREGADO DE MONTAGEM MECÂNICA HE50","mesAno":"jul/26","fornecedor":"TECHINT","itemPU":0,"proj":"MOA","hh":1,"valor":133.7}];
 // o script de extracao gerou "jul/26" (minusculo); o resto do arquivo usa "Jul/26" (1a maiuscula)
 // pra nome de mes -- normaliza aqui pra bater com DISPLAY_MONTHS/ALL_MONTHS.
+/* Aba "Pendencias MOA_PCI", linhas com RESUMO (col T) = "RDC nao esta aprovada", agrupadas por
+   projeto (A), lider (W), fiscal (V) e mes (derivado da col H = DATA); hh = col I (HH TOTAL), rs = col Q (R$). */
+let RAW_RDC_NAO_APROVADA = [{"projeto":"PCI","lider":"Juliana Medeiros Salgado","fiscal":"Gustavo Silveira Carvalho","mesano":"Jul/26","hh":16,"rs":1418.4},{"projeto":"MOA","lider":"Douglas August Coelho","fiscal":"Eliabe Goncalves E Silva","mesano":"Ago/26","hh":362.83333,"rs":27528.25167},{"projeto":"MOA","lider":"Juliana Medeiros Salgado","fiscal":"Mario Araujo Neto","mesano":"Ago/26","hh":1488.25,"rs":111115.00983},{"projeto":"MOA","lider":"Flavio Eduardo Perobele","fiscal":"Leandro Leite Silva","mesano":"Ago/26","hh":53.5,"rs":5402.775},{"projeto":"MOA","lider":"Douglas August Coelho","fiscal":"Ellienay De Souza Avelino","mesano":"Jul/26","hh":38.5,"rs":3187.435},{"projeto":"MOA","lider":"Juliana Medeiros Salgado","fiscal":"Mario Araujo Neto","mesano":"Jul/26","hh":148.5,"rs":10383.55}];
 RAW_PEND_APROVACAO_DETAIL.forEach(r=>{ r.mesAno = r.mesAno.charAt(0).toUpperCase()+r.mesAno.slice(1); });
 
 /* Aba "FR'S emitidas": consulta real da planilha (nao mais mantida manualmente). Cada linha ja
@@ -1028,17 +1032,9 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
   });
   const bigLen = String(centerBig).length;
   const bigFontSize = bigLen<=6 ? 17 : bigLen<=8 ? 14.5 : bigLen<=10 ? 12.5 : 11;
-  // ponteiro vermelho: aponta o percentual de andamento (0..1) sobre o arco de 240 graus
-  const pr = Math.min(1, Math.max(0, progress||0));
-  const nAng = START + SPAN*pr, nLen = rArc-sw/2-14;
-  const tip1 = pt(nLen, nAng), b1 = pt(5, nAng+90), b2 = pt(5, nAng-90);
-  const plabel = (progressLabel||'Andamento');
-  const needle = '<polygon points="'+tip1[0].toFixed(2)+','+tip1[1].toFixed(2)+' '+b1[0].toFixed(2)+','+b1[1].toFixed(2)+' '+b2[0].toFixed(2)+','+b2[1].toFixed(2)+'" fill="#d62828"><title>'+esc(plabel)+': '+fmtPct(pr)+'</title></polygon>'+
-    '<circle cx="'+cx+'" cy="'+cy+'" r="6" fill="#d62828" stroke="#ffffff" stroke-width="1.5"/>';
-  return '<svg viewBox="0 0 '+size+' '+size+'" width="100%" height="100%" style="display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact;">'+out+needle+
-    '<text x="'+cx+'" y="'+(cy+26)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#1b2733" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
-    '<text x="'+cx+'" y="'+(cy+38)+'" text-anchor="middle" font-size="8.5" fill="#647184" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
-    '<text x="'+cx+'" y="'+(cy+58)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="#d62828" font-family="Segoe UI, Arial, sans-serif">'+esc(plabel)+' '+fmtPct(pr)+'</text>'+
+  return '<svg viewBox="0 0 '+size+' '+size+'" width="100%" height="100%" style="display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact;">'+out+
+    '<text x="'+cx+'" y="'+(cy+2)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#1b2733" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+15)+'" text-anchor="middle" font-size="8.5" fill="#647184" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
     '</svg>';
 }
 function renderDonutCard(ringId, legendId, labels, values, colors, centerBig, centerSmall, progress, progressLabel){
@@ -1095,9 +1091,70 @@ function renderKpiStrip(proj, data){
   ).join('');
 }
 
+// Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
+// linhas = Projeto / Lider / Fiscal, colunas = cada mes selecionado (HH e R$) + total.
+function rdcRowsSelected(){ return RAW_RDC_NAO_APROVADA.filter(r=>DISPLAY_MONTHS.includes(r.mesano)); }
+function renderRdcHTML(){
+  const months = DISPLAY_MONTHS;
+  const rows = rdcRowsSelected();
+  let html = '<div class="fiscal-block rdc-block" style="border-top:none;margin-top:0;padding-top:0;">';
+  html += '<h3>Pendências &mdash; RDC não está aprovada, por Líder e Fiscal</h3>';
+  if (!rows.length){
+    return html + '<div class="fiscal-empty">Nenhuma pendência de RDC não aprovada no período selecionado.</div></div>';
+  }
+  const groups = new Map();
+  rows.forEach(r=>{
+    const k = r.projeto+'|'+r.lider+'|'+r.fiscal;
+    let g = groups.get(k);
+    if (!g) { g = { projeto:r.projeto, lider:r.lider, fiscal:r.fiscal, m:{}, hh:0, rs:0 }; groups.set(k,g); }
+    const b = g.m[r.mesano] || (g.m[r.mesano] = {hh:0,rs:0});
+    b.hh += r.hh; b.rs += r.rs; g.hh += r.hh; g.rs += r.rs;
+  });
+  const list = Array.from(groups.values()).sort((a,b)=> b.rs - a.rs);
+  const tot = { m:{}, hh:0, rs:0 };
+  months.forEach(m=>{ tot.m[m] = {hh:0,rs:0}; });
+  list.forEach(g=>{ months.forEach(m=>{ const b=g.m[m]; if(b){ tot.m[m].hh+=b.hh; tot.m[m].rs+=b.rs; } }); tot.hh+=g.hh; tot.rs+=g.rs; });
+
+  html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
+  html += '<colgroup><col style="width:60px"><col style="width:190px"><col style="width:190px">'+
+    months.map(()=>'<col style="width:70px"><col style="width:100px">').join('')+'<col style="width:80px"><col style="width:110px"></colgroup>';
+  html += '<tr><th class="ft-band" rowspan="2">Projeto</th><th class="ft-band" rowspan="2">Líder</th><th class="ft-band" rowspan="2">Fiscal</th>'+
+    months.map(m=>'<th class="ft-band" colspan="2">'+esc(m)+'</th>').join('')+'<th class="ft-band" colspan="2">Total Geral</th></tr>';
+  html += '<tr>'+months.map(()=>'<th class="ft-sub">HH</th><th class="ft-sub">R$</th>').join('')+'<th class="ft-sub">HH</th><th class="ft-sub">R$</th></tr>';
+  list.forEach(g=>{
+    html += '<tr><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.lider)+'</td><td class="ft-resp">'+esc(g.fiscal)+'</td>'+
+      months.map(m=>{ const b=g.m[m]||{hh:0,rs:0}; return '<td class="num">'+fmtInt(b.hh)+'</td><td class="num">'+fmtBRL(b.rs)+'</td>'; }).join('')+
+      '<td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+  });
+  html += '<tr class="ft-total"><td></td><td class="ft-resp">Total Geral</td><td></td>'+
+    months.map(m=>'<td class="num">'+fmtInt(tot.m[m].hh)+'</td><td class="num">'+fmtBRL(tot.m[m].rs)+'</td>').join('')+
+    '<td class="num ft-geral">'+fmtInt(tot.hh)+'</td><td class="num ft-geral">'+fmtBRL(tot.rs)+'</td></tr>';
+  html += '</table></div></div>';
+  return html;
+}
+function renderRdcKpiStrip(){
+  const rows = rdcRowsSelected();
+  const hh = rows.reduce((a,r)=>a+r.hh,0), rs = rows.reduce((a,r)=>a+r.rs,0);
+  const fiscais = new Set(rows.map(r=>r.projeto+'|'+r.fiscal)).size;
+  return [
+    ['💰','kpi-navy','Total R$ (RDC não aprovada)','R$ '+fmtBRL(rs)],
+    ['⏱️','kpi-blue','Total HH',fmtInt(hh)],
+    ['👷','kpi-green','Fiscais com pendência',String(fiscais)]
+  ].map(c=>'<div class="kpi-card '+c[1]+'"><div class="kpi-icon">'+c[0]+'</div><div><div class="kpi-label">'+c[2]+'</div><div class="kpi-value">'+c[3]+'</div></div></div>').join('');
+}
+
 let lastChartData = null;
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
+  if (active === 'RDC'){
+    document.getElementById('content').innerHTML = renderRdcHTML() + renderFreeNoteHTML('RDC');
+    document.getElementById('kpi-strip').innerHTML = renderRdcKpiStrip();
+    updateMonthFilterSummary();
+    updateItemFilterSummary();
+    const noteR = document.getElementById('freenote');
+    if (noteR) noteR.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteR.dataset.proj, noteR.value); } catch(e){} });
+    return;
+  }
   const data = buildTable(active);
   const existingDetails = document.getElementById('chart-details');
   if (existingDetails) chartDetailsOpen = existingDetails.open;
@@ -1388,11 +1445,12 @@ document.getElementById('fa-modal-backdrop').addEventListener('click', e=>{
 document.addEventListener('keydown', e=>{ if (e.key === 'Escape') closeFaModal(); });
 
 /* ---------------- Exportar PDF (todas as abas) ---------------- */
-const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral' };
+const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral', RDC:'Pendências - RDC não aprovada' };
 function exportPDF(){
   const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
   const pageData = {};
+  const rdcPage = '<div class="print-page"><div class="print-page-fit"><div class="print-proj-title">'+esc(PROJ_TITLES.RDC)+'</div>'+renderRdcHTML()+renderFreeNoteHTML('RDC')+'</div></div>';
   container.innerHTML = projs.map(p => {
     pageData[p] = buildTable(p);
     // prefixo por pagina (print-GERAL-, print-MOA-, print-PCI-) pra nao colidir com os ids dos
@@ -1402,7 +1460,7 @@ function exportPDF(){
       charts +
       renderTableHTML(pageData[p], true) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
       '</div></div>';
-  }).join('');
+  }).join('') + rdcPage;
   if (INCLUDE_CHARTS_IN_PRINT){
     projs.forEach(p => renderChartsPanel(p, pageData[p], 'print-'+p+'-'));
   }
@@ -1472,7 +1530,8 @@ async function copyCurrentTabAsImage(){
   const container = document.getElementById('print-content');
   try {
     container.innerHTML = '<div class="print-page"><div class="print-page-fit"><div class="print-proj-title">'+esc(PROJ_TITLES[proj])+'</div>' +
-      renderTableHTML(buildTable(proj), true) + (proj==='GERAL' ? '' : renderFiscalDetailHTML(proj)) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj) +
+      (proj==='RDC' ? renderRdcHTML() + renderFreeNoteHTML(proj) :
+        renderTableHTML(buildTable(proj), true) + (proj==='GERAL' ? '' : renderFiscalDetailHTML(proj)) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj)) +
       '</div></div>';
     document.body.classList.add('printing');
     // Nao usa fitPrintPagesToOnePage() aqui: essa funcao usa "zoom" (necessario pra impressao
@@ -1874,11 +1933,20 @@ window.addEventListener('resize', ()=>{
     if (normTxt(cellAt(pHdrRow,P.resumo)).indexOf('resumo')===-1){
       throw new Error('O layout da aba "'+sheets.pend.sheetName+'" mudou (coluna T não é mais RESUMO).');
     }
-    var pendAgg={};
+    var pendAgg={}, rdcAgg={};
+    var PR = { hhTotal:colLetterOffset('I'), fiscal:colLetterOffset('V'), lider:colLetterOffset('W') };
     for (var r3=pHdrIdx+1; r3<pRows.length; r3++){
       var row3=pRows[r3]; if(!row3) continue;
       var projP=cellAt(row3,P.proj), resumoP=cellAt(row3,P.resumo), mesP=dataReferenciaToMesAno(cellAt(row3,P.data));
       if (isBlankV(projP)||isBlankV(mesP)||isBlankV(resumoP)) continue;
+      if (normTxt(resumoP)==='rdc nao esta aprovada'){
+        var hI=cellAt(row3,PR.hhTotal), rQ=cellAt(row3,P.rs);
+        var fiscR=isBlankV(cellAt(row3,PR.fiscal))?'(sem fiscal)':titleCaseName(String(cellAt(row3,PR.fiscal)));
+        var lidR=isBlankV(cellAt(row3,PR.lider))?'(sem líder)':titleCaseName(String(cellAt(row3,PR.lider)));
+        var kr=String(projP)+'|'+lidR+'|'+fiscR+'|'+mesP;
+        if(!rdcAgg[kr]) rdcAgg[kr]={projeto:String(projP),lider:lidR,fiscal:fiscR,mesano:String(mesP),hh:0,rs:0};
+        rdcAgg[kr].hh+=(typeof hI==='number'?hI:0); rdcAgg[kr].rs+=(typeof rQ==='number'?rQ:0);
+      }
       var projPS=String(projP), resumoPS=String(resumoP).trim(), mesPS=String(mesP);
       var hhv2=cellAt(row3,P.hh); var hhP=typeof hhv2==='number'?hhv2:0;
       var rsv2=cellAt(row3,P.rs); var rsP=typeof rsv2==='number'?rsv2:0;
@@ -1941,7 +2009,7 @@ window.addEventListener('resize', ()=>{
 
     function vals(o){ return Object.keys(o).map(function(k){ return o[k]; }); }
     return {
-      RAW_FRS_EMITIDAS: frsRows, RAW_PEND_APROVACAO_DETAIL: pendAprovRows,
+      RAW_FRS_EMITIDAS: frsRows, RAW_PEND_APROVACAO_DETAIL: pendAprovRows, RAW_RDC_NAO_APROVADA: vals(rdcAgg),
       RAW_EXTRATO: vals(extratoAgg), RAW_PENDENCIAS: vals(pendAgg), RAW_FISCAL_PENDENTE: vals(fiscalAgg),
       RAW_MEDIDO_FR: vals(fadMedidoAgg), RAW_MEDIDO_FR_DETAIL: vals(fadMedidoDetail),
       RAW_FIA_MEDIDO: vals(fiaMedidoAgg), RAW_RATEIO_MEDIDO: vals(rateioMedidoAgg),
@@ -1964,6 +2032,7 @@ window.addEventListener('resize', ()=>{
     RAW_RATEIO_EXTRATO = nd.RAW_RATEIO_EXTRATO;
     RAW_PEND_APROVACAO_DETAIL = nd.RAW_PEND_APROVACAO_DETAIL;
     RAW_FRS_EMITIDAS = nd.RAW_FRS_EMITIDAS;
+    RAW_RDC_NAO_APROVADA = nd.RAW_RDC_NAO_APROVADA;
     // filtros de data/fornecedor das FR'S dependem dos dados novos: recalcula listas e volta a "todas/todos"
     FRS_ALL_DATAS = Array.from(new Set(RAW_FRS_EMITIDAS.map(r=>r.dataSolic))).sort((a,b)=>dataKeyBR(a)-dataKeyBR(b));
     FRS_SELECTED_DATAS = FRS_ALL_DATAS.slice();
@@ -1984,7 +2053,7 @@ window.addEventListener('resize', ()=>{
   function currentRawValues(){
     return { RAW_EXTRATO, RAW_PENDENCIAS, RAW_FISCAL_PENDENTE, RAW_MEDIDO_FR, RAW_MEDIDO_FR_DETAIL,
       RAW_FIA_MEDIDO, RAW_RATEIO_MEDIDO, RAW_FIA_MEDIDO_DETAIL, RAW_RATEIO_MEDIDO_DETAIL,
-      RAW_FIA_EXTRATO, RAW_RATEIO_EXTRATO, RAW_PEND_APROVACAO_DETAIL, RAW_FRS_EMITIDAS };
+      RAW_FIA_EXTRATO, RAW_RATEIO_EXTRATO, RAW_PEND_APROVACAO_DETAIL, RAW_FRS_EMITIDAS, RAW_RDC_NAO_APROVADA };
   }
 
   function buildUpdatedHTML(){
