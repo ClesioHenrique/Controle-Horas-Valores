@@ -464,8 +464,9 @@ let ALL_MONTHS = Array.from(new Set([
   ...RAW_FIA_EXTRATO.map(r=>r.mesano), ...RAW_RATEIO_EXTRATO.map(r=>r.mesano)
 ])).sort((a,b)=>mesKey(a)-mesKey(b));
 let DISPLAY_MONTHS = ALL_MONTHS.slice(-3);
-let SELECTED_SECTIONS = new Set([1,2,3,4]);
-const SECTION_LABELS = { 1:'1 - Apresentou pendência', 2:'2 - Carregamento no SGE', 3:'3 - Aprovado', 4:'FIA / RATEIO' };
+let SELECTED_SECTIONS = new Set([1,2,3,4,5]);
+const ALL_SECTIONS = [1,2,3,4,5];
+const SECTION_LABELS = { 1:'1 - Apresentou pendência', 2:'2 - Carregamento no SGE', 3:'3 - Aprovado', 4:'FIA', 5:'RATEIO' };
 let HIDE_FRS_EMITIDAS = true;
 
 /* Filtros da secao FR'S Emitidas: data de solicitacao (RAW_FRS_EMITIDAS[].dataSolic, dd/mm/aaaa)
@@ -475,9 +476,9 @@ function dataKeyBR(d){ const [dd,mm,aa] = d.split('/'); return parseInt(aa,10)*1
 // normaliza aqui, no JS, pra ficar consistente com os demais fornecedores ("Techint"/"Locar"/"Univale").
 RAW_FRS_EMITIDAS.forEach(r=>{ if (r.forn.indexOf('LAU-RENT')>=0) r.forn = 'Lau-Rent'; });
 let FRS_ALL_DATAS = Array.from(new Set(RAW_FRS_EMITIDAS.map(r=>r.dataSolic))).sort((a,b)=>dataKeyBR(a)-dataKeyBR(b));
-let FRS_SELECTED_DATAS = FRS_ALL_DATAS.slice();
+let FRS_SELECTED_DATAS = [];  // padrao: nenhuma data selecionada (o usuario escolhe)
 let FRS_ALL_FORN = Array.from(new Set(RAW_FRS_EMITIDAS.map(r=>r.forn))).sort();
-let FRS_SELECTED_FORN = FRS_ALL_FORN.slice();
+let FRS_SELECTED_FORN = FRS_ALL_FORN.includes("Techint") ? ["Techint"] : FRS_ALL_FORN.slice();  // padrao: so Techint
 
 function filterProj(rows, proj){ return proj==='GERAL' ? rows : rows.filter(r=>r.projeto===proj); }
 
@@ -603,12 +604,15 @@ function buildTable(proj){
     ratHH += rateioSub5values[c].hh; ratRS += rateioSub5values[c].rs;
     rateioTotal[c] = { hh:ratHH, rs:ratRS };
 
-    fiaRateioTotal[c] = { hh: fiaTotal[c].hh + rateioTotal[c].hh, rs: fiaTotal[c].rs + rateioTotal[c].rs };
-    const fiaRateioIn = SELECTED_SECTIONS.has(4) ? fiaRateioTotal[c] : {hh:0,rs:0};
+    // item 4 = FIA, item 5 = RATEIO (filtros independentes): o total FIA+RATEIO soma so o que esta selecionado
+    const fiaIn = SELECTED_SECTIONS.has(4) ? fiaTotal[c] : {hh:0,rs:0};
+    const ratIn = SELECTED_SECTIONS.has(5) ? rateioTotal[c] : {hh:0,rs:0};
+    fiaRateioTotal[c] = { hh: fiaIn.hh + ratIn.hh, rs: fiaIn.rs + ratIn.rs };
+    const fiaRateioIn = fiaRateioTotal[c];
     totalGlobal[c] = { hh: totalGeral[c].hh + fiaRateioIn.hh, rs: totalGeral[c].rs + fiaRateioIn.rs };
     const s3sub3In = SELECTED_SECTIONS.has(3) ? s3sub3values[c] : {hh:0,rs:0};
     const fiaSub5In = SELECTED_SECTIONS.has(4) ? fiaSub5values[c] : {hh:0,rs:0};
-    const rateioSub5In = SELECTED_SECTIONS.has(4) ? rateioSub5values[c] : {hh:0,rs:0};
+    const rateioSub5In = SELECTED_SECTIONS.has(5) ? rateioSub5values[c] : {hh:0,rs:0};
     totalMedidoFR[c] = {
       hh: s3sub3In.hh + fiaSub5In.hh + rateioSub5In.hh,
       rs: s3sub3In.rs + fiaSub5In.rs + rateioSub5In.rs
@@ -756,23 +760,27 @@ function renderTableHTML(data, printMode){
   }
 
   // ================= FIA / RATEIO =================
-  if (SELECTED_SECTIONS.has(4)){
+  if (SELECTED_SECTIONS.has(4) || SELECTED_SECTIONS.has(5)){
     html += '<tr class="sep-row"><td colspan="'+nCols+'"></td></tr>';
     html += '<tr><td class="title-band" colspan="'+nCols+'">FIA / RATEIO</td></tr>';
 
     // FIA
+    if (SELECTED_SECTIONS.has(4)){
     html += '<tr class="fia darkgray sec-head"><td class="item-idx">1</td><td class="desc">FIA - equipamentos auxiliares</td>'+rowCellsX(data.fiaTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
     FIA_ITEMS.forEach((it,i)=>{
       html += '<tr class="fia bgwhite"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
     html += '<tr class="fia blue"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true, detail:'fia'})+obsCell(OBS_FIA)+'</tr>';
+    }
 
     // RATEIO
+    if (SELECTED_SECTIONS.has(5)){
     html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO - Hs Mão de Obra Indireta</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
     RATEIO_ITEMS.forEach((it,i)=>{
       html += '<tr class="rateio bgwhite"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
     html += '<tr class="rateio"><td class="item-idx">2.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.rateioSub5values, data.rateioTotal, {noHH:true, detail:'rateio'})+obsCell(OBS_RATEIO)+'</tr>';
+    }
 
     // Total Geral (FIA + RATEIO)
     html += '<tr class="total-fiarat"><td class="item-idx">&nbsp;</td><td class="desc">Total Geral (FIA + RATEIO)</td>'+rowCellsX(data.fiaRateioTotal, data.totalGlobal, {noHH:true})+obsCell(null)+'</tr>';
@@ -1059,8 +1067,8 @@ function renderChartsPanel(proj, data, prefix){
     [CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], fmtBRL(t.rs), 'R$ Total FADS', t.rs ? s3/t.rs : 0, 'Aprovado');
 
   const fadRS = t.rs;
-  const fiaRS = data.fiaTotal['__TOTAL__'].rs;
-  const rateioRS = data.rateioTotal['__TOTAL__'].rs;
+  const fiaRS = SELECTED_SECTIONS.has(4) ? data.fiaTotal['__TOTAL__'].rs : 0;
+  const rateioRS = SELECTED_SECTIONS.has(5) ? data.rateioTotal['__TOTAL__'].rs : 0;
   renderDonutCard(prefix+'donut-category-ring', prefix+'donut-category-legend',
     ['FAD','FIA','RATEIO'], [fadRS, fiaRS, rateioRS],
     [CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global', (fadRS+fiaRS+rateioRS) ? fadRS/(fadRS+fiaRS+rateioRS) : 0, 'FAD');
@@ -1234,17 +1242,18 @@ document.getElementById('mf-toggle').addEventListener('click', e=>{
 /* ---------------- Filtro de itens (secoes 1/2/3, aplica a todas as abas) ---------------- */
 function updateItemFilterSummary(){
   const n = SELECTED_SECTIONS.size;
-  document.getElementById('if-summary').textContent = n===4 ? 'todos' : (n===0 ? 'nenhum' : Array.from(SELECTED_SECTIONS).sort().join(', '));
+  document.getElementById('if-summary').textContent = n===ALL_SECTIONS.length ? 'todos' : (n===0 ? 'nenhum' :
+    Array.from(SELECTED_SECTIONS).sort().map(k=>k===4?'FIA':k===5?'RATEIO':k).join(', '));
 }
 function buildItemFilterPanel(){
   const panel = document.getElementById('if-panel');
-  panel.innerHTML = [1,2,3,4].map(n =>
+  panel.innerHTML = ALL_SECTIONS.map(n =>
     '<label><input type="checkbox" value="'+n+'"'+(SELECTED_SECTIONS.has(n)?' checked':'')+'> '+SECTION_LABELS[n]+'</label>'
   ).join('');
   panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const checked = Array.from(panel.querySelectorAll('input[type=checkbox]:checked')).map(c=>parseInt(c.value,10));
-      SELECTED_SECTIONS = new Set(checked.length ? checked : [1,2,3,4]);
+      SELECTED_SECTIONS = new Set(checked.length ? checked : ALL_SECTIONS);
       if (!checked.length) buildItemFilterPanel();
       render();
     });
@@ -1259,7 +1268,7 @@ document.getElementById('if-toggle').addEventListener('click', e=>{
 /* ---------------- Filtros de FR'S Emitidas: Datas e Fornecedor (aplica a todas as abas) ---------------- */
 function updateFrsDateFilterSummary(){
   const n = FRS_SELECTED_DATAS.length;
-  const summary = n === FRS_ALL_DATAS.length ? 'todas ('+n+')' : (n===1 ? FRS_SELECTED_DATAS[0] : n+' selecionadas');
+  const summary = n === 0 ? 'nenhuma' : n === FRS_ALL_DATAS.length ? 'todas ('+n+')' : (n===1 ? FRS_SELECTED_DATAS[0] : n+' selecionadas');
   document.getElementById('frsdate-summary').textContent = summary;
 }
 function buildFrsDateFilterPanel(){
@@ -1268,21 +1277,24 @@ function buildFrsDateFilterPanel(){
   // lista aparece da mais nova pra mais antiga (FRS_ALL_DATAS continua em ordem crescente,
   // usada por "Última" e por outras contas — so a exibicao no dropdown e invertida). Botoes
   // "Todas"/"Última" ficam no topo (antes da lista), pra nao precisar rolar ate o fim pra achar.
-  panel.innerHTML = '<div class="mf-actions mf-actions-top"><button type="button" id="frsdate-all">Todas</button><button type="button" id="frsdate-last">Última</button></div>' +
+  panel.innerHTML = '<div class="mf-actions mf-actions-top"><button type="button" id="frsdate-all">Todas</button><button type="button" id="frsdate-last">Última</button><button type="button" id="frsdate-none">Nenhuma</button></div>' +
     FRS_ALL_DATAS.slice().reverse().map(d =>
       '<label><input type="checkbox" value="'+d+'"'+(selected.has(d)?' checked':'')+'> '+d+'</label>'
     ).join('');
   panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const checked = Array.from(panel.querySelectorAll('input[type=checkbox]:checked')).map(c=>c.value);
-      FRS_SELECTED_DATAS = FRS_ALL_DATAS.filter(d=>checked.includes(d));
-      if (!FRS_SELECTED_DATAS.length) FRS_SELECTED_DATAS = FRS_ALL_DATAS.slice(-1);
+      FRS_SELECTED_DATAS = FRS_ALL_DATAS.filter(d=>checked.includes(d));  // vazio permitido = nenhuma data
       updateFrsDateFilterSummary();
       render();
     });
   });
   document.getElementById('frsdate-all').addEventListener('click', ()=>{
     FRS_SELECTED_DATAS = FRS_ALL_DATAS.slice();
+    buildFrsDateFilterPanel(); updateFrsDateFilterSummary(); render();
+  });
+  document.getElementById('frsdate-none').addEventListener('click', ()=>{
+    FRS_SELECTED_DATAS = [];
     buildFrsDateFilterPanel(); updateFrsDateFilterSummary(); render();
   });
   document.getElementById('frsdate-last').addEventListener('click', ()=>{
@@ -2090,9 +2102,9 @@ window.addEventListener('resize', ()=>{
     RAW_RDC_DETAIL = nd.RAW_RDC_DETAIL;
     // filtros de data/fornecedor das FR'S dependem dos dados novos: recalcula listas e volta a "todas/todos"
     FRS_ALL_DATAS = Array.from(new Set(RAW_FRS_EMITIDAS.map(r=>r.dataSolic))).sort((a,b)=>dataKeyBR(a)-dataKeyBR(b));
-    FRS_SELECTED_DATAS = FRS_ALL_DATAS.slice();
+    FRS_SELECTED_DATAS = [];  // a cada atualizacao: nenhuma data selecionada
     FRS_ALL_FORN = Array.from(new Set(RAW_FRS_EMITIDAS.map(r=>r.forn))).sort();
-    FRS_SELECTED_FORN = FRS_ALL_FORN.slice();
+    FRS_SELECTED_FORN = FRS_ALL_FORN.includes("Techint") ? ["Techint"] : FRS_ALL_FORN.slice();  // a cada atualizacao: so Techint
     buildFrsDateFilterPanel(); updateFrsDateFilterSummary();
     buildFrsFornFilterPanel(); updateFrsFornFilterSummary();
     ALL_MONTHS = Array.from(new Set([
