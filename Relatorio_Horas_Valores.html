@@ -1314,7 +1314,7 @@ function render(){
   const data = buildTable(active);
   const existingDetails = document.getElementById('chart-details');
   if (existingDetails) chartDetailsOpen = existingDetails.open;
-  document.getElementById('content').innerHTML = chartsPanelHTML() + renderTableHTML(data) + (active==='GERAL' ? '' : renderFiscalDetailHTML(active)) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
+  document.getElementById('content').innerHTML = chartsPanelHTML() + renderTableHTML(data) + renderFiscalDetailHTML(active) + renderFreeNoteHTML(active) + renderFrsEmitidasHTML(active) + statusChartHTML();
   document.getElementById('kpi-strip').innerHTML = renderKpiStrip(active, data);
   updateMonthFilterSummary();
   updateItemFilterSummary();
@@ -1692,7 +1692,7 @@ function exportPDF(){
     // sem titulo amarelo (print-proj-title) em nenhuma pagina: a propria tabela ja identifica o resumo
     return '<div class="print-page"><div class="print-page-fit">' +
       charts +
-      renderTableHTML(pageData[p], true) + (p==='GERAL' ? '' : renderFiscalDetailHTML(p)) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
+      renderTableHTML(pageData[p], true) + renderFiscalDetailHTML(p) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
       '</div></div>';
   }).join('') + rdcPage + mobilePage;
   if (INCLUDE_CHARTS_IN_PRINT){
@@ -1766,7 +1766,7 @@ async function copyCurrentTabAsImage(){
     container.innerHTML = '<div class="print-page"><div class="print-page-fit"> ' +
       (proj==='RDC' ? renderRdcHTML() + renderFreeNoteHTML(proj) :
         proj==='MOBILE_PENDENTE' ? renderMobilePendenteHTML() + renderFreeNoteHTML(proj) :
-        renderTableHTML(buildTable(proj), true) + (proj==='GERAL' ? '' : renderFiscalDetailHTML(proj)) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj)) +
+        renderTableHTML(buildTable(proj), true) + renderFiscalDetailHTML(proj) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj)) +
       '</div></div>';
     document.body.classList.add('printing');
     // Nao usa fitPrintPagesToOnePage() aqui: essa funcao usa "zoom" (necessario pra impressao
