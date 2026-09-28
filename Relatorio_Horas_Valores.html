@@ -24,6 +24,15 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .confronto-banner-title{font-size:26px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#fff;line-height:1.15;}
 .confronto-banner-switch{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:1px solid rgba(255,255,255,.5);border-radius:999px;color:#fff;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s;}
 .confronto-banner-switch:hover{background:rgba(255,255,255,.12);border-color:#fff;}
+/* filtros movidos pra dentro da faixa azul (pedido do usuario em 28/09/2026, pra sobrar mais
+   altura de tela pra tabela/graficos abaixo, sem precisar rolar a pagina pra ve-los) */
+.confronto-banner-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.confronto-banner-filters .mf-toggle, .confronto-banner-filters .if-toggle{
+  background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.35); color:#fff; box-shadow:none;
+}
+.confronto-banner-filters .mf-toggle:hover, .confronto-banner-filters .if-toggle:hover{background:rgba(255,255,255,.2);}
+.confronto-banner-filters .if-toggle.frs-hidden-active{background:#fff;color:var(--navy);border-color:#fff;}
+.confronto-banner-filters .mf-panel, .confronto-banner-filters .if-panel{color:var(--text);}
 
 .app{width:100%;max-width:none;margin:0;padding:20px 28px 50px;}
 .sticky-topbar{position:sticky;top:0;z-index:60;background:var(--bg);padding-bottom:10px;box-shadow:0 6px 12px -8px rgba(0,43,92,.25);}
@@ -240,23 +249,7 @@ body.printing .fa-sub{margin-bottom:2px !important;}
     <div class="confronto-banner-title">Painel de Horas x Valores</div>
     <a class="confronto-banner-switch" href="https://clesiohenrique.github.io/Painel-de-Confronto/">&#8617; Trocar de painel</a>
   </div>
-</div>
-<div class="app">
-  <div class="sticky-topbar">
-  <div class="header">
-    <div>
-      <h1>Relatorio Gerencial &mdash; Controle de Horas x Valores (R$)</h1>
-      <div class="sub">Status HH - SGE Diaria Medicao | Fonte: Controle de horas x valores R$_jornal.xlsx (abas "Extrato SGE (FAD)" e "Pendencias MOA_PCI")</div>
-    </div>
-  </div>
-
-  <div class="toolbar">
-    <div class="tabs" id="tabs">
-      <button class="tab-btn active" data-proj="GERAL">MOA &amp; PCI - Geral</button>
-      <button class="tab-btn" data-proj="MOA">MOA</button>
-      <button class="tab-btn" data-proj="PCI">PCI</button>
-      <button class="tab-btn" data-proj="RDC">RDC não aprovada</button>
-    </div>
+  <div class="confronto-banner-filters">
     <div class="month-filter" id="month-filter">
       <button type="button" class="mf-toggle" id="mf-toggle">&#128197; Meses: <span id="mf-summary">últimos 3</span> &#9662;</button>
       <div class="mf-panel" id="mf-panel"></div>
@@ -277,6 +270,24 @@ body.printing .fa-sub{margin-bottom:2px !important;}
     <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
     <button type="button" class="if-toggle" id="btn-copy-image">&#128203; Copiar imagem (aba atual)</button>
+  </div>
+</div>
+<div class="app">
+  <div class="sticky-topbar">
+  <div class="header">
+    <div>
+      <h1>Relatorio Gerencial &mdash; Controle de Horas x Valores (R$)</h1>
+      <div class="sub">Status HH - SGE Diaria Medicao | Fonte: Controle de horas x valores R$_jornal.xlsx (abas "Extrato SGE (FAD)" e "Pendencias MOA_PCI")</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-proj="GERAL">MOA &amp; PCI - Geral</button>
+      <button class="tab-btn" data-proj="MOA">MOA</button>
+      <button class="tab-btn" data-proj="PCI">PCI</button>
+      <button class="tab-btn" data-proj="RDC">RDC não aprovada</button>
+    </div>
   </div>
 
   <div class="update-date-box" id="update-date-box">
