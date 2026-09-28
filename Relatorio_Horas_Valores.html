@@ -1185,9 +1185,18 @@ function renderRdcHTML(){
   months.forEach(m=>{ tot.m[m] = {hh:0,rs:0}; });
   list.forEach(g=>{ months.forEach(m=>{ const b=g.m[m]; if(b){ tot.m[m].hh+=b.hh; tot.m[m].rs+=b.rs; } }); tot.hh+=g.hh; tot.rs+=g.rs; });
 
+  // largura por papel da coluna: usa a salva (localStorage, se o usuario ja ajustou antes) ou o
+  // padrao — igual pra toda coluna do mesmo papel (todas as "HH" de mes, todas as "R$" de mes)
+  const rdcW = {
+    projeto: getSavedColWidth('rdc-tbl','projeto')||60, lider: getSavedColWidth('rdc-tbl','lider')||190,
+    fiscal: getSavedColWidth('rdc-tbl','fiscal')||190, monthHH: getSavedColWidth('rdc-tbl','monthHH')||70,
+    monthRS: getSavedColWidth('rdc-tbl','monthRS')||100, totalHH: getSavedColWidth('rdc-tbl','totalHH')||80,
+    totalRS: getSavedColWidth('rdc-tbl','totalRS')||110
+  };
   html += '<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="rdc-tbl">';
-  html += '<colgroup><col style="width:60px"><col style="width:190px"><col style="width:190px">'+
-    months.map(()=>'<col style="width:70px"><col style="width:100px">').join('')+'<col style="width:80px"><col style="width:110px"></colgroup>';
+  html += '<colgroup><col style="width:'+rdcW.projeto+'px"><col style="width:'+rdcW.lider+'px"><col style="width:'+rdcW.fiscal+'px">'+
+    months.map(()=>'<col style="width:'+rdcW.monthHH+'px"><col style="width:'+rdcW.monthRS+'px">').join('')+
+    '<col style="width:'+rdcW.totalHH+'px"><col style="width:'+rdcW.totalRS+'px"></colgroup>';
   html += '<tr><th class="ft-band" rowspan="2">Projeto</th><th class="ft-band" rowspan="2">Líder</th><th class="ft-band" rowspan="2">Fiscal</th>'+
     months.map(m=>'<th class="ft-band" colspan="2">'+esc(m)+'</th>').join('')+'<th class="ft-band" colspan="2">Total Geral</th></tr>';
   html += '<tr>'+months.map(()=>'<th class="ft-sub">HH</th><th class="ft-sub">R$</th>').join('')+'<th class="ft-sub">HH</th><th class="ft-sub">R$</th></tr>';
@@ -1237,11 +1246,16 @@ function renderMobilePendenteHTML(){
   months.forEach(m=>{ tot.m[m] = 0; });
   list.forEach(g=>{ months.forEach(m=>{ tot.m[m] += (g.m[m]||0); }); tot.hh += g.hh; });
 
+  const mpW = {
+    projeto: getSavedColWidth('mobile-pend-tbl','projeto')||55, papel: getSavedColWidth('mobile-pend-tbl','papel')||85,
+    aprovador: getSavedColWidth('mobile-pend-tbl','aprovador')||260, month: getSavedColWidth('mobile-pend-tbl','month')||80,
+    total: getSavedColWidth('mobile-pend-tbl','total')||90
+  };
   html += '<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="mobile-pend-tbl">';
   // "Papel aprovador" e sempre um texto curto ("Fiscal"): encolhida pra sobrar espaco pra
   // "Aprovador pendente" nao quebrar o nome em duas linhas (ex.: "Weslei Fortunato De Oliveira")
-  html += '<colgroup><col style="width:55px"><col style="width:85px"><col style="width:260px">'+
-    months.map(()=>'<col style="width:80px">').join('')+'<col style="width:90px"></colgroup>';
+  html += '<colgroup><col style="width:'+mpW.projeto+'px"><col style="width:'+mpW.papel+'px"><col style="width:'+mpW.aprovador+'px">'+
+    months.map(()=>'<col style="width:'+mpW.month+'px">').join('')+'<col style="width:'+mpW.total+'px"></colgroup>';
   html += '<tr><th class="ft-band" rowspan="2">Projeto</th><th class="ft-band" rowspan="2">Papel aprovador</th><th class="ft-band" rowspan="2">Aprovador pendente</th>'+
     months.map(m=>'<th class="ft-band">'+esc(m)+'</th>').join('')+'<th class="ft-band">Total Geral</th></tr><tr>'+
     months.map(()=>'<th class="ft-sub">HH</th>').join('')+'<th class="ft-sub">HH</th></tr>';
@@ -1305,7 +1319,12 @@ function render(){
     updateMonthFilterSummary();
     updateItemFilterSummary();
     const rdcTbl = document.getElementById('rdc-tbl');
-    if (rdcTbl) enableColResize(rdcTbl);
+    if (rdcTbl){
+      const rdcRoles = ['projeto','lider','fiscal'];
+      DISPLAY_MONTHS.forEach(()=>{ rdcRoles.push('monthHH','monthRS'); });
+      rdcRoles.push('totalHH','totalRS');
+      enableColResize(rdcTbl, 'rdc-tbl', rdcRoles);
+    }
     const noteR = document.getElementById('freenote');
     if (noteR) noteR.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteR.dataset.proj, noteR.value); } catch(e){} });
     return;
@@ -1316,7 +1335,12 @@ function render(){
     updateMonthFilterSummary();
     updateItemFilterSummary();
     const mobTbl = document.getElementById('mobile-pend-tbl');
-    if (mobTbl) enableColResize(mobTbl);
+    if (mobTbl){
+      const mpRoles = ['projeto','papel','aprovador'];
+      DISPLAY_MONTHS.forEach(()=>{ mpRoles.push('month'); });
+      mpRoles.push('total');
+      enableColResize(mobTbl, 'mobile-pend-tbl', mpRoles);
+    }
     const noteM = document.getElementById('freenote');
     if (noteM) noteM.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteM.dataset.proj, noteM.value); } catch(e){} });
     return;
@@ -1344,11 +1368,21 @@ function render(){
   }
 }
 
+// Largura salva por "papel" da coluna (nao por indice — o numero de colunas de mes muda
+// conforme o filtro "Meses", entao "a 4a coluna" nao seria sempre a mesma coisa). Persiste
+// entre atualizacoes/recarregamentos (pedido do usuario em 28/09/2026).
+function getSavedColWidth(tableKey, role){
+  try { const v = localStorage.getItem('colw_'+tableKey+'_'+role); const n = v && parseFloat(v); return (n && n>0) ? n : null; } catch(e){ return null; }
+}
+function saveColWidth(tableKey, role, px){
+  try { localStorage.setItem('colw_'+tableKey+'_'+role, String(Math.round(px))); } catch(e){}
+}
 // Deixa as colunas de uma tabela .resizable-tbl ajustaveis na mao: arrasta a beirada direita
 // do cabecalho pra alargar/estreitar aquela coluna (o resto da tabela nao se mexe, so ela).
 // Cobre so as tabelas de "RDC não aprovada" e "Pendente Aprovação Fiscalização" (pedido do
-// usuario). So vale pra sessao atual — some ao trocar de filtro/mes, que reconstroi a tabela.
-function enableColResize(table){
+// usuario). "roles" e um array do mesmo tamanho que as colunas, identificando cada uma (ex.:
+// 'projeto','fiscal','monthHH','monthRS','totalHH') pra salvar/reaplicar a largura por papel.
+function enableColResize(table, tableKey, roles){
   const cols = table.querySelectorAll(':scope > colgroup > col');
   if (!cols.length) return;
   const headerRows = Array.from(table.rows).slice(0,2);
@@ -1372,19 +1406,33 @@ function enableColResize(table){
   // ja que e a mesma <col>) — evita duas alcas empilhadas pra a mesma coluna.
   const byCol = new Map();
   entries.forEach(e=>{ const cur=byCol.get(e.colIndex); if(!cur || e.rowIndex>cur.rowIndex) byCol.set(e.colIndex,e); });
+  // agrupa as colunas por papel: arrastar QUALQUER "HH" de mes ajusta TODAS as "HH" de mes junto
+  // (mesma largura), idem pra "R$"/total — pedido do usuario em 28/09/2026.
+  const colsByRole = {};
+  if (roles) roles.forEach((role,i)=>{ if(!role) return; (colsByRole[role] = colsByRole[role]||[]).push(cols[i]); });
   byCol.forEach(({cell,colIndex})=>{
     const handle = document.createElement('div');
     handle.className = 'col-resize-handle';
-    handle.title = 'Arraste para ajustar a largura desta coluna';
+    handle.title = 'Arraste para ajustar a largura desta coluna — ajusta todas as do mesmo tipo (ex.: todas as "HH" de mês) junto';
     cell.appendChild(handle);
     handle.addEventListener('mousedown', function(e){
       e.preventDefault(); e.stopPropagation();
-      const col = cols[colIndex];
+      const role = roles && roles[colIndex];
+      const group = (role && colsByRole[role]) || [cols[colIndex]];
       const startX = e.clientX;
       const startW = cell.getBoundingClientRect().width;
+      let lastW = startW;
       handle.classList.add('dragging');
-      function onMove(e2){ col.style.width = Math.max(28, startW + (e2.clientX-startX)) + 'px'; }
-      function onUp(){ handle.classList.remove('dragging'); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+      function onMove(e2){
+        lastW = Math.max(28, startW + (e2.clientX-startX));
+        group.forEach(c=>{ c.style.width = lastW + 'px'; });
+      }
+      function onUp(){
+        handle.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (role && tableKey) saveColWidth(tableKey, role, lastW);
+      }
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
