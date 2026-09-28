@@ -154,14 +154,16 @@ td.pend-aprov-detail{cursor:pointer;text-decoration:underline dotted var(--dange
 td.fa-detail:hover{background:#eaf3fb !important;}
 .fa-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(13,27,42,.45);z-index:200;align-items:center;justify-content:center;}
 .fa-modal-backdrop.open{display:flex;}
-.fa-modal{background:var(--surface);border-radius:10px;box-shadow:0 20px 60px rgba(0,43,92,.3);width:min(420px,92vw);max-height:80vh;overflow:auto;padding:18px 20px;}
+.fa-modal{background:var(--surface);border-radius:10px;box-shadow:0 20px 60px rgba(0,43,92,.3);width:min(760px,95vw);max-height:80vh;overflow:auto;padding:18px 20px;}
 .fa-modal h4{margin:0 0 4px;color:var(--navy);font-size:15px;}
 .fa-modal .fa-sub{font-size:12px;color:var(--text-muted);margin-bottom:12px;}
-/* table-layout:fixed garante uma largura minima pras colunas de numero mesmo em telas bem
-   estreitas — sem isso, o layout automatico da coluna "Tipo" (com "Não classificado", a
-   palavra mais longa) podia espremer HH/R$/% quase a zero em celulares pequenos. */
-.fa-modal table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12.5px;}
-.fa-modal th,.fa-modal td{border:1px solid var(--border);padding:6px 8px;text-align:left;overflow-wrap:break-word;}
+/* Modal mais largo (pedido do usuario: tabelas com varias colunas - Mes/Data/RDC/Encarregado/
+   OS/Empresa/HH - ficavam ilegiveis, cada celula quebrando em varias linhas numa tela estreita).
+   Tabela usa largura natural (table-layout:auto, sem quebra de linha) em vez de forcar 100% do
+   modal — quando nao cabe, o proprio .fa-modal rola na horizontal (ja tem overflow:auto), em
+   vez de espremer o texto. Colunas curtas continuam com largura minima pra nao ficar cortadas. */
+.fa-modal table{width:max-content;min-width:100%;table-layout:auto;border-collapse:collapse;font-size:12.5px;}
+.fa-modal th,.fa-modal td{border:1px solid var(--border);padding:6px 10px;text-align:left;white-space:nowrap;min-width:40px;}
 .fa-modal th{background:var(--navy-100);color:var(--navy);}
 .fa-modal td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .fa-modal tr.fa-total td{font-weight:800;background:var(--navy-100);}
