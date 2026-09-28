@@ -1232,7 +1232,9 @@ function renderMobilePendenteHTML(){
   list.forEach(g=>{ months.forEach(m=>{ tot.m[m] += (g.m[m]||0); }); tot.hh += g.hh; });
 
   html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
-  html += '<colgroup><col style="width:60px"><col style="width:140px"><col style="width:190px">'+
+  // "Papel aprovador" e sempre um texto curto ("Fiscal"): encolhida pra sobrar espaco pra
+  // "Aprovador pendente" nao quebrar o nome em duas linhas (ex.: "Weslei Fortunato De Oliveira")
+  html += '<colgroup><col style="width:55px"><col style="width:85px"><col style="width:260px">'+
     months.map(()=>'<col style="width:80px">').join('')+'<col style="width:90px"></colgroup>';
   html += '<tr><th class="ft-band" rowspan="2">Projeto</th><th class="ft-band" rowspan="2">Papel aprovador</th><th class="ft-band" rowspan="2">Aprovador pendente</th>'+
     months.map(m=>'<th class="ft-band">'+esc(m)+'</th>').join('')+'<th class="ft-band">Total Geral</th></tr><tr>'+
