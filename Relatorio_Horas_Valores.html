@@ -139,6 +139,12 @@ tr:hover td{filter:brightness(0.98);}
 .fiscal-block h3{margin:0 0 10px;font-size:15px;color:var(--navy);}
 .fiscal-empty{background:var(--ok-bg,#eef7e3);color:var(--green-dark);border:1px solid var(--green-dark);border-radius:6px;padding:8px 12px;font-size:12.5px;}
 table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fixed;}
+/* Colunas ajustaveis a mao (arrasta a beirada direita do cabecalho) nas tabelas "RDC não
+   aprovada" e "Pendente Aprovação Fiscalização" — pedido do usuario em 28/09/2026. */
+table.resizable-tbl th{position:relative;}
+.col-resize-handle{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;z-index:5;}
+.col-resize-handle:hover, .col-resize-handle.dragging{background:rgba(0,43,92,.25);}
+body.printing .col-resize-handle{display:none;}
 table.fiscal-tbl .ft-resp, table.fiscal-tbl td:first-child{overflow:hidden;text-overflow:ellipsis;}
 table.fiscal-tbl td, table.fiscal-tbl th{white-space:normal;border:1px solid var(--border);padding:6px 12px;}
 table.fiscal-tbl .ft-band{background:var(--green);color:var(--navy);font-weight:800;text-align:center;}
@@ -1179,7 +1185,7 @@ function renderRdcHTML(){
   months.forEach(m=>{ tot.m[m] = {hh:0,rs:0}; });
   list.forEach(g=>{ months.forEach(m=>{ const b=g.m[m]; if(b){ tot.m[m].hh+=b.hh; tot.m[m].rs+=b.rs; } }); tot.hh+=g.hh; tot.rs+=g.rs; });
 
-  html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
+  html += '<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="rdc-tbl">';
   html += '<colgroup><col style="width:60px"><col style="width:190px"><col style="width:190px">'+
     months.map(()=>'<col style="width:70px"><col style="width:100px">').join('')+'<col style="width:80px"><col style="width:110px"></colgroup>';
   html += '<tr><th class="ft-band" rowspan="2">Projeto</th><th class="ft-band" rowspan="2">Líder</th><th class="ft-band" rowspan="2">Fiscal</th>'+
@@ -1231,7 +1237,7 @@ function renderMobilePendenteHTML(){
   months.forEach(m=>{ tot.m[m] = 0; });
   list.forEach(g=>{ months.forEach(m=>{ tot.m[m] += (g.m[m]||0); }); tot.hh += g.hh; });
 
-  html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
+  html += '<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="mobile-pend-tbl">';
   // "Papel aprovador" e sempre um texto curto ("Fiscal"): encolhida pra sobrar espaco pra
   // "Aprovador pendente" nao quebrar o nome em duas linhas (ex.: "Weslei Fortunato De Oliveira")
   html += '<colgroup><col style="width:55px"><col style="width:85px"><col style="width:260px">'+
@@ -1298,6 +1304,8 @@ function render(){
     document.getElementById('kpi-strip').innerHTML = renderRdcKpiStrip();
     updateMonthFilterSummary();
     updateItemFilterSummary();
+    const rdcTbl = document.getElementById('rdc-tbl');
+    if (rdcTbl) enableColResize(rdcTbl);
     const noteR = document.getElementById('freenote');
     if (noteR) noteR.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteR.dataset.proj, noteR.value); } catch(e){} });
     return;
@@ -1307,6 +1315,8 @@ function render(){
     document.getElementById('kpi-strip').innerHTML = renderMobilePendenteKpiStrip();
     updateMonthFilterSummary();
     updateItemFilterSummary();
+    const mobTbl = document.getElementById('mobile-pend-tbl');
+    if (mobTbl) enableColResize(mobTbl);
     const noteM = document.getElementById('freenote');
     if (noteM) noteM.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteM.dataset.proj, noteM.value); } catch(e){} });
     return;
@@ -1334,6 +1344,52 @@ function render(){
   }
 }
 
+// Deixa as colunas de uma tabela .resizable-tbl ajustaveis na mao: arrasta a beirada direita
+// do cabecalho pra alargar/estreitar aquela coluna (o resto da tabela nao se mexe, so ela).
+// Cobre so as tabelas de "RDC não aprovada" e "Pendente Aprovação Fiscalização" (pedido do
+// usuario). So vale pra sessao atual — some ao trocar de filtro/mes, que reconstroi a tabela.
+function enableColResize(table){
+  const cols = table.querySelectorAll(':scope > colgroup > col');
+  if (!cols.length) return;
+  const headerRows = Array.from(table.rows).slice(0,2);
+  const occupied = [[],[]];
+  const entries = []; // {cell, colIndex, rowIndex}, uma por celula de cabecalho colspan=1
+  headerRows.forEach((row,ri)=>{
+    let ci = 0;
+    Array.from(row.children).forEach(cell=>{
+      while (occupied[ri][ci]) ci++;
+      const rs = cell.rowSpan||1, cs = cell.colSpan||1;
+      for (let dr=0; dr<rs; dr++){
+        if (!occupied[ri+dr]) continue; // so temos 2 linhas de cabecalho mapeadas
+        for (let dc=0; dc<cs; dc++) occupied[ri+dr][ci+dc] = true;
+      }
+      if (cs===1 && ci < cols.length) entries.push({ cell, colIndex: ci, rowIndex: ri });
+      ci += cs;
+    });
+  });
+  // quando uma coluna tem celula colspan=1 em AMBAS as linhas do cabecalho (ex.: nome do mes
+  // em cima, "HH" embaixo), so coloca a alca na de baixo (a de cima ainda assim se ajusta junto,
+  // ja que e a mesma <col>) — evita duas alcas empilhadas pra a mesma coluna.
+  const byCol = new Map();
+  entries.forEach(e=>{ const cur=byCol.get(e.colIndex); if(!cur || e.rowIndex>cur.rowIndex) byCol.set(e.colIndex,e); });
+  byCol.forEach(({cell,colIndex})=>{
+    const handle = document.createElement('div');
+    handle.className = 'col-resize-handle';
+    handle.title = 'Arraste para ajustar a largura desta coluna';
+    cell.appendChild(handle);
+    handle.addEventListener('mousedown', function(e){
+      e.preventDefault(); e.stopPropagation();
+      const col = cols[colIndex];
+      const startX = e.clientX;
+      const startW = cell.getBoundingClientRect().width;
+      handle.classList.add('dragging');
+      function onMove(e2){ col.style.width = Math.max(28, startW + (e2.clientX-startX)) + 'px'; }
+      function onUp(){ handle.classList.remove('dragging'); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
 function onTabClick(e){
   const btn = e.target.closest('.tab-btn');
   if (!btn) return;
@@ -1488,7 +1544,8 @@ document.getElementById('frsforn-toggle').addEventListener('click', e=>{
 // Fiscalização" (Sistema SGE Mobile), que combinam os dois projetos numa tabela so; nos demais
 // resumos (Geral/MOA/PCI) o projeto ja e escolhido pela propria aba.
 const RDC_PROJ_ALL = ['MOA','PCI'];
-let RDC_PROJ_SELECTED = RDC_PROJ_ALL.slice();
+// padrao: so MOA (PCI esta acabando — o usuario prefere selecionar o PCI manualmente quando quiser)
+let RDC_PROJ_SELECTED = ['MOA'];
 function updateRdcProjFilterSummary(){
   const n = RDC_PROJ_SELECTED.length;
   document.getElementById('rdcproj-summary').textContent = n===2 ? 'MOA e PCI' : (n===0 ? 'nenhum' : RDC_PROJ_SELECTED[0]);
