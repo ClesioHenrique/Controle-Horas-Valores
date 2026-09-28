@@ -270,6 +270,10 @@ body.printing .fa-sub{margin-bottom:2px !important;}
       <button type="button" class="mf-toggle" id="frsforn-toggle">&#127970; Fornecedor FR: <span id="frsforn-summary">todos</span> &#9662;</button>
       <div class="mf-panel" id="frsforn-panel"></div>
     </div>
+    <div class="month-filter" id="rdc-proj-filter" style="display:none;">
+      <button type="button" class="mf-toggle" id="rdcproj-toggle">&#127970; Projeto: <span id="rdcproj-summary">MOA e PCI</span> &#9662;</button>
+      <div class="mf-panel" id="rdcproj-panel"></div>
+    </div>
     <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
     <button type="button" class="if-toggle" id="btn-copy-image">&#128203; Copiar imagem (aba atual)</button>
@@ -1151,7 +1155,7 @@ function renderKpiStrip(proj, data){
 
 // Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
 // linhas = Projeto / Lider / Fiscal, colunas = cada mes selecionado (HH e R$) + total.
-function rdcRowsSelected(){ return RAW_RDC_NAO_APROVADA.filter(r=>DISPLAY_MONTHS.includes(r.mesano)); }
+function rdcRowsSelected(){ return RAW_RDC_NAO_APROVADA.filter(r=>DISPLAY_MONTHS.includes(r.mesano) && RDC_PROJ_SELECTED.includes(r.projeto)); }
 function renderRdcHTML(){
   const months = DISPLAY_MONTHS;
   const rows = rdcRowsSelected();
@@ -1204,7 +1208,7 @@ function renderRdcKpiStrip(){
 // "Sistema SGE Mobile" -> "Pendente Aprovação Fiscalização": consulta da aba "RDC_Mobile aprov.pendente"
 // (uma linha por RDC pendente de aprovacao de um papel). Linhas = Projeto / Papel / Aprovador pendente,
 // colunas = cada mes selecionado (Qtd de RDC pendentes) + total. Sem valores de R$/HH nessa aba de origem.
-function mobilePendRowsSelected(){ return RAW_RDC_MOBILE_PENDENTE.filter(r=>DISPLAY_MONTHS.includes(r.mesano)); }
+function mobilePendRowsSelected(){ return RAW_RDC_MOBILE_PENDENTE.filter(r=>DISPLAY_MONTHS.includes(r.mesano) && RDC_PROJ_SELECTED.includes(r.projeto)); }
 function renderMobilePendenteHTML(){
   const months = DISPLAY_MONTHS;
   const rows = mobilePendRowsSelected();
@@ -1280,6 +1284,8 @@ function render(){
   ['item-filter','btn-toggle-frs','frs-date-filter','frs-forn-filter'].forEach(id=>{
     document.getElementById(id).style.display = hideItemFrsFilters ? 'none' : '';
   });
+  // filtro de Projeto (MOA/PCI) so faz sentido nas abas que combinam os dois projetos numa tabela so
+  document.getElementById('rdc-proj-filter').style.display = hideItemFrsFilters ? '' : 'none';
   if (active === 'RDC'){
     document.getElementById('content').innerHTML = renderRdcHTML() + renderFreeNoteHTML('RDC');
     document.getElementById('kpi-strip').innerHTML = renderRdcKpiStrip();
@@ -1471,15 +1477,49 @@ document.getElementById('frsforn-toggle').addEventListener('click', e=>{
   document.getElementById('frsforn-panel').classList.toggle('open');
 });
 
+// Filtro de Projeto (MOA/PCI) — so aparece nas abas "RDC não aprovada" e "Pendente Aprovação
+// Fiscalização" (Sistema SGE Mobile), que combinam os dois projetos numa tabela so; nos demais
+// resumos (Geral/MOA/PCI) o projeto ja e escolhido pela propria aba.
+const RDC_PROJ_ALL = ['MOA','PCI'];
+let RDC_PROJ_SELECTED = RDC_PROJ_ALL.slice();
+function updateRdcProjFilterSummary(){
+  const n = RDC_PROJ_SELECTED.length;
+  document.getElementById('rdcproj-summary').textContent = n===2 ? 'MOA e PCI' : (n===0 ? 'nenhum' : RDC_PROJ_SELECTED[0]);
+}
+function buildRdcProjFilterPanel(){
+  const panel = document.getElementById('rdcproj-panel');
+  const selected = new Set(RDC_PROJ_SELECTED);
+  panel.innerHTML = RDC_PROJ_ALL.map(p =>
+    '<label><input type="checkbox" value="'+p+'"'+(selected.has(p)?' checked':'')+'> '+p+'</label>'
+  ).join('');
+  panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const checked = Array.from(panel.querySelectorAll('input[type=checkbox]:checked')).map(c=>c.value);
+      RDC_PROJ_SELECTED = RDC_PROJ_ALL.filter(p=>checked.includes(p));
+      if (!RDC_PROJ_SELECTED.length) buildRdcProjFilterPanel();
+      updateRdcProjFilterSummary();
+      render();
+    });
+  });
+}
+buildRdcProjFilterPanel();
+updateRdcProjFilterSummary();
+document.getElementById('rdcproj-toggle').addEventListener('click', e=>{
+  e.stopPropagation();
+  document.getElementById('rdcproj-panel').classList.toggle('open');
+});
+
 document.getElementById('mf-panel').addEventListener('click', e=>e.stopPropagation());
 document.getElementById('if-panel').addEventListener('click', e=>e.stopPropagation());
 document.getElementById('frsdate-panel').addEventListener('click', e=>e.stopPropagation());
 document.getElementById('frsforn-panel').addEventListener('click', e=>e.stopPropagation());
+document.getElementById('rdcproj-panel').addEventListener('click', e=>e.stopPropagation());
 document.addEventListener('click', ()=>{
   document.getElementById('mf-panel').classList.remove('open');
   document.getElementById('if-panel').classList.remove('open');
   document.getElementById('frsdate-panel').classList.remove('open');
   document.getElementById('frsforn-panel').classList.remove('open');
+  document.getElementById('rdcproj-panel').classList.remove('open');
 });
 
 /* ---------------- Detalhe por No FA / RATEIO (duplo-clique em 1.5 / 2.5) ---------------- */
