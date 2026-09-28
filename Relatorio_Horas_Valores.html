@@ -1031,14 +1031,10 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
     const p0 = pt(r,a0), p1 = pt(r,a1);
     return 'M'+p0[0].toFixed(2)+' '+p0[1].toFixed(2)+' A'+r+' '+r+' 0 '+((a1-a0)>180?1:0)+' 1 '+p1[0].toFixed(2)+' '+p1[1].toFixed(2);
   };
-  // fundo em formato de leque (so o setor de 240 graus, nao o circulo inteiro): sem esse recorte
-  // sobrava uma faixa vazia embaixo, sem nada desenhado nela (marcada em amarelo pelo usuario)
+  // fundo em circulo cheio (mostrador preenchido, sem recorte/buraco embaixo do arco)
   const bgR = size/2-1;
-  const bg0 = pt(bgR, START), bg1 = pt(bgR, START+SPAN);
-  const bgPath = 'M'+cx+' '+cy+' L'+bg0[0].toFixed(2)+' '+bg0[1].toFixed(2)+
-    ' A'+bgR+' '+bgR+' 0 1 1 '+bg1[0].toFixed(2)+' '+bg1[1].toFixed(2)+' Z';
-  let out = '<defs><radialGradient id="gg'+size+'" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#f4f6f9"/><stop offset="1" stop-color="#dde3ea"/></radialGradient></defs>'+
-    '<path d="'+bgPath+'" fill="url(#gg'+size+')" stroke="#c3ccd8" stroke-width="1" stroke-linejoin="round"/>';
+  let out = '<defs><radialGradient id="gg'+size+'" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#f4f6f9"/><stop offset="1" stop-color="#dde3ea"/></radialGradient></defs>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+bgR+'" fill="url(#gg'+size+')" stroke="#c3ccd8" stroke-width="1"/>';
   out += '<path d="'+arcPath(rArc,START,START+SPAN)+'" fill="none" stroke="#cbd3dd" stroke-width="'+sw+'"/>';
   const N = 40;
   for (let i=0;i<=N;i++){
@@ -1063,8 +1059,8 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
   const bigLen = String(centerBig).length;
   const bigFontSize = bigLen<=6 ? 17 : bigLen<=8 ? 14.5 : bigLen<=10 ? 12.5 : 11;
   return '<svg viewBox="0 0 '+size+' '+size+'" width="100%" height="100%" style="display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact;">'+out+
-    '<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#1b2733" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
-    '<text x="'+cx+'" y="'+(cy+11)+'" text-anchor="middle" font-size="8.5" fill="#647184" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+2)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#1b2733" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+15)+'" text-anchor="middle" font-size="8.5" fill="#647184" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
     '</svg>';
 }
 function renderDonutCard(ringId, legendLeftId, legendRightId, labels, values, colors, centerBig, centerSmall, progress, progressLabel){
