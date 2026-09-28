@@ -54,7 +54,8 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .kpi-chart-card{background:linear-gradient(180deg,var(--surface),var(--navy-100) 260%);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px 6px;}
 .kpi-chart-card h4{margin:0 0 2px;font-size:13.5px;color:var(--navy);}
 .kpi-chart-card .kpi-chart-sub{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
-.donut-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:4px;}
+.donut-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:4px;flex-wrap:wrap;}
+.donut-legend-side{flex:0 0 104px;}
 .donut-ring{width:170px;height:170px;flex:0 0 170px;}
 .donut-legend{display:flex;flex-direction:column;gap:10px;flex:0 1 auto;min-width:0;}
 .donut-legend-item{display:flex;align-items:center;gap:8px;}
@@ -208,6 +209,7 @@ body.printing #print-content .kpi-chart-card{padding:6px 8px 4px !important;}
 body.printing #print-content .kpi-chart-card h4{font-size:10px !important;margin:0 !important;}
 body.printing #print-content .kpi-chart-sub{font-size:8px !important;margin-bottom:1px !important;}
 body.printing #print-content .donut-ring{width:80px !important;height:80px !important;flex:0 0 80px !important;}
+body.printing #print-content .donut-legend-side{flex:0 0 72px !important;}
 body.printing #print-content .donut-ring svg text:first-of-type{font-size:13px !important;}
 body.printing #print-content .donut-ring svg text:nth-of-type(2), body.printing #print-content .donut-ring svg text:nth-of-type(3){font-size:6px !important;}
 body.printing #print-content .donut-legend-text .lbl{font-size:8px !important;}
@@ -898,11 +900,12 @@ function frsItemsFor(proj, tipoLabel){
   rows.forEach(r=>{
     const k = r.proj+'|'+r.bm+'|'+r.mesComp;
     let it = map.get(k);
-    if (!it){ it = { bm:r.bm, periodo:r.mesComp, hh:null, rs:0, proj:r.proj }; map.set(k,it); }
+    if (!it){ it = { bm:r.bm, periodo:r.mesComp, hh:null, rs:0, proj:r.proj, frs:new Set() }; map.set(k,it); }
     it.rs += r.valor;
     if (r.hh!=null) it.hh = (it.hh||0) + r.hh;
+    (r.frs||[]).forEach(fr=>it.frs.add(fr));
   });
-  return Array.from(map.values());
+  return Array.from(map.values()).map(it=>({ ...it, frs: Array.from(it.frs).sort() }));
 }
 function renderFrsEmitidasHTML(proj){
   if (HIDE_FRS_EMITIDAS) return '';
@@ -930,13 +933,18 @@ function openFrsModal(proj, tipo){
     body = '<div class="fiscal-empty">Nenhum BM encontrado para esse tipo.</div>';
   } else {
     let totHH = 0, totRS = 0, anyHH = false;
-    body = '<table><tr><th>BM</th>'+(proj==='GERAL'?'<th>Proj</th>':'')+'<th>Período</th><th class="num">HH</th><th class="num">R$</th></tr>';
+    body = '<table><tr><th>Nº FR</th><th>BM</th>'+(proj==='GERAL'?'<th>Proj</th>':'')+'<th>Período</th><th class="num">HH</th><th class="num">R$</th></tr>';
     rows.forEach(r=>{
       if (r.hh!=null){ totHH += r.hh; anyHH = true; }
       totRS += r.rs;
-      body += '<tr><td>'+esc(r.bm||'—')+'</td>'+(proj==='GERAL'?'<td>'+esc(r.proj)+'</td>':'')+'<td>'+esc(r.periodo||'—')+'</td><td class="num">'+(r.hh==null?'n/a':fmtInt(r.hh))+'</td><td class="num">'+fmtBRL(r.rs)+'</td></tr>';
+      // com muitas datas/todas selecionadas a lista de FR's pode ficar enorme (uma linha de BM/mes
+      // pode juntar centenas) - trunca para a celula continuar legivel, mostra a soma dos que sobram
+      const frsList = r.frs || [];
+      const frsTxt = !frsList.length ? '—' : frsList.length<=6 ? frsList.join(', ') :
+        frsList.slice(0,6).join(', ')+' (+'+(frsList.length-6)+' mais)';
+      body += '<tr><td title="'+esc(frsList.join(', '))+'">'+esc(frsTxt)+'</td><td>'+esc(r.bm||'—')+'</td>'+(proj==='GERAL'?'<td>'+esc(r.proj)+'</td>':'')+'<td>'+esc(r.periodo||'—')+'</td><td class="num">'+(r.hh==null?'n/a':fmtInt(r.hh))+'</td><td class="num">'+fmtBRL(r.rs)+'</td></tr>';
     });
-    body += '<tr class="fa-total"><td>Total</td>'+(proj==='GERAL'?'<td></td>':'')+'<td></td><td class="num">'+(anyHH?fmtInt(totHH):'n/a')+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
+    body += '<tr class="fa-total"><td></td><td>Total</td>'+(proj==='GERAL'?'<td></td>':'')+'<td></td><td class="num">'+(anyHH?fmtInt(totHH):'n/a')+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
   }
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
@@ -996,9 +1004,13 @@ function renderStatusChart(data, chartId){
 
 function chartsPanelHTML(prefix){
   prefix = prefix || '';
+  // dados nas duas laterais do mostrador (em vez de so a direita), no estilo do velocimetro
+  // com os mostradores de temperatura/combustivel dos dois lados
   const donutBlock = (title, sub, ringId, legendId) =>
     '<div class="kpi-chart-card"><h4>'+title+'</h4><div class="kpi-chart-sub">'+sub+'</div>'+
-    '<div class="donut-row"><div id="'+prefix+ringId+'" class="donut-ring"></div><div id="'+prefix+legendId+'" class="donut-legend"></div></div></div>';
+    '<div class="donut-row"><div id="'+prefix+legendId+'-l" class="donut-legend donut-legend-side"></div>'+
+    '<div id="'+prefix+ringId+'" class="donut-ring"></div>'+
+    '<div id="'+prefix+legendId+'-r" class="donut-legend donut-legend-side"></div></div></div>';
   return '<div class="kpi-charts-panel">'+
     donutBlock('Distribuição por Status', '% do valor (R$) — Total Geral "FADS"', 'donut-status-ring', 'donut-status-legend')+
     donutBlock('FAD / FIA / RATEIO', 'Participação de cada frente — Total Global', 'donut-category-ring', 'donut-category-legend')+
@@ -1019,8 +1031,14 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
     const p0 = pt(r,a0), p1 = pt(r,a1);
     return 'M'+p0[0].toFixed(2)+' '+p0[1].toFixed(2)+' A'+r+' '+r+' 0 '+((a1-a0)>180?1:0)+' 1 '+p1[0].toFixed(2)+' '+p1[1].toFixed(2);
   };
-  let out = '<defs><radialGradient id="gg'+size+'" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#f4f6f9"/><stop offset="1" stop-color="#dde3ea"/></radialGradient></defs>'+
-    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(size/2-1)+'" fill="url(#gg'+size+')" stroke="#c3ccd8" stroke-width="1"/>';
+  // fundo em formato de leque (so o setor de 240 graus, nao o circulo inteiro): sem esse recorte
+  // sobrava uma faixa vazia embaixo, sem nada desenhado nela (marcada em amarelo pelo usuario)
+  const bgR = size/2-1;
+  const bg0 = pt(bgR, START), bg1 = pt(bgR, START+SPAN);
+  const bgPath = 'M'+cx+' '+cy+' L'+bg0[0].toFixed(2)+' '+bg0[1].toFixed(2)+
+    ' A'+bgR+' '+bgR+' 0 1 1 '+bg1[0].toFixed(2)+' '+bg1[1].toFixed(2)+' Z';
+  let out = '<defs><radialGradient id="gg'+size+'" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#f4f6f9"/><stop offset="1" stop-color="#dde3ea"/></radialGradient></defs>'+
+    '<path d="'+bgPath+'" fill="url(#gg'+size+')" stroke="#c3ccd8" stroke-width="1" stroke-linejoin="round"/>';
   out += '<path d="'+arcPath(rArc,START,START+SPAN)+'" fill="none" stroke="#cbd3dd" stroke-width="'+sw+'"/>';
   const N = 40;
   for (let i=0;i<=N;i++){
@@ -1045,18 +1063,24 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
   const bigLen = String(centerBig).length;
   const bigFontSize = bigLen<=6 ? 17 : bigLen<=8 ? 14.5 : bigLen<=10 ? 12.5 : 11;
   return '<svg viewBox="0 0 '+size+' '+size+'" width="100%" height="100%" style="display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact;">'+out+
-    '<text x="'+cx+'" y="'+(cy+2)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#1b2733" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
-    '<text x="'+cx+'" y="'+(cy+15)+'" text-anchor="middle" font-size="8.5" fill="#647184" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-size="'+bigFontSize+'" font-weight="800" fill="#1b2733" font-family="Segoe UI, Arial, sans-serif">'+esc(centerBig)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+11)+'" text-anchor="middle" font-size="8.5" fill="#647184" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
     '</svg>';
 }
-function renderDonutCard(ringId, legendId, labels, values, colors, centerBig, centerSmall, progress, progressLabel){
+function renderDonutCard(ringId, legendLeftId, legendRightId, labels, values, colors, centerBig, centerSmall, progress, progressLabel){
   document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 170, 22, centerBig, centerSmall, progress, progressLabel);
   const total = values.reduce((a,b)=>a+b,0);
-  document.getElementById(legendId).innerHTML = labels.map((l,i)=>{
+  const itemHTML = i => {
     const pct = total ? (values[i]/total*100) : 0;
     return '<div class="donut-legend-item"><span class="donut-dot" style="background:'+colors[i]+'"></span>'+
-      '<div class="donut-legend-text"><div class="lbl">'+esc(l)+'</div><div class="val">R$ '+fmtBRL(values[i])+' ('+fmtPct(pct/100)+')</div></div></div>';
-  }).join('');
+      '<div class="donut-legend-text"><div class="lbl">'+esc(labels[i])+'</div><div class="val">R$ '+fmtBRL(values[i])+' ('+fmtPct(pct/100)+')</div></div></div>';
+  };
+  // metade dos itens de cada lado do mostrador (como os mostradores auxiliares dos dois lados
+  // do velocimetro na foto de referencia), em vez de uma unica lista so a direita
+  const leftCount = Math.ceil(labels.length/2);
+  const idxs = labels.map((_,i)=>i);
+  document.getElementById(legendLeftId).innerHTML = idxs.slice(0,leftCount).map(itemHTML).join('');
+  document.getElementById(legendRightId).innerHTML = idxs.slice(leftCount).map(itemHTML).join('');
 }
 function renderChartsPanel(proj, data, prefix){
   prefix = prefix || '';
@@ -1064,14 +1088,14 @@ function renderChartsPanel(proj, data, prefix){
   const s1 = SELECTED_SECTIONS.has(1) ? data.s1values['__TOTAL__'].total.rs : 0;
   const s2 = SELECTED_SECTIONS.has(2) ? data.s2values['__TOTAL__'].total.rs : 0;
   const s3 = SELECTED_SECTIONS.has(3) ? data.s3values['__TOTAL__'].rs : 0;
-  renderDonutCard(prefix+'donut-status-ring', prefix+'donut-status-legend',
+  renderDonutCard(prefix+'donut-status-ring', prefix+'donut-status-legend-l', prefix+'donut-status-legend-r',
     ['1 - Apresentou pendência','2 - Carregamento no SGE','3 - Aprovado'], [s1,s2,s3],
     [CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], fmtBRL(t.rs), 'R$ Total FADS', t.rs ? s3/t.rs : 0, 'Aprovado');
 
   const fadRS = t.rs;
   const fiaRS = SELECTED_SECTIONS.has(4) ? data.fiaTotal['__TOTAL__'].rs : 0;
   const rateioRS = SELECTED_SECTIONS.has(5) ? data.rateioTotal['__TOTAL__'].rs : 0;
-  renderDonutCard(prefix+'donut-category-ring', prefix+'donut-category-legend',
+  renderDonutCard(prefix+'donut-category-ring', prefix+'donut-category-legend-l', prefix+'donut-category-legend-r',
     ['FAD','FIA','RATEIO'], [fadRS, fiaRS, rateioRS],
     [CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global', (fadRS+fiaRS+rateioRS) ? fadRS/(fadRS+fiaRS+rateioRS) : 0, 'FAD');
 
@@ -1079,7 +1103,7 @@ function renderChartsPanel(proj, data, prefix){
   const pronto = data.totalMedidoFR['__TOTAL__'].rs;
   const totalG = data.totalGlobal['__TOTAL__'].rs;
   const restante = Math.max(0, totalG - emitido - pronto);
-  renderDonutCard(prefix+'donut-pipeline-ring', prefix+'donut-pipeline-legend',
+  renderDonutCard(prefix+'donut-pipeline-ring', prefix+'donut-pipeline-legend-l', prefix+'donut-pipeline-legend-r',
     ['Já Emitido (FR)','Pronto p/ Faturar','Em processo'], [emitido, pronto, restante],
     ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global', totalG ? (emitido+pronto)/totalG : 0, 'Emitido+Pronto');
 }
@@ -2082,12 +2106,16 @@ window.addEventListener('resize', ()=>{
       if (lk2){ tipoF=lk2.tipo; if (tipoF==='FAD') hhF=lk2.hh; }
       if (!tipoF && FR_CLASSIFICACAO_MANUAL[frKey]) tipoF = FR_CLASSIFICACAO_MANUAL[frKey];
       var kf2=projF+'|'+tipoF+'|'+dataF+'|'+fornF+'|'+bmF+'|'+mesF;
-      if(!frsAgg[kf2]) frsAgg[kf2]={proj:projF,tipo:tipoF,dataSolic:dataF,forn:fornF,bm:bmF,mesComp:mesF,valor:0,hh:0};
+      if(!frsAgg[kf2]) frsAgg[kf2]={proj:projF,tipo:tipoF,dataSolic:dataF,forn:fornF,bm:bmF,mesComp:mesF,valor:0,hh:0,frs:[]};
       frsAgg[kf2].valor+=valF; frsAgg[kf2].hh+=hhF;
+      // guarda os numeros de FR que compoem essa linha (varias FR's podem cair na mesma
+      // combinacao proj+tipo+data+fornecedor+BM+mes, como aconteceu em 19/09/2026 com 3 FADs)
+      if (frsAgg[kf2].frs.indexOf(frKey)===-1) frsAgg[kf2].frs.push(frKey);
     }
     var frsRows = Object.keys(frsAgg).map(function(k){
       var g=frsAgg[k]; g.valor=Math.round(g.valor*100)/100;
       g.hh = (g.tipo==='FAD' && g.hh!==0) ? Math.round(g.hh*100)/100 : null;
+      g.frs.sort();
       return g;
     });
 
