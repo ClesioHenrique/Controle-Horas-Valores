@@ -142,7 +142,9 @@ table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fi
 /* Ranking visual (barras) de quem tem mais HH pendente, ao lado da tabela de "Pendente
    Aprovação Fiscalização" — pedido do usuario em 30/09/2026. */
 .mobile-pend-layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
-.mobile-pend-layout .table-wrap{flex:1 1 480px;}
+/* nao estica (flex:1 esticava a tabela pra preencher a tela toda, jogando o ranking la longe
+   na ponta direita, com um vao enorme no meio — pedido do usuario em 30/09/2026 pra ficar colado) */
+.mobile-pend-layout .table-wrap{flex:0 0 auto;}
 .mobile-pend-ranking{flex:0 0 250px;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:14px 16px;}
 .mobile-pend-ranking h4{margin:0 0 12px;font-size:13px;color:var(--navy);}
 .mpr-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:11px;}
@@ -150,7 +152,10 @@ table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fi
 .mpr-rank{flex:0 0 20px;font-weight:800;color:var(--text-muted);font-size:12px;padding-top:1px;}
 .mpr-first .mpr-rank{color:var(--danger);}
 .mpr-body{flex:1 1 auto;min-width:0;}
-.mpr-name{font-size:12px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mpr-name{display:flex;align-items:baseline;gap:5px;font-size:12px;}
+.mpr-name-text{font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.mpr-pct{flex:0 0 auto;font-weight:800;color:var(--danger);font-size:11px;}
+.mpr-first .mpr-pct{color:#b3261e;}
 .mpr-barbg{background:var(--navy-100);border-radius:4px;height:9px;overflow:hidden;margin-top:3px;}
 .mpr-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,#E8A33D,#b3261e);}
 .mpr-first .mpr-bar{background:linear-gradient(90deg,#d9822b,#b3261e);}
@@ -1300,13 +1305,16 @@ function renderMobilePendenteHTML(){
 function renderMobilePendenteRankingHTML(list){
   const top = list.slice(0, 8);
   const max = top.length ? top[0].hh : 0;
+  const totalGeral = list.reduce((s,g)=>s+g.hh, 0); // % de cada um sobre o total de todos (nao so o top 8)
   let html = '<div class="mobile-pend-ranking"><h4>&#128201; Ranking &mdash; quem mais tem pendência</h4>';
   top.forEach((g,i)=>{
-    const pct = max ? Math.max(4, Math.round(g.hh/max*100)) : 0;
+    const barPct = max ? Math.max(4, Math.round(g.hh/max*100)) : 0;
+    const share = totalGeral ? fmtPct(g.hh/totalGeral) : '0,0%';
     html += '<div class="mpr-row'+(i===0?' mpr-first':'')+'">'+
       '<div class="mpr-rank">'+(i+1)+'&ordm;</div>'+
-      '<div class="mpr-body"><div class="mpr-name" title="'+esc(g.aprovador)+' ('+esc(g.projeto)+' — '+esc(g.papel)+')">'+esc(g.aprovador)+'</div>'+
-      '<div class="mpr-barbg"><div class="mpr-bar" style="width:'+pct+'%"></div></div>'+
+      '<div class="mpr-body"><div class="mpr-name" title="'+esc(g.aprovador)+' ('+esc(g.projeto)+' — '+esc(g.papel)+')">'+
+      '<span class="mpr-name-text">'+esc(g.aprovador)+'</span><span class="mpr-pct">'+share+'</span></div>'+
+      '<div class="mpr-barbg"><div class="mpr-bar" style="width:'+barPct+'%"></div></div>'+
       '<div class="mpr-val">'+fmtInt(g.hh)+' HH &mdash; '+esc(g.projeto)+'</div></div></div>';
   });
   if (list.length > top.length) html += '<div class="mpr-more">+ '+(list.length-top.length)+' aprovador(es) com menos pendência</div>';
