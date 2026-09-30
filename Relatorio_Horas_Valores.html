@@ -146,20 +146,21 @@ table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fi
    na ponta direita, com um vao enorme no meio — pedido do usuario em 30/09/2026 pra ficar colado) */
 .mobile-pend-layout .table-wrap{flex:0 0 auto;}
 .mobile-pend-ranking{flex:0 0 310px;min-width:260px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:14px 16px;}
-.mobile-pend-ranking h4{margin:0 0 12px;font-size:13px;color:var(--navy);}
+.mobile-pend-ranking h4{margin:0 0 8px;font-size:13px;color:var(--navy);}
+/* legenda da regra de cor por % do total (pedido do usuario em 30/09/2026) */
+.mpr-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;font-size:9.5px;color:var(--text-muted);}
+.mpr-legend span{display:inline-flex;align-items:center;gap:4px;}
+.mpr-legend i{width:8px;height:8px;border-radius:2px;display:inline-block;}
 .mpr-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
 .mpr-row:last-of-type{margin-bottom:2px;}
 .mpr-rank{flex:0 0 18px;font-weight:800;color:var(--text-muted);font-size:11.5px;}
-.mpr-first .mpr-rank{color:var(--danger);}
 .mpr-body{flex:1 1 auto;min-width:0;}
 .mpr-name{display:flex;align-items:baseline;gap:5px;font-size:11.5px;line-height:1.3;}
 .mpr-name-text{font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-.mpr-pct{flex:0 0 auto;font-weight:800;color:var(--danger);font-size:10.5px;}
-.mpr-first .mpr-pct{color:#b3261e;}
+.mpr-pct{flex:0 0 auto;font-weight:800;font-size:10.5px;}
 .mpr-barrow{display:flex;align-items:center;gap:6px;margin-top:2px;}
 .mpr-barbg{flex:1 1 auto;background:var(--navy-100);border-radius:4px;height:8px;overflow:hidden;}
-.mpr-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,#E8A33D,#b3261e);}
-.mpr-first .mpr-bar{background:linear-gradient(90deg,#d9822b,#b3261e);}
+.mpr-bar{height:100%;border-radius:4px;}
 .mpr-val{flex:0 0 auto;font-size:10px;color:var(--text-muted);white-space:nowrap;}
 .mpr-more{font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;}
 body.printing .mobile-pend-layout{display:flex !important;}
@@ -1307,17 +1308,28 @@ function renderMobilePendenteRankingHTML(list){
   const top = list.slice(0, 8);
   const max = top.length ? top[0].hh : 0;
   const totalGeral = list.reduce((s,g)=>s+g.hh, 0); // % de cada um sobre o total de todos (nao so o top 8)
-  let html = '<div class="mobile-pend-ranking"><h4>&#128201; Ranking &mdash; quem mais tem pendência</h4>';
+  // regra de cor pedida pelo usuario em 30/09/2026 (print de referencia): ate 10% = verde,
+  // 11% a 40% = laranja, 41% a 100% = vermelho — sobre o % de cada um no total geral
+  function shareColor(frac){
+    const pct = frac*100;
+    if (pct <= 10) return '#6FA834';
+    if (pct <= 40) return '#E8A33D';
+    return '#b3261e';
+  }
+  let html = '<div class="mobile-pend-ranking"><h4>&#128201; Ranking &mdash; quem mais tem pendência</h4>'+
+    '<div class="mpr-legend"><span><i style="background:#6FA834"></i>até 10%</span><span><i style="background:#E8A33D"></i>11% a 40%</span><span><i style="background:#b3261e"></i>41% a 100%</span></div>';
   top.forEach((g,i)=>{
+    const frac = totalGeral ? g.hh/totalGeral : 0;
     const barPct = max ? Math.max(4, Math.round(g.hh/max*100)) : 0;
-    const share = totalGeral ? fmtPct(g.hh/totalGeral) : '0,0%';
+    const share = fmtPct(frac);
+    const color = shareColor(frac);
     // 2 linhas por pessoa (nome+% / barra+HH) em vez de 3 — pra ficar mais proximo da altura
     // das linhas da tabela ao lado (pedido do usuario em 30/09/2026, "nivelar")
-    html += '<div class="mpr-row'+(i===0?' mpr-first':'')+'">'+
+    html += '<div class="mpr-row">'+
       '<div class="mpr-rank">'+(i+1)+'&ordm;</div>'+
       '<div class="mpr-body"><div class="mpr-name" title="'+esc(g.aprovador)+' ('+esc(g.projeto)+' — '+esc(g.papel)+')">'+
-      '<span class="mpr-name-text">'+esc(g.aprovador)+'</span><span class="mpr-pct">'+share+'</span></div>'+
-      '<div class="mpr-barrow"><div class="mpr-barbg"><div class="mpr-bar" style="width:'+barPct+'%"></div></div>'+
+      '<span class="mpr-name-text">'+esc(g.aprovador)+'</span><span class="mpr-pct" style="color:'+color+'">'+share+'</span></div>'+
+      '<div class="mpr-barrow"><div class="mpr-barbg"><div class="mpr-bar" style="width:'+barPct+'%;background:'+color+'"></div></div>'+
       '<div class="mpr-val">'+fmtInt(g.hh)+' HH</div></div></div></div>';
   });
   if (list.length > top.length) html += '<div class="mpr-more">+ '+(list.length-top.length)+' aprovador(es) com menos pendência</div>';
