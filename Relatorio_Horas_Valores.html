@@ -147,19 +147,20 @@ table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fi
 .mobile-pend-layout .table-wrap{flex:0 0 auto;}
 .mobile-pend-ranking{flex:0 0 310px;min-width:260px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:14px 16px;}
 .mobile-pend-ranking h4{margin:0 0 12px;font-size:13px;color:var(--navy);}
-.mpr-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:11px;}
-.mpr-row:last-of-type{margin-bottom:4px;}
-.mpr-rank{flex:0 0 20px;font-weight:800;color:var(--text-muted);font-size:12px;padding-top:1px;}
+.mpr-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.mpr-row:last-of-type{margin-bottom:2px;}
+.mpr-rank{flex:0 0 18px;font-weight:800;color:var(--text-muted);font-size:11.5px;}
 .mpr-first .mpr-rank{color:var(--danger);}
 .mpr-body{flex:1 1 auto;min-width:0;}
-.mpr-name{display:flex;align-items:baseline;gap:5px;font-size:12px;}
+.mpr-name{display:flex;align-items:baseline;gap:5px;font-size:11.5px;line-height:1.3;}
 .mpr-name-text{font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-.mpr-pct{flex:0 0 auto;font-weight:800;color:var(--danger);font-size:11px;}
+.mpr-pct{flex:0 0 auto;font-weight:800;color:var(--danger);font-size:10.5px;}
 .mpr-first .mpr-pct{color:#b3261e;}
-.mpr-barbg{background:var(--navy-100);border-radius:4px;height:9px;overflow:hidden;margin-top:3px;}
+.mpr-barrow{display:flex;align-items:center;gap:6px;margin-top:2px;}
+.mpr-barbg{flex:1 1 auto;background:var(--navy-100);border-radius:4px;height:8px;overflow:hidden;}
 .mpr-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,#E8A33D,#b3261e);}
 .mpr-first .mpr-bar{background:linear-gradient(90deg,#d9822b,#b3261e);}
-.mpr-val{font-size:10.5px;color:var(--text-muted);margin-top:2px;}
+.mpr-val{flex:0 0 auto;font-size:10px;color:var(--text-muted);white-space:nowrap;}
 .mpr-more{font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;}
 body.printing .mobile-pend-layout{display:flex !important;}
 body.printing .mobile-pend-ranking{flex:0 0 190px !important;padding:8px 10px !important;}
@@ -1276,8 +1277,8 @@ function renderMobilePendenteHTML(){
 
   const mpW = {
     projeto: getSavedColWidth('mobile-pend-tbl','projeto')||55, papel: getSavedColWidth('mobile-pend-tbl','papel')||85,
-    aprovador: getSavedColWidth('mobile-pend-tbl','aprovador')||260, month: getSavedColWidth('mobile-pend-tbl','month')||80,
-    total: getSavedColWidth('mobile-pend-tbl','total')||90
+    aprovador: getSavedColWidth('mobile-pend-tbl','aprovador')||275, month: getSavedColWidth('mobile-pend-tbl','month')||80,
+    total: getSavedColWidth('mobile-pend-tbl','total')||96
   };
   html += '<div class="mobile-pend-layout"><div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="mobile-pend-tbl">';
   // "Papel aprovador" e sempre um texto curto ("Fiscal"): encolhida pra sobrar espaco pra
@@ -1310,12 +1311,14 @@ function renderMobilePendenteRankingHTML(list){
   top.forEach((g,i)=>{
     const barPct = max ? Math.max(4, Math.round(g.hh/max*100)) : 0;
     const share = totalGeral ? fmtPct(g.hh/totalGeral) : '0,0%';
+    // 2 linhas por pessoa (nome+% / barra+HH) em vez de 3 — pra ficar mais proximo da altura
+    // das linhas da tabela ao lado (pedido do usuario em 30/09/2026, "nivelar")
     html += '<div class="mpr-row'+(i===0?' mpr-first':'')+'">'+
       '<div class="mpr-rank">'+(i+1)+'&ordm;</div>'+
       '<div class="mpr-body"><div class="mpr-name" title="'+esc(g.aprovador)+' ('+esc(g.projeto)+' — '+esc(g.papel)+')">'+
       '<span class="mpr-name-text">'+esc(g.aprovador)+'</span><span class="mpr-pct">'+share+'</span></div>'+
-      '<div class="mpr-barbg"><div class="mpr-bar" style="width:'+barPct+'%"></div></div>'+
-      '<div class="mpr-val">'+fmtInt(g.hh)+' HH &mdash; '+esc(g.projeto)+'</div></div></div>';
+      '<div class="mpr-barrow"><div class="mpr-barbg"><div class="mpr-bar" style="width:'+barPct+'%"></div></div>'+
+      '<div class="mpr-val">'+fmtInt(g.hh)+' HH</div></div></div></div>';
   });
   if (list.length > top.length) html += '<div class="mpr-more">+ '+(list.length-top.length)+' aprovador(es) com menos pendência</div>';
   html += '</div>';
