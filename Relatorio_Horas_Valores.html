@@ -1262,7 +1262,8 @@ function renderRdcHTML(){
     months.map(m=>'<th class="ft-band" colspan="2">'+esc(m)+'</th>').join('')+'<th class="ft-band" colspan="2">Total Geral</th></tr>';
   html += '<tr>'+months.map(()=>'<th class="ft-sub">HH</th><th class="ft-sub">R$</th>').join('')+'<th class="ft-sub">HH</th><th class="ft-sub">R$</th></tr>';
   list.forEach(g=>{
-    html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-lider="'+esc(g.lider)+'" data-fiscal="'+esc(g.fiscal)+'" title="Clique para ver as linhas (OS, RDC, HH, R$)"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.lider)+'</td><td class="ft-resp">'+esc(g.fiscal)+'</td>'+
+    html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-lider="'+esc(g.lider)+'" data-fiscal="'+esc(g.fiscal)+'" title="Clique: lista as linhas (OS, RDC, HH, R$) · Duplo clique: extrai agrupado por OS"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.lider)+'</td><td class="ft-resp">'+
+      '<span class="os-name" data-proj="'+esc(g.projeto)+'" data-lider="'+esc(g.lider)+'" data-fiscal="'+esc(g.fiscal)+'" title="Clique para ver o resumo agrupado por OS desta pessoa">'+esc(g.fiscal)+'</span></td>'+
       months.map(m=>{ const b=g.m[m]||{hh:0,rs:0}; return '<td class="num">'+fmtInt(b.hh)+'</td><td class="num">'+fmtBRL(b.rs)+'</td>'; }).join('')+
       '<td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
   });
@@ -1497,10 +1498,14 @@ function openMobilePendenteByOSModal(proj, papel, aprovador){
 
 // Clique no nome (tabela ou ranking) abre direto o resumo agrupado por OS daquela pessoa — antes
 // isso abria um rascunho de e-mail, trocado pelo agrupamento por OS a pedido do usuario em
-// 01/10/2026. Reaproveita o mesmo modal do duplo clique na linha (openMobilePendenteByOSModal).
+// 01/10/2026. Reaproveita o mesmo formato de modal ("... — extração por OS") nas duas tabelas
+// que tem coluna de OS/COD OS: Pendente Aprovação Fiscalização (RDC_Mobile) e RDC não aprovada.
 document.getElementById('content').addEventListener('click', e=>{
   const on = e.target.closest('.os-name');
-  if (on){ e.stopPropagation(); openMobilePendenteByOSModal(on.dataset.proj, on.dataset.papel, on.dataset.aprovador); return; }
+  if (!on) return;
+  e.stopPropagation();
+  if (on.dataset.lider!==undefined) openRdcByOSModal(on.dataset.proj, on.dataset.lider, on.dataset.fiscal);
+  else openMobilePendenteByOSModal(on.dataset.proj, on.dataset.papel, on.dataset.aprovador);
 }, true); // captura, pra rodar antes do listener de clique na linha (tr.rdc-row) e nao abrir os dois modais junto
 
 let lastChartData = null;
@@ -1940,6 +1945,37 @@ function openRdcModal(proj, lider, fiscal){
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
+// Mesmo formato do "extração por OS" da Pendente Aprovação Fiscalização, aplicado na aba "RDC
+// não aprovada" — pedido do usuario em 01/10/2026. Agrupa por "COD OS" (coluna J da Pendências
+// MOA_PCI; a coluna "OS" em si costuma vir vazia, por isso usa COD OS, que sempre tem valor).
+function openRdcByOSModal(proj, lider, fiscal){
+  const rows = RAW_RDC_DETAIL.filter(r=>r.projeto===proj && r.lider===lider && r.fiscal===fiscal && DISPLAY_MONTHS.includes(r.mesano));
+  document.getElementById('fa-modal-title').textContent = 'RDC não aprovada — extração por OS';
+  document.getElementById('fa-modal-sub').textContent = proj+' — Líder: '+lider+' | Fiscal: '+fiscal;
+  let body = '';
+  if (!rows.length){
+    body = '<div class="fiscal-empty">Nenhuma linha encontrada.</div>';
+  } else {
+    const groups = new Map();
+    rows.forEach(r=>{
+      const key = r.codOS || '(sem COD OS)';
+      let g = groups.get(key);
+      if (!g) { g = { os:key, hh:0, rs:0, rdcs:[] }; groups.set(key,g); }
+      g.hh += r.hh; g.rs += r.rs; g.rdcs.push(r.rdc);
+    });
+    const list = Array.from(groups.values()).sort((a,b)=> b.rs - a.rs);
+    let totHH = 0, totRS = 0, totQtd = 0;
+    body = '<table><tr><th>OS / Entregável</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th></tr>';
+    list.forEach(g=>{
+      totHH += g.hh; totRS += g.rs; totQtd += g.rdcs.length;
+      const rdcTxt = g.rdcs.length<=6 ? g.rdcs.join(', ') : g.rdcs.slice(0,6).join(', ')+' (+'+(g.rdcs.length-6)+' mais)';
+      body += '<tr><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(g.rdcs.join(', '))+'">'+esc(rdcTxt)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+    });
+    body += '<tr class="fa-total"><td>Total ('+list.length+' OS)</td><td class="num">'+totQtd+'</td><td></td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
+  }
+  document.getElementById('fa-modal-body').innerHTML = body;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+}
 function openPendAprovModal(proj, col){
   const rows = pendAprovRowsFor(proj, col);
   document.getElementById('fa-modal-title').textContent = 'Pendente de aprovação — detalhe';
@@ -2012,6 +2048,10 @@ document.getElementById('content').addEventListener('dblclick', e=>{
   const rdcTr = e.target.closest('tr.rdc-row');
   if (rdcTr && rdcTr.dataset.papel!==undefined){
     openMobilePendenteByOSModal(rdcTr.dataset.proj, rdcTr.dataset.papel, rdcTr.dataset.aprovador);
+    return;
+  }
+  if (rdcTr && rdcTr.dataset.lider!==undefined){
+    openRdcByOSModal(rdcTr.dataset.proj, rdcTr.dataset.lider, rdcTr.dataset.fiscal);
     return;
   }
   const td = e.target.closest('td.fa-detail');
