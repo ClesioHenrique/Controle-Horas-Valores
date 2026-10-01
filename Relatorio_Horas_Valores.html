@@ -14,6 +14,55 @@
   --warn:#a8710b; --warn-bg:#fbf0dc; --danger:#b3261e; --danger-bg:#fbe6e4;
   --shadow:0 1px 3px rgba(0,43,92,.08), 0 1px 2px rgba(0,43,92,.06);
 }
+/* Modo escuro (botao "🌙/☀" no banner) — pedido do usuario em 01/10/2026. --navy e usado tanto
+   como TEXTO (titulos, cabecalhos de coluna — ~30 lugares) quanto como FUNDO (banner, totais —
+   so uns 6 lugares); no escuro ele vira um azul claro (fica legivel como texto num fundo
+   escuro), entao os poucos lugares que usavam ele como FUNDO escuro de proposito (banner,
+   cabecalhos de secao, linha "Total Geral") sao fixados de volta pro navy escuro logo abaixo,
+   senao ficariam claros tambem (perdendo o contraste com o texto branco fixo deles).
+   Fica de fora quando "body.printing" esta ativo (impressao/PDF/"copiar imagem"): esses fluxos
+   sempre devem sair no visual claro padrao, independente da preferencia de tela. */
+html.dark-theme body:not(.printing){
+  --navy:#9cc2f0; --navy-700:#13304f; --navy-100:#1f2d3f;
+  --info-blue:#5b9bd8;
+  --bg:#10161f; --surface:#1a222e; --border:#2b3744; --text:#dbe4ee; --text-muted:#90a0b3;
+  --warn:#e0ad5c; --warn-bg:#3a2f18; --danger:#e2584f; --danger-bg:#3a201e;
+  --shadow:0 2px 8px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.3);
+}
+html.dark-theme{color-scheme:dark;}
+html.dark-theme body:not(.printing) .confronto-banner,
+html.dark-theme body:not(.printing) .if-toggle.frs-hidden-active,
+html.dark-theme body:not(.printing) .grp-head,
+html.dark-theme body:not(.printing) tr.total-geral td{background:#042341;}
+html.dark-theme body:not(.printing) .if-toggle.frs-hidden-active{border-color:#042341;}
+html.dark-theme body:not(.printing) .grp-sub,
+html.dark-theme body:not(.printing) .col-head-blue{background:#0a3762;}
+/* linhas com cor literal (nao usam var(--...)), cada uma com seu equivalente escuro */
+html.dark-theme body:not(.printing) tr.fads-row td,
+html.dark-theme body:not(.printing) tr.fia.darkgray td, html.dark-theme body:not(.printing) tr.rateio.darkgray td{background:#3a4554;color:#dbe4ee;}
+html.dark-theme body:not(.printing) tr.sec-head td{background:#223044;}
+html.dark-theme body:not(.printing) tr.sec3 td, html.dark-theme body:not(.printing) tr.fia td{background:#3a3220;}
+html.dark-theme body:not(.printing) tr.sec3.bgwhite td, html.dark-theme body:not(.printing) tr.fia.bgwhite td, html.dark-theme body:not(.printing) tr.rateio.bgwhite td{background:var(--surface);}
+html.dark-theme body:not(.printing) tr.rateio td, html.dark-theme body:not(.printing) tr.sec3.blue td, html.dark-theme body:not(.printing) tr.fia.blue td{background:#1f3347;}
+html.dark-theme body:not(.printing) tr.total-fiarat td{background:#4a5564;color:#dbe4ee;}
+html.dark-theme body:not(.printing) tr.total-global td{background:#2e3844;}
+html.dark-theme body:not(.printing) .freenote-block{background:#2a2510;border-color:#4a3f1a;}
+html.dark-theme body:not(.printing) .freenote-block textarea{background:#4a3f1a;color:var(--text);}
+/* faixas verdes (background:var(--green), que fica igual nos dois temas de proposito) com
+   texto var(--navy) em cima — como --navy virou claro no escuro (serve de texto em titulos
+   sobre fundo escuro), nessas 4 o texto precisa continuar escuro, senao fica claro-sobre-verde
+   (quase sem contraste). Repete o "tr.fads-row td.fads-total" com mais classes que a regra
+   geral de "tr.fads-row td" logo acima, pra garantir que ganha dela na especificidade do CSS. */
+html.dark-theme body:not(.printing) .title-band,
+html.dark-theme body:not(.printing) .total-col-head,
+html.dark-theme body:not(.printing) tr.fads-row td.fads-total,
+html.dark-theme body:not(.printing) table.fiscal-tbl .ft-band{color:#042341;}
+/* donut (SVG gerado via JS, cores de trilho/ticks/texto gravadas no atributo, nao usam var) */
+html.dark-theme body:not(.printing) .donut-ring svg circle[stroke="#eef1f5"]{stroke:#2a3340 !important;}
+html.dark-theme body:not(.printing) .donut-ring svg line[stroke="#c7cfd9"]{stroke:#3a4452 !important;}
+html.dark-theme body:not(.printing) .donut-ring svg line[stroke="#e4e8ee"]{stroke:#29323e !important;}
+html.dark-theme body:not(.printing) .donut-ring svg text[fill="#1b2733"]{fill:#e8eef5 !important;}
+html.dark-theme body:not(.printing) .donut-ring svg text[fill="#8a94a3"]{fill:#9fb0c3 !important;}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Calibri,Arial,sans-serif;font-size:13.5px;}
 
@@ -24,6 +73,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .confronto-banner-title{font-size:26px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#fff;line-height:1.15;}
 .confronto-banner-switch{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:1px solid rgba(255,255,255,.5);border-radius:999px;color:#fff;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s;}
 .confronto-banner-switch:hover{background:rgba(255,255,255,.12);border-color:#fff;}
+button.confronto-banner-switch{background:transparent;cursor:pointer;font-family:inherit;}
 /* filtros movidos pra dentro da faixa azul (pedido do usuario em 28/09/2026, pra sobrar mais
    altura de tela pra tabela/graficos abaixo, sem precisar rolar a pagina pra ve-los) */
 .confronto-banner-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
@@ -145,13 +195,18 @@ table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fi
 .mobile-pend-layout, .ranked-layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
 /* "Ranking: ao lado da tabela" (botao no banner) — pedido do usuario em 01/10/2026: por padrao
    o ranking quebra pra baixo quando nao cabe ao lado (flex-wrap:wrap acima); com o botao ligado,
-   forca ficar ao lado sempre (flex-wrap:nowrap), com rolagem horizontal na tela se nao couber. */
-body.rank-side .mobile-pend-layout, body.rank-side .ranked-layout{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;}
-/* ...e vale tambem na impressao/PDF (pedido do usuario). Na tela usa overflow-x:auto (rolagem);
-   na impressao isso teria que ficar "visible" — senao a "fitPrintPagesToOnePage()" mede a
-   largura clipada pelo scroll (em vez da largura real do ranking+tabela) e o calculo de zoom
-   pra caber na folha sai errado, cortando o ranking fora da pagina sem poder rolar pra ve-lo. */
-body.rank-side.printing .mobile-pend-layout, body.rank-side.printing .ranked-layout{overflow-x:visible;padding-bottom:0;}
+   forca ficar ao lado sempre (flex-wrap:nowrap). */
+body.rank-side .mobile-pend-layout, body.rank-side .ranked-layout{flex-wrap:nowrap;}
+/* quem ganha rolagem horizontal propria e a TABELA (nao o conjunto inteiro) — reserva os 310px
+   do card de ranking (+16px de gap) do espaco disponivel, pra ele nunca sair da tela rolado
+   pra fora de vista (primeira versao deixava o .ranked-layout inteiro rolar e o ranking ficava
+   escondido fora da tela em telas estreitas, sem o usuario perceber que precisava rolar). */
+body.rank-side .mobile-pend-layout .table-wrap, body.rank-side .ranked-layout .table-wrap{overflow-x:auto;max-width:calc(100% - 326px);padding-bottom:6px;}
+/* ...e vale tambem na impressao/PDF (pedido do usuario). Pagina impressa nao tem rolagem, entao
+   aqui desfaz o limite de largura/rolagem — deixa a largura real "vazar", pro calculo de zoom
+   (fitPrintPagesToOnePage) medir certo e encolher a pagina toda (tabela+ranking) proporcional,
+   igual ja faz hoje; senao mediria a tabela cortada pelo max-width e o ranking saia da pagina. */
+body.rank-side.printing .mobile-pend-layout .table-wrap, body.rank-side.printing .ranked-layout .table-wrap{overflow-x:visible;max-width:none;padding-bottom:0;}
 /* nao estica (flex:1 esticava a tabela pra preencher a tela toda, jogando o ranking la longe
    na ponta direita, com um vao enorme no meio — pedido do usuario em 30/09/2026 pra ficar colado) */
 .mobile-pend-layout .table-wrap, .ranked-layout .table-wrap{flex:0 0 auto;}
@@ -300,11 +355,19 @@ body.printing .fa-sub{margin-bottom:2px !important;}
 </style>
 </head>
 <body>
+<script>
+// aplica o modo escuro o quanto antes (antes do resto do HTML desenhar), senao da um "flash"
+// de tela clara por uma fracao de segundo ate o script la embaixo rodar e trocar a classe
+try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.classList.add('dark-theme'); } catch(e){}
+</script>
 <div class="confronto-banner">
   <div class="confronto-banner-label">Painel de Confronto &middot; Techint Engenharia e Constru&ccedil;&atilde;o</div>
   <div class="confronto-banner-row">
     <div class="confronto-banner-title">Painel de Horas x Valores</div>
-    <a class="confronto-banner-switch" href="https://clesiohenrique.github.io/Painel-de-Confronto/">&#8617; Trocar de painel</a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button type="button" class="confronto-banner-switch" id="btn-toggle-theme">&#127769; <span id="theme-toggle-label">Modo escuro</span></button>
+      <a class="confronto-banner-switch" href="https://clesiohenrique.github.io/Painel-de-Confronto/">&#8617; Trocar de painel</a>
+    </div>
   </div>
   <div class="confronto-banner-filters">
     <div class="month-filter" id="month-filter">
@@ -2303,6 +2366,21 @@ document.getElementById('btn-toggle-frs').addEventListener('click', ()=>{
   document.getElementById('frs-toggle-label').textContent = HIDE_FRS_EMITIDAS ? 'ocultas' : 'mostrando';
   document.getElementById('btn-toggle-frs').classList.toggle('frs-hidden-active', HIDE_FRS_EMITIDAS);
   render();
+});
+// "Modo escuro" — pedido do usuario em 01/10/2026. A classe "dark-theme" (no <html>) ja foi
+// aplicada o mais cedo possivel por um script logo apos a tag <body> (evita "flash" de tela
+// clara); aqui so cuida do clique, do texto/icone do botao e de persistir em localStorage.
+let DARK_THEME = document.documentElement.classList.contains('dark-theme');
+function applyThemeLabel(){
+  document.getElementById('theme-toggle-label').textContent = DARK_THEME ? 'Modo claro' : 'Modo escuro';
+  document.getElementById('btn-toggle-theme').firstChild.textContent = (DARK_THEME ? '☀️' : '🌙') + ' ';
+}
+applyThemeLabel();
+document.getElementById('btn-toggle-theme').addEventListener('click', ()=>{
+  DARK_THEME = !DARK_THEME;
+  document.documentElement.classList.toggle('dark-theme', DARK_THEME);
+  try { localStorage.setItem('darkTheme', DARK_THEME ? '1' : '0'); } catch(e){}
+  applyThemeLabel();
 });
 // "Ranking: ao lado da tabela" (true) vs "abaixo da tabela" (false, padrao) — pedido do usuario
 // em 01/10/2026, vale tambem pra impressao/PDF (classe fica no body, que a impressao reaproveita).
