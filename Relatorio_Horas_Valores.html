@@ -2492,13 +2492,17 @@ window.addEventListener('resize', ()=>{
     var stream = new Blob([bytes]).stream().pipeThrough(ds);
     return new Uint8Array(await new Response(stream).arrayBuffer());
   }
-  async function readZipEntry(buf, entry){
+  // bytes descomprimidos crus da entrada do zip, sem decodificar pra string (usado direto pelas
+  // abas grandes — ver parseSheetRows — pra nunca precisar montar um texto gigante de uma vez)
+  async function getEntryBytes(buf, entry){
     var view = new DataView(buf), bytes = new Uint8Array(buf);
     var nameLen = view.getUint16(entry.localOffset+26, true), extraLen = view.getUint16(entry.localOffset+28, true);
     var dataStart = entry.localOffset + 30 + nameLen + extraLen;
     var raw = bytes.subarray(dataStart, dataStart + entry.compSize);
-    var outBytes = entry.compMethod===0 ? raw : await inflateRaw(raw);
-    return new TextDecoder('utf-8').decode(outBytes);
+    return entry.compMethod===0 ? raw : await inflateRaw(raw);
+  }
+  async function readZipEntry(buf, entry){
+    return new TextDecoder('utf-8').decode(await getEntryBytes(buf, entry));
   }
   function colLetterToIndex(ref){
     var m = ref.match(/^[A-Z]+/); if(!m) return 0;
@@ -2529,36 +2533,58 @@ window.addEventListener('resize', ()=>{
   var REF_RE = /\br="([A-Z]+)\d+"/;
   var TYPE_RE = /\bt="([a-zA-Z]+)"/;
   var V_RE = /<v[^>]*>([\s\S]*?)<\/v>/;
-  function parseSheetRows(xmlText, sharedStrings){
-    var rows = [];
-    ROW_RE.lastIndex = 0;
-    var rowMatch;
-    while ((rowMatch = ROW_RE.exec(xmlText))){
-      var rowArr = [];
-      CELL_RE.lastIndex = 0;
-      var cellMatch, autoIdx = 0;
-      while ((cellMatch = CELL_RE.exec(rowMatch[1]))){
-        var attrs = cellMatch[1], inner = cellMatch[2] || '';
-        var refM = attrs.match(REF_RE);
-        var idx = refM ? colLetterToIndex(refM[1]) : autoIdx;
-        autoIdx = idx + 1;
-        var typeM = attrs.match(TYPE_RE);
-        var t = typeM ? typeM[1] : 'n', val = null;
-        if (t === 's'){
-          var vM = inner.match(V_RE);
-          if (vM){ var si = parseInt(vM[1],10); val = sharedStrings[si] !== undefined ? sharedStrings[si] : ''; }
-        } else if (t === 'inlineStr'){
-          val = extractAllText(inner);
-        } else if (t === 'str'){
-          var vM2 = inner.match(V_RE); val = vM2 ? decodeXmlEntities(vM2[1]) : '';
-        } else if (t === 'b'){
-          var vM3 = inner.match(V_RE); val = vM3 ? (vM3[1] === '1') : false;
-        } else if (t !== 'e'){
-          var vM4 = inner.match(V_RE); val = vM4 ? parseFloat(vM4[1]) : null;
-        }
-        rowArr[idx] = val;
+  function parseOneRowCells(rowInner, sharedStrings){
+    var rowArr = [];
+    CELL_RE.lastIndex = 0;
+    var cellMatch, autoIdx = 0;
+    while ((cellMatch = CELL_RE.exec(rowInner))){
+      var attrs = cellMatch[1], inner = cellMatch[2] || '';
+      var refM = attrs.match(REF_RE);
+      var idx = refM ? colLetterToIndex(refM[1]) : autoIdx;
+      autoIdx = idx + 1;
+      var typeM = attrs.match(TYPE_RE);
+      var t = typeM ? typeM[1] : 'n', val = null;
+      if (t === 's'){
+        var vM = inner.match(V_RE);
+        if (vM){ var si = parseInt(vM[1],10); val = sharedStrings[si] !== undefined ? sharedStrings[si] : ''; }
+      } else if (t === 'inlineStr'){
+        val = extractAllText(inner);
+      } else if (t === 'str'){
+        var vM2 = inner.match(V_RE); val = vM2 ? decodeXmlEntities(vM2[1]) : '';
+      } else if (t === 'b'){
+        var vM3 = inner.match(V_RE); val = vM3 ? (vM3[1] === '1') : false;
+      } else if (t !== 'e'){
+        var vM4 = inner.match(V_RE); val = vM4 ? parseFloat(vM4[1]) : null;
       }
-      rows.push(rowArr);
+      rowArr[idx] = val;
+    }
+    return rowArr;
+  }
+  // Decodifica e casa as linhas aos POUCOS (pedacos de ~48MB), nunca montando o XML inteiro
+  // numa unica string — abas como "FAD_FIA & RATEIO" (363 mil linhas) descomprimem pra mais de
+  // meio GB de XML, e tentar decodificar/concatenar isso tudo numa string so estoura o limite de
+  // tamanho de string do motor JS (RangeError "Invalid string length", silencioso em alguns
+  // casos: o decode() nao da erro, simplesmente devolve string vazia) — foi o que causou o falso
+  // positivo "colunas F/O mudou" depois que o usuario aumentou essa aba em 01/10/2026; nao era a
+  // coluna que tinha mudado, o arquivo so cresceu o bastante pra bater nesse limite. Cada pedaco
+  // decodificado pode terminar no meio de uma linha "<row>"; o resto incompleto ("carry") fica
+  // guardado e e prefixado no proximo pedaco antes de procurar "<row>...</row>" de novo.
+  function parseSheetRows(outBytes, sharedStrings){
+    var CHUNK = 48 * 1024 * 1024;
+    var dec = new TextDecoder('utf-8');
+    var rows = [];
+    var carry = '';
+    for (var i = 0; i < outBytes.length; i += CHUNK){
+      var slice = outBytes.subarray(i, Math.min(i + CHUNK, outBytes.length));
+      var isLast = (i + CHUNK) >= outBytes.length;
+      var text = carry + dec.decode(slice, { stream: !isLast });
+      ROW_RE.lastIndex = 0;
+      var rowMatch, lastEnd = 0;
+      while ((rowMatch = ROW_RE.exec(text))){
+        rows.push(parseOneRowCells(rowMatch[1], sharedStrings));
+        lastEnd = ROW_RE.lastIndex;
+      }
+      carry = text.slice(lastEnd);
     }
     return rows;
   }
@@ -2598,8 +2624,8 @@ window.addEventListener('resize', ()=>{
       var target = ridToTarget[rid];
       var path = target.indexOf('/')===0 ? target.slice(1) : 'xl/'+target.replace(/^\.\//,'');
       if (!byName[path]) throw new Error('Aba "'+match.getAttribute('name')+'" não encontrada dentro do arquivo.');
-      var xml = await readZipEntry(buf, byName[path]);
-      result[key] = { sheetName: match.getAttribute('name'), rows: parseSheetRows(xml, sharedStrings) };
+      var sheetBytes = await getEntryBytes(buf, byName[path]);
+      result[key] = { sheetName: match.getAttribute('name'), rows: parseSheetRows(sheetBytes, sharedStrings) };
     }
     return result;
   }
