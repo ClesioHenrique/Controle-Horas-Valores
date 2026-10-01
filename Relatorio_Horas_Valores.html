@@ -162,6 +162,10 @@ table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fi
 .mpr-barbg{flex:1 1 auto;background:var(--navy-100);border-radius:4px;height:8px;overflow:hidden;}
 .mpr-bar{height:100%;border-radius:4px;}
 .mpr-val{flex:0 0 auto;font-size:10px;color:var(--text-muted);white-space:nowrap;}
+.mpr-os{font-size:9.5px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mail-name{cursor:pointer;}
+.mail-name:hover{text-decoration:underline;}
+td .mail-name{color:inherit;}
 .mpr-more{font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;}
 body.printing .mobile-pend-layout{display:flex !important;}
 body.printing .mobile-pend-ranking{flex:0 0 190px !important;padding:8px 10px !important;}
@@ -1290,7 +1294,8 @@ function renderMobilePendenteHTML(){
     months.map(m=>'<th class="ft-band">'+esc(m)+'</th>').join('')+'<th class="ft-band">Total Geral</th></tr><tr>'+
     months.map(()=>'<th class="ft-sub">HH</th>').join('')+'<th class="ft-sub">HH</th></tr>';
   list.forEach(g=>{
-    html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-papel="'+esc(g.papel)+'" data-aprovador="'+esc(g.aprovador)+'" title="Clique: lista as RDCs (Data, RDC, Encarregado, OS, Empresa, HH) · Duplo clique: extrai agrupado por OS"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.papel)+'</td><td class="ft-resp">'+esc(g.aprovador)+'</td>'+
+    html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-papel="'+esc(g.papel)+'" data-aprovador="'+esc(g.aprovador)+'" title="Clique: lista as RDCs (Data, RDC, Encarregado, OS, Empresa, HH) · Duplo clique: extrai agrupado por OS"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.papel)+'</td><td class="ft-resp">'+
+      '<span class="mail-name" data-proj="'+esc(g.projeto)+'" data-papel="'+esc(g.papel)+'" data-aprovador="'+esc(g.aprovador)+'" title="Clique para abrir um e-mail com o resumo das OS pendentes desta pessoa">&#9993; '+esc(g.aprovador)+'</span></td>'+
       months.map(m=>'<td class="num">'+fmtInt(g.m[m]||0)+'</td>').join('')+
       '<td class="num">'+fmtInt(g.hh)+'</td></tr>';
   });
@@ -1298,13 +1303,29 @@ function renderMobilePendenteHTML(){
     months.map(m=>'<td class="num">'+fmtInt(tot.m[m])+'</td>').join('')+
     '<td class="num ft-geral">'+fmtInt(tot.hh)+'</td></tr>';
   html += '</table></div>';
-  html += renderMobilePendenteRankingHTML(list);
+  html += renderMobilePendenteRankingHTML(list, rows);
   html += '</div></div>';
   return html;
 }
 // Ranking visual (barras) de quem tem mais HH pendente — pedido do usuario em 30/09/2026 pra
 // bater o olho sem precisar ler a tabela inteira. "list" ja vem ordenada do maior pro menor.
-function renderMobilePendenteRankingHTML(list){
+// Linha compacta abaixo do nome/barra no ranking, com o HH agrupado por OS daquela pessoa —
+// pedido do usuario em 01/10/2026, pra ver de relance sem precisar abrir o modal de duplo clique.
+function renderMobilePendOsLine(rows, g){
+  const mine = rows.filter(r=>r.projeto===g.projeto && r.papel===g.papel && r.aprovador===g.aprovador);
+  const byOS = new Map();
+  mine.forEach(r=>{
+    const key = r.os || '(sem OS)';
+    byOS.set(key, (byOS.get(key)||0) + r.hh);
+  });
+  const osList = Array.from(byOS.entries()).sort((a,b)=>b[1]-a[1]);
+  if (!osList.length) return '';
+  const shown = osList.slice(0,3).map(([os,hh])=>esc(os)+': '+fmtInt(hh)+'h').join(' · ');
+  const more = osList.length>3 ? ' +'+(osList.length-3)+' OS' : '';
+  const full = osList.map(([os,hh])=>esc(os)+': '+fmtInt(hh)+'h').join(' · ');
+  return '<div class="mpr-os" title="'+full+'">'+shown+more+'</div>';
+}
+function renderMobilePendenteRankingHTML(list, rows){
   const top = list.slice(0, 8);
   const max = top.length ? top[0].hh : 0;
   const totalGeral = list.reduce((s,g)=>s+g.hh, 0); // % de cada um sobre o total de todos (nao so o top 8)
@@ -1327,10 +1348,12 @@ function renderMobilePendenteRankingHTML(list){
     // das linhas da tabela ao lado (pedido do usuario em 30/09/2026, "nivelar")
     html += '<div class="mpr-row">'+
       '<div class="mpr-rank">'+(i+1)+'&ordm;</div>'+
-      '<div class="mpr-body"><div class="mpr-name" title="'+esc(g.aprovador)+' ('+esc(g.projeto)+' — '+esc(g.papel)+')">'+
-      '<span class="mpr-name-text">'+esc(g.aprovador)+'</span><span class="mpr-pct" style="color:'+color+'">'+share+'</span></div>'+
+      '<div class="mpr-body"><div class="mpr-name">'+
+      '<span class="mpr-name-text mail-name" data-proj="'+esc(g.projeto)+'" data-papel="'+esc(g.papel)+'" data-aprovador="'+esc(g.aprovador)+'" title="'+esc(g.aprovador)+' ('+esc(g.projeto)+' — '+esc(g.papel)+') — clique para abrir um e-mail com o resumo das OS pendentes">&#9993; '+esc(g.aprovador)+'</span><span class="mpr-pct" style="color:'+color+'">'+share+'</span></div>'+
       '<div class="mpr-barrow"><div class="mpr-barbg"><div class="mpr-bar" style="width:'+barPct+'%;background:'+color+'"></div></div>'+
-      '<div class="mpr-val">'+fmtInt(g.hh)+' HH</div></div></div></div>';
+      '<div class="mpr-val">'+fmtInt(g.hh)+' HH</div></div>'+
+      renderMobilePendOsLine(rows, g)+
+      '</div></div>';
   });
   if (list.length > top.length) html += '<div class="mpr-more">+ '+(list.length-top.length)+' aprovador(es) com menos pendência</div>';
   html += '</div>';
@@ -1397,6 +1420,40 @@ function openMobilePendenteByOSModal(proj, papel, aprovador){
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
+
+// Clique no nome (tabela ou ranking) abre o app de e-mail padrao com assunto/corpo ja prontos,
+// resumindo as OS pendentes daquela pessoa — pedido do usuario em 01/10/2026. So gera o rascunho
+// (destinatario fica em branco pra voce preencher): nao temos o e-mail de cada aprovador na base.
+function openMobilePendMailto(proj, papel, aprovador){
+  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador && DISPLAY_MONTHS.includes(r.mesano));
+  const groups = new Map();
+  rows.forEach(r=>{
+    const key = r.os || '(sem OS)';
+    let g = groups.get(key);
+    if (!g) { g = { os:key, hh:0, qtd:0 }; groups.set(key,g); }
+    g.hh += r.hh; g.qtd += 1;
+  });
+  const list = Array.from(groups.values()).sort((a,b)=> b.hh - a.hh);
+  const totHH = list.reduce((s,g)=>s+g.hh,0);
+  const periodo = DISPLAY_MONTHS.join(', ');
+  const subject = 'Pendências de aprovação (RDC_Mobile) — '+aprovador+' — '+periodo;
+  const linhas = list.length
+    ? list.map(g=>'- OS '+g.os+': '+g.qtd+' RDC(s) — '+fmtInt(g.hh)+' HH').join('\n')
+    : '(nenhuma pendência no período selecionado)';
+  const body = 'Prezado(a) '+aprovador+',\n\n'+
+    'Segue o resumo das pendências de aprovação no SGE Mobile ('+papel+'), projeto '+proj+', referente a '+periodo+':\n\n'+
+    linhas+'\n\n'+
+    'Total: '+fmtInt(totHH)+' HH em '+list.length+' OS.\n\n'+
+    'Por favor, regularizar as aprovações pendentes.\n\nAtenciosamente,';
+  const mailto = 'mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  const a = document.createElement('a');
+  a.href = mailto; a.style.display = 'none';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+document.getElementById('content').addEventListener('click', e=>{
+  const mn = e.target.closest('.mail-name');
+  if (mn){ e.stopPropagation(); openMobilePendMailto(mn.dataset.proj, mn.dataset.papel, mn.dataset.aprovador); return; }
+}, true); // captura, pra rodar antes do listener de clique na linha (tr.rdc-row) e nao abrir os dois modais junto
 
 let lastChartData = null;
 function render(){
