@@ -404,7 +404,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
     <button type="button" class="if-toggle frs-hidden-active" id="btn-toggle-rank-export">&#128202; Ranking na impressão/cópia: <span id="rank-export-label">sim</span></button>
     <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
-    <button type="button" class="if-toggle" id="btn-copy-image">&#128203; Copiar imagem (aba atual)</button>
+    <button type="button" class="if-toggle" id="btn-copy-image" title="Copia o resumo da aba atual como imagem nítida (pra colar em e-mail/WhatsApp)">&#128247; Copiar imagem (aba atual)</button>
   </div>
 </div>
 <div class="app">
@@ -2348,10 +2348,19 @@ async function copyCurrentTabAsImage(){
     const MM2PX = 96/25.4;
     const pageW = (297 - 12) * MM2PX;
     const pageEl = container.querySelector('.print-page');
+    const pageFitEl = container.querySelector('.print-page-fit');
     pageEl.style.width = pageW + 'px';
     pageEl.style.overflow = 'visible';
-    container.querySelector('.print-page-fit').style.width = pageW + 'px';
-    const canvas = await html2canvas(pageEl, { scale: 3, backgroundColor: '#ffffff' });
+    pageFitEl.style.width = pageW + 'px';
+    // Com "Ranking: ao lado da tabela" ligado o conteudo pode precisar de mais largura que a
+    // pagina A4 (o ranking fica ao lado, nao embaixo) — o html2canvas so captura o que cabe na
+    // LARGURA DECLARADA do elemento, entao o ranking saia cortado fora da imagem mesmo com
+    // "overflow:visible" (pedido do usuario em 01/10/2026 pra corrigir). Mede a largura real
+    // necessaria (scrollWidth ja inclui esse overflow) e alarga a pagina pra caber tudo, sem
+    // nunca deixar mais estreita que o A4 original.
+    const neededW = Math.max(pageW, pageEl.scrollWidth, pageFitEl.scrollWidth);
+    if (neededW > pageW){ pageEl.style.width = neededW + 'px'; pageFitEl.style.width = neededW + 'px'; }
+    const canvas = await html2canvas(pageEl, { scale: 3, backgroundColor: '#ffffff', width: pageEl.scrollWidth, windowWidth: pageEl.scrollWidth });
     const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
