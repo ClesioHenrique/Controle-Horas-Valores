@@ -396,6 +396,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
       <div class="mf-panel" id="mobilepapel-panel"></div>
     </div>
     <button type="button" class="if-toggle" id="btn-toggle-rank-side">&#128202; Ranking: <span id="rank-side-label">abaixo da tabela</span></button>
+    <button type="button" class="if-toggle frs-hidden-active" id="btn-toggle-rank-export">&#128202; Ranking na impressão/cópia: <span id="rank-export-label">sim</span></button>
     <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
     <button type="button" class="if-toggle" id="btn-copy-image">&#128203; Copiar imagem (aba atual)</button>
@@ -1010,7 +1011,8 @@ function renderFiscalDetailHTML(proj){
     atualHH: getSavedColWidth(tblKey,'atualHH')||90, atualRS: getSavedColWidth(tblKey,'atualRS')||110,
     totalHH: getSavedColWidth(tblKey,'totalHH')||90, totalRS: getSavedColWidth(tblKey,'totalRS')||110
   };
-  html += '<div class="ranked-layout"><div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="'+tblKey+'">';
+  const includeRanking = !(EXPORT_CONTEXT && !SHOW_RANKING_IN_EXPORT);
+  html += (includeRanking?'<div class="ranked-layout">':'')+'<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="'+tblKey+'">';
   html += '<colgroup>'+(proj==='GERAL'?'<col style="width:'+fdW.projeto+'px">':'')+'<col style="width:'+fdW.resp+'px">'+
     '<col style="width:'+fdW.antHH+'px"><col style="width:'+fdW.antRS+'px"><col style="width:'+fdW.atualHH+'px"><col style="width:'+fdW.atualRS+'px"><col style="width:'+fdW.totalHH+'px"><col style="width:'+fdW.totalRS+'px"></colgroup>';
   html += '<tr>'+(proj==='GERAL'?'<th class="ft-band" rowspan="2">Projeto</th>':'')+
@@ -1041,8 +1043,8 @@ function renderFiscalDetailHTML(proj){
     label: proj==='GERAL' ? g.fiscal+' ('+g.projeto+')' : g.fiscal,
     value: g.ant.rs+g.atual.rs
   }));
-  html += renderRankingCardHTML('Ranking — quem mais tem pendência (R$)', ranking, v=>'R$ '+fmtBRL(v));
-  html += '</div></div>';
+  if (includeRanking) html += renderRankingCardHTML('Ranking — quem mais tem pendência (R$)', ranking, v=>'R$ '+fmtBRL(v));
+  html += (includeRanking?'</div>':'')+'</div>';
   return html;
 }
 
@@ -1332,7 +1334,8 @@ function renderRdcHTML(){
     monthRS: getSavedColWidth('rdc-tbl','monthRS')||100, totalHH: getSavedColWidth('rdc-tbl','totalHH')||80,
     totalRS: getSavedColWidth('rdc-tbl','totalRS')||110
   };
-  html += '<div class="ranked-layout"><div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="rdc-tbl">';
+  const includeRanking = !(EXPORT_CONTEXT && !SHOW_RANKING_IN_EXPORT);
+  html += (includeRanking?'<div class="ranked-layout">':'')+'<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="rdc-tbl">';
   html += '<colgroup><col style="width:'+rdcW.projeto+'px"><col style="width:'+rdcW.lider+'px"><col style="width:'+rdcW.fiscal+'px">'+
     months.map(()=>'<col style="width:'+rdcW.monthHH+'px"><col style="width:'+rdcW.monthRS+'px">').join('')+
     '<col style="width:'+rdcW.totalHH+'px"><col style="width:'+rdcW.totalRS+'px"></colgroup>';
@@ -1359,8 +1362,8 @@ function renderRdcHTML(){
     f.value += r.rs;
   });
   const fiscalRanking = Array.from(fiscalAgg.values()).sort((a,b)=>b.value-a.value);
-  html += renderRankingCardHTML('Ranking — quem mais tem pendência (R$)', fiscalRanking, v=>'R$ '+fmtBRL(v));
-  html += '</div></div>';
+  if (includeRanking) html += renderRankingCardHTML('Ranking — quem mais tem pendência (R$)', fiscalRanking, v=>'R$ '+fmtBRL(v));
+  html += (includeRanking?'</div>':'')+'</div>';
   return html;
 }
 function renderRdcKpiStrip(){
@@ -1403,7 +1406,8 @@ function renderMobilePendenteHTML(){
     aprovador: getSavedColWidth('mobile-pend-tbl','aprovador')||275, month: getSavedColWidth('mobile-pend-tbl','month')||80,
     total: getSavedColWidth('mobile-pend-tbl','total')||96
   };
-  html += '<div class="mobile-pend-layout"><div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="mobile-pend-tbl">';
+  const includeRanking = !(EXPORT_CONTEXT && !SHOW_RANKING_IN_EXPORT);
+  html += (includeRanking?'<div class="mobile-pend-layout">':'')+'<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="mobile-pend-tbl">';
   // "Papel aprovador" e sempre um texto curto ("Fiscal"): encolhida pra sobrar espaco pra
   // "Aprovador pendente" nao quebrar o nome em duas linhas (ex.: "Weslei Fortunato De Oliveira")
   html += '<colgroup><col style="width:'+mpW.projeto+'px"><col style="width:'+mpW.papel+'px"><col style="width:'+mpW.aprovador+'px">'+
@@ -1421,8 +1425,8 @@ function renderMobilePendenteHTML(){
     months.map(m=>'<td class="num">'+fmtInt(tot.m[m])+'</td>').join('')+
     '<td class="num ft-geral">'+fmtInt(tot.hh)+'</td></tr>';
   html += '</table></div>';
-  html += renderMobilePendenteRankingHTML(list, rows);
-  html += '</div></div>';
+  if (includeRanking) html += renderMobilePendenteRankingHTML(list, rows);
+  html += (includeRanking?'</div>':'')+'</div>';
   return html;
 }
 // Ranking visual (barras) de quem tem mais HH pendente — pedido do usuario em 30/09/2026 pra
@@ -2239,6 +2243,7 @@ function exportPDF(){
   const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
   const pageData = {};
+  EXPORT_CONTEXT = true;
   // sem o titulo amarelo (print-proj-title): a propria tabela ja traz o cabecalho "Pendencias — RDC nao esta aprovada"
   const rdcPage = '<div class="print-page"><div class="print-page-fit">'+renderRdcHTML()+renderFreeNoteHTML('RDC')+'</div></div>';
   const mobilePage = '<div class="print-page"><div class="print-page-fit">'+renderMobilePendenteHTML()+renderFreeNoteHTML('MOBILE_PENDENTE')+'</div></div>';
@@ -2253,6 +2258,7 @@ function exportPDF(){
       renderTableHTML(pageData[p], true) + renderFiscalDetailHTML(p) + renderFreeNoteHTML(p) + renderFrsEmitidasHTML(p) +
       '</div></div>';
   }).join('') + rdcPage + mobilePage;
+  EXPORT_CONTEXT = false;
   if (INCLUDE_CHARTS_IN_PRINT){
     projs.forEach(p => renderChartsPanel(p, pageData[p], 'print-'+p+'-'));
   }
@@ -2321,11 +2327,13 @@ async function copyCurrentTabAsImage(){
   btn.textContent = '⏳ Gerando imagem...';
   const container = document.getElementById('print-content');
   try {
+    EXPORT_CONTEXT = true;
     container.innerHTML = '<div class="print-page"><div class="print-page-fit"> ' +
       (proj==='RDC' ? renderRdcHTML() + renderFreeNoteHTML(proj) :
         proj==='MOBILE_PENDENTE' ? renderMobilePendenteHTML() + renderFreeNoteHTML(proj) :
         renderTableHTML(buildTable(proj), true) + renderFiscalDetailHTML(proj) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj)) +
       '</div></div>';
+    EXPORT_CONTEXT = false;
     document.body.classList.add('printing');
     // Nao usa fitPrintPagesToOnePage() aqui: essa funcao usa "zoom" (necessario pra impressao
     // real respeitar o encaixe numa pagina), mas o html2canvas nao interpreta "zoom" direito —
@@ -2397,6 +2405,25 @@ document.getElementById('btn-toggle-rank-side').addEventListener('click', ()=>{
   RANK_SIDE_BY_SIDE = !RANK_SIDE_BY_SIDE;
   try { localStorage.setItem('rankSideBySide', RANK_SIDE_BY_SIDE ? '1' : '0'); } catch(e){}
   applyRankSideClass();
+});
+// "Ranking na impressão/cópia: sim/não" — pedido do usuario em 01/10/2026, separado do botao de
+// POSICAO (ao lado/abaixo) acima: esse aqui controla se o card de ranking entra ou nao no PDF/
+// imagem copiada, independente de como ele aparece na tela. "EXPORT_CONTEXT" fica true so durante
+// a montagem do HTML de exportacao (exportPDF/copyCurrentTabAsImage), pra renderFiscalDetailHTML/
+// renderRdcHTML/renderMobilePendenteHTML saberem se devem pular o card nessa chamada especifica —
+// na tela (render() normal) EXPORT_CONTEXT fica sempre false, entao o ranking sempre aparece.
+let EXPORT_CONTEXT = false;
+let SHOW_RANKING_IN_EXPORT = true;
+try { const v = localStorage.getItem('rankInExport'); if (v!==null) SHOW_RANKING_IN_EXPORT = v === '1'; } catch(e){}
+function applyRankExportLabel(){
+  document.getElementById('rank-export-label').textContent = SHOW_RANKING_IN_EXPORT ? 'sim' : 'não';
+  document.getElementById('btn-toggle-rank-export').classList.toggle('frs-hidden-active', SHOW_RANKING_IN_EXPORT);
+}
+applyRankExportLabel();
+document.getElementById('btn-toggle-rank-export').addEventListener('click', ()=>{
+  SHOW_RANKING_IN_EXPORT = !SHOW_RANKING_IN_EXPORT;
+  try { localStorage.setItem('rankInExport', SHOW_RANKING_IN_EXPORT ? '1' : '0'); } catch(e){}
+  applyRankExportLabel();
 });
 let INCLUDE_CHARTS_IN_PRINT = false;
 document.getElementById('btn-toggle-print-charts').addEventListener('click', ()=>{
