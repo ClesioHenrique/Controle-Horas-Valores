@@ -1290,7 +1290,7 @@ function renderMobilePendenteHTML(){
     months.map(m=>'<th class="ft-band">'+esc(m)+'</th>').join('')+'<th class="ft-band">Total Geral</th></tr><tr>'+
     months.map(()=>'<th class="ft-sub">HH</th>').join('')+'<th class="ft-sub">HH</th></tr>';
   list.forEach(g=>{
-    html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-papel="'+esc(g.papel)+'" data-aprovador="'+esc(g.aprovador)+'" title="Clique para ver as RDCs (Data, RDC, Encarregado, OS, Empresa, HH)"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.papel)+'</td><td class="ft-resp">'+esc(g.aprovador)+'</td>'+
+    html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-papel="'+esc(g.papel)+'" data-aprovador="'+esc(g.aprovador)+'" title="Clique: lista as RDCs (Data, RDC, Encarregado, OS, Empresa, HH) · Duplo clique: extrai agrupado por OS"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.papel)+'</td><td class="ft-resp">'+esc(g.aprovador)+'</td>'+
       months.map(m=>'<td class="num">'+fmtInt(g.m[m]||0)+'</td>').join('')+
       '<td class="num">'+fmtInt(g.hh)+'</td></tr>';
   });
@@ -1363,6 +1363,36 @@ function openMobilePendenteModal(proj, papel, aprovador){
       body += '<tr><td>'+esc(r.mesano)+'</td><td>'+esc(r.dataRef)+'</td><td>'+esc(r.rdc)+'</td><td>'+esc(r.encarregado)+'</td><td>'+esc(r.os)+'</td><td>'+esc(r.empresa)+'</td><td class="num">'+fmtInt(r.hh)+'</td></tr>';
     });
     body += '<tr class="fa-total"><td colspan="2">Total ('+rows.length+')</td><td></td><td></td><td></td><td></td><td class="num">'+fmtInt(totHH)+'</td></tr></table>';
+  }
+  document.getElementById('fa-modal-body').innerHTML = body;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+}
+// Duplo-clique na mesma linha: em vez de listar RDC por RDC, agrupa por "OS / Entregável"
+// (soma HH, conta RDCs e lista os numeros) — pedido do usuario em 01/10/2026, "extrair por OS".
+function openMobilePendenteByOSModal(proj, papel, aprovador){
+  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador && DISPLAY_MONTHS.includes(r.mesano));
+  document.getElementById('fa-modal-title').textContent = 'Pendente Aprovação Fiscalização — extração por OS';
+  document.getElementById('fa-modal-sub').textContent = proj+' — Papel: '+papel+' | Aprovador: '+aprovador;
+  let body = '';
+  if (!rows.length){
+    body = '<div class="fiscal-empty">Nenhuma linha encontrada.</div>';
+  } else {
+    const groups = new Map();
+    rows.forEach(r=>{
+      const key = r.os || '(sem OS)';
+      let g = groups.get(key);
+      if (!g) { g = { os:key, hh:0, rdcs:[] }; groups.set(key,g); }
+      g.hh += r.hh; g.rdcs.push(r.rdc);
+    });
+    const list = Array.from(groups.values()).sort((a,b)=> b.hh - a.hh);
+    let totHH = 0, totQtd = 0;
+    body = '<table><tr><th>OS / Entregável</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th></tr>';
+    list.forEach(g=>{
+      totHH += g.hh; totQtd += g.rdcs.length;
+      const rdcTxt = g.rdcs.length<=6 ? g.rdcs.join(', ') : g.rdcs.slice(0,6).join(', ')+' (+'+(g.rdcs.length-6)+' mais)';
+      body += '<tr><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(g.rdcs.join(', '))+'">'+esc(rdcTxt)+'</td><td class="num">'+fmtInt(g.hh)+'</td></tr>';
+    });
+    body += '<tr class="fa-total"><td>Total ('+list.length+' OS)</td><td class="num">'+totQtd+'</td><td></td><td class="num">'+fmtInt(totHH)+'</td></tr></table>';
   }
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
@@ -1866,6 +1896,13 @@ function openFaModal(kind, proj, col){
 }
 function closeFaModal(){ document.getElementById('fa-modal-backdrop').classList.remove('open'); }
 document.getElementById('content').addEventListener('dblclick', e=>{
+  // linha da aba "Pendente Aprovação Fiscalização": duplo clique extrai agrupado por OS, em vez
+  // de listar RDC por RDC (que e o que o clique simples ja faz)
+  const rdcTr = e.target.closest('tr.rdc-row');
+  if (rdcTr && rdcTr.dataset.papel!==undefined){
+    openMobilePendenteByOSModal(rdcTr.dataset.proj, rdcTr.dataset.papel, rdcTr.dataset.aprovador);
+    return;
+  }
   const td = e.target.closest('td.fa-detail');
   if (!td) return;
   if (td.dataset.frsTipo){ openFrsModal(td.dataset.frsProj, td.dataset.frsTipo); return; }
