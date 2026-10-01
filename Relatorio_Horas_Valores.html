@@ -2360,7 +2360,16 @@ async function copyCurrentTabAsImage(){
     // nunca deixar mais estreita que o A4 original.
     const neededW = Math.max(pageW, pageEl.scrollWidth, pageFitEl.scrollWidth);
     if (neededW > pageW){ pageEl.style.width = neededW + 'px'; pageFitEl.style.width = neededW + 'px'; }
-    const canvas = await html2canvas(pageEl, { scale: 3, backgroundColor: '#ffffff', width: pageEl.scrollWidth, windowWidth: pageEl.scrollWidth });
+    // Largura final (em pixels) igual pra qualquer aba — pedido do usuario em 01/10/2026: cada
+    // resumo tinha uma largura de conteudo diferente (GERAL bem mais largo que RDC, por ex.) e,
+    // com "scale" fixo em 3x, saiam imagens de tamanhos bem diferentes ao colar uma embaixo da
+    // outra num e-mail, e os maiores pesavam demais. Em vez de escala fixa, calcula a escala
+    // NECESSARIA pra sempre chegar nessa mesma largura final, não importa a largura natural do
+    // conteudo — mais estreito que isso escala pra cima (continua nitido), mais largo escala pra
+    // baixo (fica mais leve) — e todas saem do mesmo tamanho, prontas pra colar em sequencia.
+    const TARGET_PX_WIDTH = 1400;
+    const scale = Math.min(4, Math.max(1, TARGET_PX_WIDTH / pageEl.scrollWidth));
+    const canvas = await html2canvas(pageEl, { scale, backgroundColor: '#ffffff', width: pageEl.scrollWidth, windowWidth: pageEl.scrollWidth });
     const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
