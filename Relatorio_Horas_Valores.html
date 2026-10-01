@@ -206,6 +206,12 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 .fa-modal tr.fa-comp-row{cursor:pointer;}
 .fa-modal tr.fa-comp-row:hover td{background:#eaf3fb;}
 .fa-modal-close{float:right;border:none;background:none;font-size:18px;cursor:pointer;color:var(--text-muted);line-height:1;}
+/* botao "camera" no modal: copia o resumo aberto como imagem nitida (html2canvas em escala 3x),
+   pra colar em e-mail/WhatsApp sem o borrado de um print de tela comum — pedido do usuario em
+   01/10/2026. Fica junto do X, e some da propria captura (igual o .fa-modal-close). */
+.fa-modal-camera{float:right;border:none;background:none;font-size:16px;cursor:pointer;color:var(--text-muted);line-height:1;margin-right:10px;padding:0;}
+.fa-modal-camera:hover{color:var(--navy);}
+.fa-modal-camera.busy{cursor:wait;opacity:.6;}
 @media (max-width: 400px){
   .fa-modal{padding:14px 10px;width:96vw;}
   .fa-modal table{font-size:11px;}
@@ -363,6 +369,7 @@ body.printing .fa-sub{margin-bottom:2px !important;}
   <div class="fa-modal-backdrop" id="fa-modal-backdrop">
     <div class="fa-modal" id="fa-modal-box">
       <button type="button" class="fa-modal-close" id="fa-modal-close">&times;</button>
+      <button type="button" class="fa-modal-camera" id="fa-modal-camera" title="Copiar este resumo como imagem nítida (pra colar em e-mail/WhatsApp)">&#128247;</button>
       <h4 id="fa-modal-title"></h4>
       <div class="fa-sub" id="fa-modal-sub"></div>
       <div id="fa-modal-body"></div>
@@ -1953,6 +1960,46 @@ document.getElementById('content').addEventListener('click', e=>{
   openPendAprovModal(td.dataset.proj, td.dataset.col);
 });
 document.getElementById('fa-modal-close').addEventListener('click', closeFaModal);
+// Copia o conteudo do modal aberto (qualquer um — RDC, Pendente Aprovação Fiscalização, FR'S
+// etc.) como imagem nitida, em escala 3x, igual ao "Copiar imagem" da aba inteira — pedido do
+// usuario em 01/10/2026 ("tipo uma camera fotografica pra apertar").
+async function copyModalAsImage(){
+  const btn = document.getElementById('fa-modal-camera');
+  const box = document.getElementById('fa-modal-box');
+  if (btn.classList.contains('busy')) return;
+  const origIcon = btn.innerHTML;
+  btn.classList.add('busy'); btn.innerHTML = '&#8987;';
+  // mostra o conteudo inteiro na captura, mesmo que o modal na tela esteja com scroll (max-height/
+  // overflow:auto) — senao so sai o pedaco visivel
+  const prevMaxH = box.style.maxHeight, prevOverflow = box.style.overflow;
+  box.style.maxHeight = 'none'; box.style.overflow = 'visible';
+  document.getElementById('fa-modal-close').style.visibility = 'hidden';
+  btn.style.visibility = 'hidden';
+  try {
+    const canvas = await html2canvas(box, { scale: 3, backgroundColor: '#ffffff' });
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      btn.innerHTML = '&#9989;';
+    } catch(clipErr){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'Resumo.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      btn.innerHTML = '&#128190;';
+    }
+  } catch(err){
+    console.error(err);
+    btn.innerHTML = '&#10060;';
+  } finally {
+    box.style.maxHeight = prevMaxH; box.style.overflow = prevOverflow;
+    document.getElementById('fa-modal-close').style.visibility = '';
+    btn.style.visibility = '';
+    setTimeout(function(){ btn.innerHTML = origIcon; btn.classList.remove('busy'); }, 2500);
+  }
+}
+document.getElementById('fa-modal-camera').addEventListener('click', copyModalAsImage);
 document.getElementById('fa-modal-backdrop').addEventListener('click', e=>{
   if (e.target.id === 'fa-modal-backdrop') closeFaModal();
 });
