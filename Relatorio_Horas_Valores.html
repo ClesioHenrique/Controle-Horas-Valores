@@ -141,10 +141,10 @@ tr:hover td{filter:brightness(0.98);}
 table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fixed;}
 /* Ranking visual (barras) de quem tem mais HH pendente, ao lado da tabela de "Pendente
    Aprovação Fiscalização" — pedido do usuario em 30/09/2026. */
-.mobile-pend-layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+.mobile-pend-layout, .ranked-layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
 /* nao estica (flex:1 esticava a tabela pra preencher a tela toda, jogando o ranking la longe
    na ponta direita, com um vao enorme no meio — pedido do usuario em 30/09/2026 pra ficar colado) */
-.mobile-pend-layout .table-wrap{flex:0 0 auto;}
+.mobile-pend-layout .table-wrap, .ranked-layout .table-wrap{flex:0 0 auto;}
 .mobile-pend-ranking{flex:0 0 310px;min-width:260px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:14px 16px;}
 .mobile-pend-ranking h4{margin:0 0 8px;font-size:13px;color:var(--navy);}
 /* legenda da regra de cor por % do total (pedido do usuario em 30/09/2026) */
@@ -167,7 +167,7 @@ table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fi
 .os-name:hover{text-decoration:underline;}
 td .os-name{color:inherit;}
 .mpr-more{font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;}
-body.printing .mobile-pend-layout{display:flex !important;}
+body.printing .mobile-pend-layout, body.printing .ranked-layout{display:flex !important;}
 body.printing .mobile-pend-ranking{flex:0 0 190px !important;padding:8px 10px !important;}
 /* Colunas ajustaveis a mao (arrasta a beirada direita do cabecalho) nas tabelas "RDC não
    aprovada" e "Pendente Aprovação Fiscalização" — pedido do usuario em 28/09/2026. */
@@ -921,9 +921,20 @@ function renderFiscalDetailHTML(proj){
   const totAnt = {hh:0,rs:0}, totAtual = {hh:0,rs:0};
   list.forEach(g=>{ totAnt.hh+=g.ant.hh; totAnt.rs+=g.ant.rs; totAtual.hh+=g.atual.hh; totAtual.rs+=g.atual.rs; });
 
-  html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
-  html += '<colgroup>'+(proj==='GERAL'?'<col style="width:90px">':'')+'<col style="width:220px">'+
-    '<col style="width:90px"><col style="width:110px"><col style="width:90px"><col style="width:110px"><col style="width:90px"><col style="width:110px"></colgroup>';
+  // mesma condicao das tabelas RDC não aprovada / Pendente Aprovação Fiscalização: colunas
+  // ajustaveis na mao (largura salva por papel) — pedido do usuario em 01/10/2026. Tabela de
+  // GERAL e a de MOA/PCI tem numero de colunas diferente (com/sem "Projeto"), entao cada uma
+  // guarda sua propria largura salva (chave inclui o proj).
+  const tblKey = 'fiscal-detail-tbl-'+proj;
+  const fdW = {
+    projeto: getSavedColWidth(tblKey,'projeto')||90, resp: getSavedColWidth(tblKey,'resp')||220,
+    antHH: getSavedColWidth(tblKey,'antHH')||90, antRS: getSavedColWidth(tblKey,'antRS')||110,
+    atualHH: getSavedColWidth(tblKey,'atualHH')||90, atualRS: getSavedColWidth(tblKey,'atualRS')||110,
+    totalHH: getSavedColWidth(tblKey,'totalHH')||90, totalRS: getSavedColWidth(tblKey,'totalRS')||110
+  };
+  html += '<div class="ranked-layout"><div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="'+tblKey+'">';
+  html += '<colgroup>'+(proj==='GERAL'?'<col style="width:'+fdW.projeto+'px">':'')+'<col style="width:'+fdW.resp+'px">'+
+    '<col style="width:'+fdW.antHH+'px"><col style="width:'+fdW.antRS+'px"><col style="width:'+fdW.atualHH+'px"><col style="width:'+fdW.atualRS+'px"><col style="width:'+fdW.totalHH+'px"><col style="width:'+fdW.totalRS+'px"></colgroup>';
   html += '<tr>'+(proj==='GERAL'?'<th class="ft-band" rowspan="2">Projeto</th>':'')+
     '<th class="ft-band" rowspan="2">Responsável</th>'+
     '<th class="ft-band" colspan="2">Meses Anteriores</th>'+
@@ -944,7 +955,16 @@ function renderFiscalDetailHTML(proj){
     '<td class="num">'+fmtInt(totAnt.hh)+'</td><td class="num">'+fmtBRL(totAnt.rs)+'</td>'+
     '<td class="num">'+fmtInt(totAtual.hh)+'</td><td class="num">'+fmtBRL(totAtual.rs)+'</td>'+
     '<td class="num ft-geral">'+fmtInt(totGerHH)+'</td><td class="num ft-geral">'+fmtBRL(totGerRS)+'</td></tr>';
-  html += '</table></div></div>';
+  html += '</table></div>';
+  // Ranking por Responsável (R$ total, antes+mes atual) — mesma condicao (barras coloridas por
+  // % do total) ja usada em "Pendente Aprovação Fiscalização" e "RDC não aprovada", pedido do
+  // usuario em 01/10/2026.
+  const ranking = list.map(g=>({
+    label: proj==='GERAL' ? g.fiscal+' ('+g.projeto+')' : g.fiscal,
+    value: g.ant.rs+g.atual.rs
+  }));
+  html += renderRankingCardHTML('Ranking — quem mais tem pendência (R$)', ranking, v=>'R$ '+fmtBRL(v));
+  html += '</div></div>';
   return html;
 }
 
@@ -1234,7 +1254,7 @@ function renderRdcHTML(){
     monthRS: getSavedColWidth('rdc-tbl','monthRS')||100, totalHH: getSavedColWidth('rdc-tbl','totalHH')||80,
     totalRS: getSavedColWidth('rdc-tbl','totalRS')||110
   };
-  html += '<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="rdc-tbl">';
+  html += '<div class="ranked-layout"><div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="rdc-tbl">';
   html += '<colgroup><col style="width:'+rdcW.projeto+'px"><col style="width:'+rdcW.lider+'px"><col style="width:'+rdcW.fiscal+'px">'+
     months.map(()=>'<col style="width:'+rdcW.monthHH+'px"><col style="width:'+rdcW.monthRS+'px">').join('')+
     '<col style="width:'+rdcW.totalHH+'px"><col style="width:'+rdcW.totalRS+'px"></colgroup>';
@@ -1249,7 +1269,19 @@ function renderRdcHTML(){
   html += '<tr class="ft-total"><td></td><td class="ft-resp">Total Geral</td><td></td>'+
     months.map(m=>'<td class="num">'+fmtInt(tot.m[m].hh)+'</td><td class="num">'+fmtBRL(tot.m[m].rs)+'</td>').join('')+
     '<td class="num ft-geral">'+fmtInt(tot.hh)+'</td><td class="num ft-geral">'+fmtBRL(tot.rs)+'</td></tr>';
-  html += '</table></div></div>';
+  html += '</table></div>';
+  // Ranking por Fiscal (soma R$ de todos os lideres/meses selecionados) — mesma condicao visual
+  // (barras coloridas por % do total) ja usada em "Pendente Aprovação Fiscalização", pedido do
+  // usuario em 01/10/2026 pra aplicar aqui tambem.
+  const fiscalAgg = new Map();
+  rows.forEach(r=>{
+    let f = fiscalAgg.get(r.fiscal);
+    if (!f){ f = { label:r.fiscal, value:0 }; fiscalAgg.set(r.fiscal,f); }
+    f.value += r.rs;
+  });
+  const fiscalRanking = Array.from(fiscalAgg.values()).sort((a,b)=>b.value-a.value);
+  html += renderRankingCardHTML('Ranking — quem mais tem pendência (R$)', fiscalRanking, v=>'R$ '+fmtBRL(v));
+  html += '</div></div>';
   return html;
 }
 function renderRdcKpiStrip(){
@@ -1331,6 +1363,41 @@ function renderMobilePendOsLine(rows, g){
   const more = osList.length>3 ? ' +'+(osList.length-3)+' OS' : '';
   const full = osList.map(([os,hh])=>esc(os)+': '+fmtInt(hh)+'h').join(' · ');
   return '<div class="mpr-os" title="'+full+'">'+shown+more+'</div>';
+}
+// Ranking generico (barras coloridas por % do total: ate 10% verde, 11-40% laranja, 41-100%
+// vermelho) — mesmo visual usado em "Pendente Aprovação Fiscalização", reaproveitado agora em
+// "RDC não aprovada" e "Detalhamento por Fiscal" (pedido do usuario em 01/10/2026).
+// items: [{label, value, sub}] ja ordenados do maior valor pro menor; fmtValue formata o numero.
+function rankingShareColor(frac){
+  const pct = frac*100;
+  if (pct <= 10) return '#6FA834';
+  if (pct <= 40) return '#E8A33D';
+  return '#b3261e';
+}
+function renderRankingCardHTML(title, items, fmtValue){
+  const top = items.slice(0, 8);
+  const max = top.length ? top[0].value : 0;
+  const totalGeral = items.reduce((s,it)=>s+it.value, 0);
+  let html = '<div class="mobile-pend-ranking"><h4>&#128201; '+esc(title)+'</h4>'+
+    '<div class="mpr-legend"><span><i style="background:#6FA834"></i>até 10%</span><span><i style="background:#E8A33D"></i>11% a 40%</span><span><i style="background:#b3261e"></i>41% a 100%</span></div>';
+  if (!top.length) html += '<div class="fiscal-empty">Sem dados.</div>';
+  top.forEach((it,i)=>{
+    const frac = totalGeral ? it.value/totalGeral : 0;
+    const barPct = max ? Math.max(4, Math.round(it.value/max*100)) : 0;
+    const share = fmtPct(frac);
+    const color = rankingShareColor(frac);
+    html += '<div class="mpr-row">'+
+      '<div class="mpr-rank">'+(i+1)+'&ordm;</div>'+
+      '<div class="mpr-body"><div class="mpr-name">'+
+      '<span class="mpr-name-text">'+esc(it.label)+'</span><span class="mpr-pct" style="color:'+color+'">'+share+'</span></div>'+
+      '<div class="mpr-barrow"><div class="mpr-barbg"><div class="mpr-bar" style="width:'+barPct+'%;background:'+color+'"></div></div>'+
+      '<div class="mpr-val">'+fmtValue(it.value)+'</div></div>'+
+      (it.sub ? '<div class="mpr-os">'+esc(it.sub)+'</div>' : '')+
+      '</div></div>';
+  });
+  if (items.length > top.length) html += '<div class="mpr-more">+ '+(items.length-top.length)+' com menos pendência</div>';
+  html += '</div>';
+  return html;
 }
 function renderMobilePendenteRankingHTML(list, rows){
   const top = list.slice(0, 8);
@@ -1489,6 +1556,12 @@ function render(){
   document.getElementById('kpi-strip').innerHTML = renderKpiStrip(active, data);
   updateMonthFilterSummary();
   updateItemFilterSummary();
+  const fdTbl = document.getElementById('fiscal-detail-tbl-'+active);
+  if (fdTbl){
+    const fdRoles = active==='GERAL' ? ['projeto','resp','antHH','antRS','atualHH','atualRS','totalHH','totalRS']
+                                      : ['resp','antHH','antRS','atualHH','atualRS','totalHH','totalRS'];
+    enableColResize(fdTbl, 'fiscal-detail-tbl-'+active, fdRoles);
+  }
   renderChartsPanel(active, data);
   lastChartData = data;
   if (chartDetailsOpen) renderStatusChart(data);
