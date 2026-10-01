@@ -143,6 +143,15 @@ table.fiscal-tbl{min-width:0;width:auto;border-collapse:collapse;table-layout:fi
 /* Ranking visual (barras) de quem tem mais HH pendente, ao lado da tabela de "Pendente
    Aprovação Fiscalização" — pedido do usuario em 30/09/2026. */
 .mobile-pend-layout, .ranked-layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+/* "Ranking: ao lado da tabela" (botao no banner) — pedido do usuario em 01/10/2026: por padrao
+   o ranking quebra pra baixo quando nao cabe ao lado (flex-wrap:wrap acima); com o botao ligado,
+   forca ficar ao lado sempre (flex-wrap:nowrap), com rolagem horizontal na tela se nao couber. */
+body.rank-side .mobile-pend-layout, body.rank-side .ranked-layout{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;}
+/* ...e vale tambem na impressao/PDF (pedido do usuario). Na tela usa overflow-x:auto (rolagem);
+   na impressao isso teria que ficar "visible" — senao a "fitPrintPagesToOnePage()" mede a
+   largura clipada pelo scroll (em vez da largura real do ranking+tabela) e o calculo de zoom
+   pra caber na folha sai errado, cortando o ranking fora da pagina sem poder rolar pra ve-lo. */
+body.rank-side.printing .mobile-pend-layout, body.rank-side.printing .ranked-layout{overflow-x:visible;padding-bottom:0;}
 /* nao estica (flex:1 esticava a tabela pra preencher a tela toda, jogando o ranking la longe
    na ponta direita, com um vao enorme no meio — pedido do usuario em 30/09/2026 pra ficar colado) */
 .mobile-pend-layout .table-wrap, .ranked-layout .table-wrap{flex:0 0 auto;}
@@ -323,6 +332,7 @@ body.printing .fa-sub{margin-bottom:2px !important;}
       <button type="button" class="mf-toggle" id="mobilepapel-toggle">&#128100; Papel aprovador: <span id="mobilepapel-summary">Fiscal</span> &#9662;</button>
       <div class="mf-panel" id="mobilepapel-panel"></div>
     </div>
+    <button type="button" class="if-toggle" id="btn-toggle-rank-side">&#128202; Ranking: <span id="rank-side-label">abaixo da tabela</span></button>
     <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
     <button type="button" class="if-toggle" id="btn-copy-image">&#128203; Copiar imagem (aba atual)</button>
@@ -2293,6 +2303,22 @@ document.getElementById('btn-toggle-frs').addEventListener('click', ()=>{
   document.getElementById('frs-toggle-label').textContent = HIDE_FRS_EMITIDAS ? 'ocultas' : 'mostrando';
   document.getElementById('btn-toggle-frs').classList.toggle('frs-hidden-active', HIDE_FRS_EMITIDAS);
   render();
+});
+// "Ranking: ao lado da tabela" (true) vs "abaixo da tabela" (false, padrao) — pedido do usuario
+// em 01/10/2026, vale tambem pra impressao/PDF (classe fica no body, que a impressao reaproveita).
+// So mexe com CSS (classe "rank-side" no body), nao precisa de render() de novo.
+let RANK_SIDE_BY_SIDE = false;
+try { RANK_SIDE_BY_SIDE = localStorage.getItem('rankSideBySide') === '1'; } catch(e){}
+function applyRankSideClass(){
+  document.body.classList.toggle('rank-side', RANK_SIDE_BY_SIDE);
+  document.getElementById('rank-side-label').textContent = RANK_SIDE_BY_SIDE ? 'ao lado da tabela' : 'abaixo da tabela';
+  document.getElementById('btn-toggle-rank-side').classList.toggle('frs-hidden-active', RANK_SIDE_BY_SIDE);
+}
+applyRankSideClass();
+document.getElementById('btn-toggle-rank-side').addEventListener('click', ()=>{
+  RANK_SIDE_BY_SIDE = !RANK_SIDE_BY_SIDE;
+  try { localStorage.setItem('rankSideBySide', RANK_SIDE_BY_SIDE ? '1' : '0'); } catch(e){}
+  applyRankSideClass();
 });
 let INCLUDE_CHARTS_IN_PRINT = false;
 document.getElementById('btn-toggle-print-charts').addEventListener('click', ()=>{
