@@ -6,6 +6,7 @@
 <title>Relatorio Gerencial - Controle de Horas x Valores</title>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   --navy:#002B5C; --navy-700:#0A3B70; --navy-100:#E6EDF4;
@@ -369,7 +370,15 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
   <div class="confronto-banner-label">Painel de Confronto &middot; Techint Engenharia e Constru&ccedil;&atilde;o</div>
   <div class="confronto-banner-row">
     <div class="confronto-banner-title">Painel de Horas x Valores</div>
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;position:relative;">
+      <button type="button" class="confronto-banner-switch" id="btn-supa-login" style="display:none;" title="Entrar para publicar os dados no Supabase (todos que abrirem o relatório passam a ver os números atualizados)">&#9729; <span id="supa-login-label">Entrar</span></button>
+      <div id="supa-login-panel" style="display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:90;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px;width:260px;">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Entrar para publicar no Supabase</div>
+        <input type="email" id="supa-email" placeholder="E-mail" autocomplete="username" style="width:100%;margin-bottom:6px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12.5px;">
+        <input type="password" id="supa-password" placeholder="Senha" autocomplete="current-password" style="width:100%;margin-bottom:8px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12.5px;">
+        <button type="button" id="supa-login-submit" style="width:100%;padding:8px;border:none;border-radius:6px;background:var(--green);color:#042341;font-weight:800;font-size:12.5px;cursor:pointer;">Entrar</button>
+        <div id="supa-login-error" style="color:var(--danger);font-size:11.5px;margin-top:6px;min-height:14px;"></div>
+      </div>
       <button type="button" class="confronto-banner-switch" id="btn-toggle-theme">&#127769; <span id="theme-toggle-label">Modo escuro</span></button>
       <a class="confronto-banner-switch" href="https://clesiohenrique.github.io/Painel-de-Confronto/">&#8617; Trocar de painel</a>
     </div>
@@ -3154,13 +3163,85 @@ window.addEventListener('resize', ()=>{
     return handles[0];
   }
 
+  /* ---- Supabase: os dados (RAW_*) ficam numa linha unica (id=1) da tabela
+     relatorio_horas_snapshot — leitura publica (chave anon), escrita so com login. Mesmo projeto
+     e mesmo login do "Painel de Faturamento". Se o Supabase/CDN estiver fora do ar ou a tabela
+     ainda nao existir, o relatorio segue normal com os dados embutidos no HTML. ---- */
+  var SUPABASE_URL = 'https://henuatkfajesczzjdilb.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbnVhdGtmYWplc2N6empkaWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNTQ4MjksImV4cCI6MjEwMzczMDgyOX0.hKKDxg9Hu9SFVTHjfphD8U_SKTollLUpncm7fZo7zjU';
+  var SNAP_TABLE = 'relatorio_horas_snapshot';
+  var supa = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  var supaUser = null, supaUpdatedAt = null;
+
+  async function loadFromSupabase(){
+    if (!supa) return;
+    try{
+      var res = await supa.from(SNAP_TABLE).select('payload,file_name,updated_at').eq('id',1).maybeSingle();
+      if (res.error || !res.data || !res.data.payload) return;
+      var p = res.data.payload;
+      Object.keys(currentRawValues()).forEach(function(k){ if (!Array.isArray(p[k])) p[k] = []; });
+      if (!p.RAW_EXTRATO.length && !p.RAW_FIA_EXTRATO.length) return; // snapshot vazio/invalido: ignora
+      applyNewData(p);
+      supaUpdatedAt = new Date(res.data.updated_at);
+      showUpdateToast('Dados carregados do Supabase (publicados em '+supaUpdatedAt.toLocaleString('pt-BR')+(res.data.file_name?' — '+res.data.file_name:'')+').', false);
+    } catch(e){ console.warn('Falha ao carregar do Supabase:', e); }
+  }
+
+  async function publishToSupabase(fileName){
+    var cur = currentRawValues();
+    // nunca publica snapshot vazio (uma leitura que deu errado nao pode apagar os dados de todo mundo)
+    if (!cur.RAW_EXTRATO.length && !cur.RAW_FIA_EXTRATO.length) throw new Error('dados vazios — nada foi publicado');
+    var nowIso = new Date().toISOString();
+    var res = await supa.from(SNAP_TABLE).upsert({ id:1, payload:cur, file_name:fileName, updated_by:supaUser.email, updated_at:nowIso });
+    if (res.error) throw res.error;
+    supaUpdatedAt = new Date(nowIso);
+  }
+
+  function renderSupaAuth(){
+    var b = document.getElementById('btn-supa-login');
+    if (!supa){ b.style.display = 'none'; return; }
+    b.style.display = '';
+    document.getElementById('supa-login-label').textContent = supaUser ? ('Sair ('+supaUser.email+')') : 'Entrar';
+    if (supaUser) document.getElementById('supa-login-panel').style.display = 'none';
+  }
+  if (supa){
+    supa.auth.getSession().then(function(r){ supaUser = r.data.session ? r.data.session.user : null; renderSupaAuth(); });
+    supa.auth.onAuthStateChange(function(_e, session){ supaUser = session ? session.user : null; renderSupaAuth(); });
+    document.getElementById('btn-supa-login').addEventListener('click', async function(){
+      if (supaUser){ await supa.auth.signOut(); showUpdateToast('Você saiu da conta do Supabase.', false); return; }
+      var panel = document.getElementById('supa-login-panel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    });
+    var doLogin = async function(){
+      var email = document.getElementById('supa-email').value.trim(), pw = document.getElementById('supa-password').value;
+      var errEl = document.getElementById('supa-login-error'); errEl.textContent = '';
+      if (!email || !pw){ errEl.textContent = 'Preencha e-mail e senha.'; return; }
+      var r = await supa.auth.signInWithPassword({ email: email, password: pw });
+      if (r.error){ errEl.textContent = 'Login inválido.'; return; }
+      document.getElementById('supa-password').value = '';
+      showUpdateToast('Login realizado: '+r.data.user.email+'. Agora "Atualizar dados" também publica no Supabase.', false);
+    };
+    document.getElementById('supa-login-submit').addEventListener('click', doLogin);
+    document.getElementById('supa-password').addEventListener('keydown', function(e){ if (e.key === 'Enter') doLogin(); });
+  }
+  renderSupaAuth();
+
   async function processFile(file){
     btn.classList.add('spinning'); btn.disabled = true;
     try{
       var nd = await regenerateFromFile(file);
       applyNewData(nd);
       dlBtn.style.display = 'inline-flex';
-      showUpdateToast('Dados atualizados a partir de "'+file.name+'". Ficam valendo automaticamente da próxima vez que abrir este relatório neste computador — clique em "Baixar relatório atualizado" só se quiser publicar essa versão pra outras pessoas/dispositivos.', false);
+      var pubMsg;
+      if (supa && supaUser){
+        try { await publishToSupabase(file.name); pubMsg = ' Publicado no Supabase: quem abrir o relatório já vê estes números.'; }
+        catch(pe){ console.error(pe); pubMsg = ' ATENÇÃO: não consegui publicar no Supabase ('+(pe.message||pe)+').'; }
+      } else if (supa){
+        pubMsg = ' Pra publicar pra todos, entre em "☁ Entrar" (topo da página) e atualize de novo.';
+      } else {
+        pubMsg = ' Clique em "Baixar relatório atualizado" se quiser publicar essa versão pra outras pessoas.';
+      }
+      showUpdateToast('Dados atualizados a partir de "'+file.name+'".'+pubMsg, pubMsg.indexOf('ATENÇÃO')!==-1);
     } catch(err){
       console.error(err);
       showUpdateToast('Falha ao atualizar: ' + err.message, true);
@@ -3204,6 +3285,9 @@ window.addEventListener('resize', ()=>{
       var perm = await handle.queryPermission({ mode: 'read' });
       if (perm === 'granted'){
         var file = await handle.getFile();
+        // se o Supabase tem uma publicacao mais nova que o arquivo salvo neste computador, vale a
+        // do Supabase (a planilha local esta defasada); so le o arquivo se ele for mais novo
+        if (supaUpdatedAt && file.lastModified <= supaUpdatedAt.getTime()) return;
         var nd = await regenerateFromFile(file);
         applyNewData(nd);
         dlBtn.style.display = 'inline-flex';
@@ -3215,7 +3299,7 @@ window.addEventListener('resize', ()=>{
       console.error('attemptAutoLoad falhou:', err);
     }
   }
-  attemptAutoLoad();
+  loadFromSupabase().then(attemptAutoLoad);
 })();
 
 render();
