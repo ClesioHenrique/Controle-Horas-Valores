@@ -162,12 +162,13 @@ th.cell-mid{border-left:none;border-right:none;}
 th.cell-pct{border-left:none;}
 .total-col-head{background:var(--green);color:var(--navy);}
 td.num{text-align:center;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;}
-td.num.hl-yellow{background:#fff59d !important;color:var(--danger) !important;font-weight:800;}
-td.hl-rdc{background:#fff59d;font-weight:700;white-space:nowrap;}
+td.num.hl-yellow{background:#fff9cf !important;color:var(--danger) !important;font-weight:800;}
+td.hl-rdc{background:#fff9cf;font-weight:700;white-space:nowrap;}
+td.hl-yellow-lbl{background:#fff9cf !important;color:#b3261e !important;font-weight:800;}
 /* "RDC não está aprovada" (item 1.5 do resumo) e o Total Geral da aba "RDC não aprovada": mesmo azul */
-td.hl-blue, td.num.hl-blue{background:#8fd0f7 !important;color:#042341 !important;font-weight:800;}
+td.hl-blue, td.num.hl-blue{background:#d6edfb !important;color:#042341 !important;font-weight:800;}
 tr.rdc-link-row{cursor:pointer;user-select:none;}
-#rdc-tbl tr.ft-total td.ft-geral{background:#8fd0f7;color:#042341;}
+#rdc-tbl tr.ft-total td.ft-geral{background:#d6edfb;color:#042341;}
 tr.fads-row td{background:#9aa7b4;color:#0d1b2a;font-weight:800;font-size:12.5px;}
 tr.fads-row td.fads-total{background:var(--green);color:var(--navy);}
 td.item-idx{text-align:center;color:var(--text-muted);font-size:11.5px;}
@@ -256,7 +257,7 @@ table.fiscal-tbl .ft-band{background:var(--green);color:var(--navy);font-weight:
 table.fiscal-tbl .ft-sub{background:var(--navy-100);color:var(--navy);font-weight:700;text-align:center;font-size:11.5px;}
 table.fiscal-tbl .ft-resp{text-align:left;font-weight:700;color:var(--navy);}
 table.fiscal-tbl tr.ft-total td{font-weight:800;}
-table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff59d;color:var(--danger);font-weight:800;}
+table.fiscal-tbl tr.ft-total td.ft-geral{background:#fff9cf;color:var(--danger);font-weight:800;}
 
 td.fa-detail{cursor:pointer;text-decoration:underline dotted var(--info-blue);text-underline-offset:2px;}
 tr.rdc-row{cursor:pointer;}
@@ -925,7 +926,7 @@ function renderTableHTML(data, printMode){
     html += '<tr class="sec-head"><td class="item-idx">2</td><td class="desc">Carregamento no SGE</td>'+rowCellsX(vals, data.totalGeral)+obsCell(OBS_S2)+'</tr>';
     SGE_SEC2.forEach((s,i)=>{
       const v2 = {}; data.cols.forEach(c=>v2[c]=data.s2values[c].perItem[i]);
-      html += '<tr><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(s.label)+'</td>'+rowCellsX(v2, data.totalGeral, {hlTotal:i===2})+obsCell(s.obs)+'</tr>';
+      html += '<tr><td class="item-idx">2.'+(i+1)+'</td><td class="desc'+(i===2?' hl-yellow-lbl':'')+'">'+esc(s.label)+'</td>'+rowCellsX(v2, data.totalGeral, {hlTotal:i===2})+obsCell(s.obs)+'</tr>';
     });
   }
 
