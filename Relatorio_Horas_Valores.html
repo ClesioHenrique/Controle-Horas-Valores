@@ -1407,37 +1407,42 @@ function renderMobilePendenteHTML(){
   rows.forEach(r=>{
     const k = r.projeto+'|'+r.papel+'|'+r.aprovador;
     let g = groups.get(k);
-    if (!g) { g = { projeto:r.projeto, papel:r.papel, aprovador:r.aprovador, m:{}, hh:0 }; groups.set(k,g); }
-    g.m[r.mesano] = (g.m[r.mesano]||0) + r.hh; g.hh += r.hh;
+    if (!g) { g = { projeto:r.projeto, papel:r.papel, aprovador:r.aprovador, m:{}, hh:0, rs:0 }; groups.set(k,g); }
+    const b = g.m[r.mesano] || (g.m[r.mesano] = {hh:0,rs:0});
+    b.hh += r.hh; b.rs += (r.rs||0); g.hh += r.hh; g.rs += (r.rs||0);
   });
   const list = Array.from(groups.values()).sort((a,b)=> b.hh - a.hh); // do maior pro menor fiscal (por HH pendente)
-  const tot = { m:{}, hh:0 };
-  months.forEach(m=>{ tot.m[m] = 0; });
-  list.forEach(g=>{ months.forEach(m=>{ tot.m[m] += (g.m[m]||0); }); tot.hh += g.hh; });
+  const tot = { m:{}, hh:0, rs:0 };
+  months.forEach(m=>{ tot.m[m] = {hh:0,rs:0}; });
+  list.forEach(g=>{ months.forEach(m=>{ const b=g.m[m]; if(b){ tot.m[m].hh+=b.hh; tot.m[m].rs+=b.rs; } }); tot.hh += g.hh; tot.rs += g.rs; });
 
+  // HH + R$ por mes e no total, no mesmo padrao da tabela "RDC não está aprovada" (R$ = col J da
+  // aba RDC_Mobile aprov.pendente — pedido do usuario em 05/10/2026); largura por papel da coluna
   const mpW = {
     projeto: getSavedColWidth('mobile-pend-tbl','projeto')||55, papel: getSavedColWidth('mobile-pend-tbl','papel')||85,
-    aprovador: getSavedColWidth('mobile-pend-tbl','aprovador')||275, month: getSavedColWidth('mobile-pend-tbl','month')||80,
-    total: getSavedColWidth('mobile-pend-tbl','total')||96
+    aprovador: getSavedColWidth('mobile-pend-tbl','aprovador')||275, monthHH: getSavedColWidth('mobile-pend-tbl','monthHH')||70,
+    monthRS: getSavedColWidth('mobile-pend-tbl','monthRS')||100, totalHH: getSavedColWidth('mobile-pend-tbl','totalHH')||80,
+    totalRS: getSavedColWidth('mobile-pend-tbl','totalRS')||110
   };
   const includeRanking = !(EXPORT_CONTEXT && !SHOW_RANKING_IN_EXPORT);
   html += (includeRanking?'<div class="mobile-pend-layout">':'')+'<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl" id="mobile-pend-tbl">';
   // "Papel aprovador" e sempre um texto curto ("Fiscal"): encolhida pra sobrar espaco pra
   // "Aprovador pendente" nao quebrar o nome em duas linhas (ex.: "Weslei Fortunato De Oliveira")
   html += '<colgroup><col style="width:'+mpW.projeto+'px"><col style="width:'+mpW.papel+'px"><col style="width:'+mpW.aprovador+'px">'+
-    months.map(()=>'<col style="width:'+mpW.month+'px">').join('')+'<col style="width:'+mpW.total+'px"></colgroup>';
+    months.map(()=>'<col style="width:'+mpW.monthHH+'px"><col style="width:'+mpW.monthRS+'px">').join('')+
+    '<col style="width:'+mpW.totalHH+'px"><col style="width:'+mpW.totalRS+'px"></colgroup>';
   html += '<tr><th class="ft-band" rowspan="2">Projeto</th><th class="ft-band" rowspan="2">Papel aprovador</th><th class="ft-band" rowspan="2">Aprovador pendente</th>'+
-    months.map(m=>'<th class="ft-band">'+esc(m)+'</th>').join('')+'<th class="ft-band">Total Geral</th></tr><tr>'+
-    months.map(()=>'<th class="ft-sub">HH</th>').join('')+'<th class="ft-sub">HH</th></tr>';
+    months.map(m=>'<th class="ft-band" colspan="2">'+esc(m)+'</th>').join('')+'<th class="ft-band" colspan="2">Total Geral</th></tr><tr>'+
+    months.map(()=>'<th class="ft-sub">HH</th><th class="ft-sub">R$</th>').join('')+'<th class="ft-sub">HH</th><th class="ft-sub">R$</th></tr>';
   list.forEach(g=>{
     html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-papel="'+esc(g.papel)+'" data-aprovador="'+esc(g.aprovador)+'" title="Clique: lista as RDCs (Data, RDC, Encarregado, OS, Empresa, HH) · Duplo clique: extrai agrupado por OS"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.papel)+'</td><td class="ft-resp">'+
       '<span class="os-name" data-proj="'+esc(g.projeto)+'" data-papel="'+esc(g.papel)+'" data-aprovador="'+esc(g.aprovador)+'" title="Clique para ver o resumo agrupado por OS desta pessoa">'+esc(g.aprovador)+'</span></td>'+
-      months.map(m=>'<td class="num">'+fmtInt(g.m[m]||0)+'</td>').join('')+
-      '<td class="num">'+fmtInt(g.hh)+'</td></tr>';
+      months.map(m=>{ const b=g.m[m]||{hh:0,rs:0}; return '<td class="num">'+fmtInt(b.hh)+'</td><td class="num">'+fmtBRL(b.rs)+'</td>'; }).join('')+
+      '<td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
   });
   html += '<tr class="ft-total"><td></td><td class="ft-resp">Total Geral</td><td></td>'+
-    months.map(m=>'<td class="num">'+fmtInt(tot.m[m])+'</td>').join('')+
-    '<td class="num ft-geral">'+fmtInt(tot.hh)+'</td></tr>';
+    months.map(m=>'<td class="num">'+fmtInt(tot.m[m].hh)+'</td><td class="num">'+fmtBRL(tot.m[m].rs)+'</td>').join('')+
+    '<td class="num ft-geral">'+fmtInt(tot.hh)+'</td><td class="num ft-geral">'+fmtBRL(tot.rs)+'</td></tr>';
   html += '</table></div>';
   if (includeRanking) html += renderMobilePendenteRankingHTML(list, rows);
   html += (includeRanking?'</div>':'')+'</div>';
@@ -1533,11 +1538,13 @@ function renderMobilePendenteRankingHTML(list, rows){
 function renderMobilePendenteKpiStrip(){
   const rows = mobilePendRowsSelected();
   const hhTotal = rows.reduce((a,r)=>a+r.hh,0);
+  const rsTotal = rows.reduce((a,r)=>a+(r.rs||0),0);
   const rdcsDistintas = new Set(rows.map(r=>r.projeto+'|'+r.rdc)).size;
   const aprovadores = new Set(rows.map(r=>r.projeto+'|'+r.aprovador)).size;
   return [
-    ['⏱️','kpi-navy','Total HH pendentes',fmtInt(hhTotal)],
-    ['📋','kpi-blue','RDCs pendentes',String(rdcsDistintas)],
+    ['💰','kpi-navy','Total R$ pendente','R$ '+fmtBRL(rsTotal)],
+    ['⏱️','kpi-blue','Total HH pendentes',fmtInt(hhTotal)],
+    ['📋','kpi-green','RDCs pendentes',String(rdcsDistintas)],
     ['👷','kpi-green','Aprovadores com pendência',String(aprovadores)]
   ].map(c=>'<div class="kpi-card '+c[1]+'"><div class="kpi-icon">'+c[0]+'</div><div><div class="kpi-label">'+c[2]+'</div><div class="kpi-value">'+c[3]+'</div></div></div>').join('');
 }
@@ -1550,13 +1557,13 @@ function openMobilePendenteModal(proj, papel, aprovador){
   if (!rows.length){
     body = '<div class="fiscal-empty">Nenhuma linha encontrada.</div>';
   } else {
-    let totHH = 0;
-    body = '<table><tr><th>Mês</th><th>Data</th><th>RDC</th><th>Encarregado</th><th>OS / Entregável</th><th>Empresa</th><th class="num">HH</th></tr>';
+    let totHH = 0, totRS = 0;
+    body = '<table><tr><th>Mês</th><th>Data</th><th>RDC</th><th>Encarregado</th><th>OS / Entregável</th><th>Empresa</th><th class="num">HH</th><th class="num">R$</th></tr>';
     rows.forEach(r=>{
-      totHH += r.hh;
-      body += '<tr><td>'+esc(r.mesano)+'</td><td>'+esc(r.dataRef)+'</td><td>'+esc(r.rdc)+'</td><td>'+esc(r.encarregado)+'</td><td>'+esc(r.os)+'</td><td>'+esc(r.empresa)+'</td><td class="num">'+fmtInt(r.hh)+'</td></tr>';
+      totHH += r.hh; totRS += (r.rs||0);
+      body += '<tr><td>'+esc(r.mesano)+'</td><td>'+esc(r.dataRef)+'</td><td>'+esc(r.rdc)+'</td><td>'+esc(r.encarregado)+'</td><td>'+esc(r.os)+'</td><td>'+esc(r.empresa)+'</td><td class="num">'+fmtInt(r.hh)+'</td><td class="num">'+fmtBRL(r.rs||0)+'</td></tr>';
     });
-    body += '<tr class="fa-total"><td colspan="2">Total ('+rows.length+')</td><td></td><td></td><td></td><td></td><td class="num">'+fmtInt(totHH)+'</td></tr></table>';
+    body += '<tr class="fa-total"><td colspan="2">Total ('+rows.length+')</td><td></td><td></td><td></td><td></td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
   }
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
@@ -1575,18 +1582,18 @@ function openMobilePendenteByOSModal(proj, papel, aprovador){
     rows.forEach(r=>{
       const key = r.os || '(sem OS)';
       let g = groups.get(key);
-      if (!g) { g = { os:key, hh:0, rdcs:[] }; groups.set(key,g); }
-      g.hh += r.hh; g.rdcs.push(r.rdc);
+      if (!g) { g = { os:key, hh:0, rs:0, rdcs:[] }; groups.set(key,g); }
+      g.hh += r.hh; g.rs += (r.rs||0); g.rdcs.push(r.rdc);
     });
     const list = Array.from(groups.values()).sort((a,b)=> b.hh - a.hh);
-    let totHH = 0, totQtd = 0;
-    body = '<table><tr><th>OS / Entregável</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th></tr>';
+    let totHH = 0, totRS = 0, totQtd = 0;
+    body = '<table><tr><th>OS / Entregável</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th></tr>';
     list.forEach(g=>{
-      totHH += g.hh; totQtd += g.rdcs.length;
+      totHH += g.hh; totRS += g.rs; totQtd += g.rdcs.length;
       const rdcTxt = g.rdcs.length<=6 ? g.rdcs.join(', ') : g.rdcs.slice(0,6).join(', ')+' (+'+(g.rdcs.length-6)+' mais)';
-      body += '<tr><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(g.rdcs.join(', '))+'">'+esc(rdcTxt)+'</td><td class="num">'+fmtInt(g.hh)+'</td></tr>';
+      body += '<tr><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(g.rdcs.join(', '))+'">'+esc(rdcTxt)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
     });
-    body += '<tr class="fa-total"><td>Total ('+list.length+' OS)</td><td class="num">'+totQtd+'</td><td></td><td class="num">'+fmtInt(totHH)+'</td></tr></table>';
+    body += '<tr class="fa-total"><td>Total ('+list.length+' OS)</td><td class="num">'+totQtd+'</td><td></td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
   }
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
@@ -1643,8 +1650,8 @@ function render(){
     const mobTbl = document.getElementById('mobile-pend-tbl');
     if (mobTbl){
       const mpRoles = ['projeto','papel','aprovador'];
-      DISPLAY_MONTHS.forEach(()=>{ mpRoles.push('month'); });
-      mpRoles.push('total');
+      DISPLAY_MONTHS.forEach(()=>{ mpRoles.push('monthHH','monthRS'); });
+      mpRoles.push('totalHH','totalRS');
       enableColResize(mobTbl, 'mobile-pend-tbl', mpRoles);
     }
     const noteM = document.getElementById('freenote');
@@ -2984,7 +2991,7 @@ window.addEventListener('resize', ()=>{
     var mHdrIdx = findHeaderRow(mRows, ['rdc','encarregado'], 5); if (mHdrIdx === -1) mHdrIdx = 0;
     var M = { data:colLetterOffset('A'), rdc:colLetterOffset('B'), encarregado:colLetterOffset('C'),
       os:colLetterOffset('D'), contrato:colLetterOffset('E'), empresa:colLetterOffset('F'),
-      papel:colLetterOffset('G'), aprovador:colLetterOffset('H'), horasPend:colLetterOffset('I') };
+      papel:colLetterOffset('G'), aprovador:colLetterOffset('H'), horasPend:colLetterOffset('I'), rs:colLetterOffset('J') };
     var mobilePendRows = [];
     for (var r5=mHdrIdx+1; r5<mRows.length; r5++){
       var row5=mRows[r5]; if(!row5) continue;
@@ -2992,12 +2999,13 @@ window.addEventListener('resize', ()=>{
       var projM = CONTRATO_PROJ[String(contratoM).trim()]; if (!projM) continue;
       var mesM = dataReferenciaToMesAno(cellAt(row5,M.data)); if (!mesM) continue;
       var hhV = cellAt(row5,M.horasPend); var hhM = typeof hhV==='number' ? hhV : 0;
+      var rsV = cellAt(row5,M.rs); var rsM = typeof rsV==='number' ? rsV : 0;   // col J "R$"
       mobilePendRows.push({
         projeto: projM, mesano: mesM, dataRef: dataSerialToBR(cellAt(row5,M.data)),
         rdc: txtOrBlank(cellAt(row5,M.rdc)), encarregado: titleCaseName(txtOrBlank(cellAt(row5,M.encarregado))),
         os: txtOrBlank(cellAt(row5,M.os)), empresa: txtOrBlank(cellAt(row5,M.empresa)),
         papel: txtOrBlank(cellAt(row5,M.papel)), aprovador: titleCaseName(txtOrBlank(cellAt(row5,M.aprovador))),
-        hh: Math.round(hhM*100)/100
+        hh: Math.round(hhM*100)/100, rs: Math.round(rsM*100)/100
       });
     }
 
