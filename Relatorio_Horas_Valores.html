@@ -634,13 +634,13 @@ const PEND_OUTRAS_LABEL = "Outras pendências específicas (por OS)";
 const PEND_TAIL = "Ajustar RDC";
 
 const SGE_SEC2 = [
-  { label:"Aguardando revisão", match:"Aguardando Revisão", obs:"Usiminas" },
-  { label:"Em Elaboração", match:"Em elaboração", obs:"Usiminas" },
+  { label:"Aguardando revisão", match:"Aguardando Revisão", obs:"Techint" },
+  { label:"Em Elaboração", match:"Em elaboração", obs:"Techint" },
   { label:"Pendente de aprovação", match:"Pendente de aprovação", obs:"Usiminas" }
 ];
 
-const OBS_S1 = "Usiminas";
-const OBS_S2 = "Usiminas";
+const OBS_S1 = "Techint";
+const OBS_S2 = "Techint";
 const OBS_S3 = "Usiminas";
 const OBS_FIA = "Usiminas";
 const OBS_RATEIO = "Usiminas";
@@ -957,7 +957,7 @@ function renderTableHTML(data, printMode){
       // total) e com duplo clique abrindo o detalhe — pedido do usuario em 05/10/2026
       const isRdc = String(label).trim().toLowerCase()==='rdc não está aprovada';
       html += (isRdc ? '<tr class="rdc-link-row" data-proj="'+esc(proj)+'" title="Duplo clique para ver o detalhe (Líder, Fiscal, OS, RDC)">' : '<tr>')+
-        '<td class="item-idx">1.'+(i+1)+'</td><td class="desc'+(isRdc?' hl-blue':'')+'">'+esc(label)+'</td>'+rowCellsX(v2, data.totalGeral, isRdc?{rdcLink:true}:null)+obsCell(OBS_S1)+'</tr>';
+        '<td class="item-idx">1.'+(i+1)+'</td><td class="desc'+(isRdc?' hl-blue':'')+'">'+esc(label)+'</td>'+rowCellsX(v2, data.totalGeral, isRdc?{rdcLink:true}:null)+obsCell(isRdc ? OBS_S3 : OBS_S1)+'</tr>';
     });
   }
 
