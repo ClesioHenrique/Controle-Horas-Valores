@@ -369,6 +369,39 @@ body.printing .freenote-block label{margin-bottom:1px !important;}
 body.printing .freenote-block textarea{min-height:16px !important;padding:1.5px 3px !important;}
 body.printing .fa-sub{margin-bottom:2px !important;}
 </style>
+<style>
+/* ---- Celular: banner congelado no topo (compacto) + filtros que abrem/fecham no botao ---- */
+#btn-toggle-filters,#btn-close-filters{display:none;}
+@media (max-width:768px){
+  .confronto-banner{position:sticky;top:0;z-index:70;padding:8px 12px;max-height:80vh;min-height:42px;overflow-y:auto;flex:none;-webkit-overflow-scrolling:touch;}
+  .confronto-banner-label{display:none;}
+  .confronto-banner-title{font-size:15px;padding-right:112px;}
+  .confronto-banner-row{gap:6px;}
+  .confronto-banner-row > div:last-child{gap:6px !important;flex-wrap:wrap;margin-top:8px;}
+  .confronto-banner:not(.filters-open) .confronto-banner-row > div:last-child{display:none !important;}
+  .confronto-banner-switch{padding:6px 12px;font-size:12px;}
+  #btn-toggle-filters{display:inline-flex;position:absolute;top:7px;right:10px;margin:0;width:auto;padding:6px 14px;background:var(--green);color:#042341;border-color:var(--green);font-weight:800;}
+  #btn-close-filters{display:block;width:100%;margin-top:4px;background:var(--green);color:#042341;border-color:var(--green);font-weight:800;text-align:center;}
+  .confronto-banner:not(.filters-open) .confronto-banner-filters{display:none;}
+  .confronto-banner-filters{margin-top:8px;gap:6px;}
+  .confronto-banner-filters .mf-toggle,.confronto-banner-filters .if-toggle{padding:7px 10px;font-size:12px;}
+  .confronto-banner-filters .mf-panel,.confronto-banner-filters .if-panel{position:static;margin-top:4px;max-height:220px;}
+  .app{padding:12px 10px 40px;}
+  .sticky-topbar{position:static;box-shadow:none;}
+  .header h1{font-size:15px;}
+  .header{margin-bottom:8px;}
+  .tabs-groups-row{gap:10px;margin-bottom:8px;}
+  .tabs-group{max-width:100%;}
+  .tabs-group-label{font-size:11px;margin-bottom:3px;}
+  .tabs{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tab-btn{padding:8px 14px;font-size:12.5px;white-space:nowrap;}
+  .update-date-box{margin-bottom:8px;padding:5px 10px;font-size:11.5px;}
+  .kpi-strip{margin:0 0 8px 0;gap:6px;}
+  .kpi-card{min-width:0;padding:5px 9px;gap:6px;}
+  .kpi-card .kpi-icon{font-size:16px;}
+  .kpi-card .kpi-value{font-size:14px;}
+}
+</style>
 </head>
 <body>
 <script>
@@ -393,6 +426,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
       <a class="confronto-banner-switch" href="https://clesiohenrique.github.io/Painel-de-Confronto/">&#8617; Trocar de painel</a>
     </div>
   </div>
+  <button type="button" class="confronto-banner-switch" id="btn-toggle-filters">&#9881; Filtros &#9662;</button>
   <div class="confronto-banner-filters">
     <div class="month-filter" id="month-filter">
       <button type="button" class="mf-toggle" id="mf-toggle">&#128197; Meses: <span id="mf-summary">últimos 3</span> &#9662;</button>
@@ -424,6 +458,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
     <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
     <button type="button" class="if-toggle" id="btn-copy-image" title="Copia o resumo da aba atual como imagem nítida (pra colar em e-mail/WhatsApp)">&#128247; Copiar imagem (aba atual)</button>
+    <button type="button" class="if-toggle" id="btn-close-filters">&#10003; Aplicar e fechar filtros</button>
   </div>
 </div>
 <div class="app">
@@ -3379,6 +3414,16 @@ if (bannerEl && 'ResizeObserver' in window){
 } else {
   window.addEventListener('resize', updateBannerHeightVar);
 }
+</script>
+<script>
+(function(){
+  var b=document.querySelector('.confronto-banner'),t=document.getElementById('btn-toggle-filters'),c=document.getElementById('btn-close-filters');
+  if(!b||!t)return;
+  function set(o){b.classList.toggle('filters-open',o);t.innerHTML=o?'&#9881; Filtros &#9652;':'&#9881; Filtros &#9662;';
+    if(!o){document.querySelectorAll('.mf-panel.open,.if-panel.open').forEach(function(e){e.classList.remove('open');});}}
+  t.addEventListener('click',function(){set(!b.classList.contains('filters-open'));});
+  if(c)c.addEventListener('click',function(){set(false);});
+})();
 </script>
 </body>
 </html>
