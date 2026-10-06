@@ -126,6 +126,10 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .donut-dot{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
 .donut-legend-text .lbl{font-weight:800;color:var(--navy);font-size:12.5px;}
 .donut-legend-text .val{font-size:11px;color:var(--text-muted);}
+/* data de atualizacao + engrenagem agora ficam no banner azul, no topo (pedido do usuario em 06/10/2026) */
+.confronto-banner .update-date-box{margin-bottom:0;padding:4px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.5);border-radius:999px;box-shadow:none;color:#fff;}
+.confronto-banner .update-date-box input[type=date]{background:var(--surface);}
+.confronto-banner .btn-refresh{width:26px;height:26px;font-size:13px;border-color:rgba(255,255,255,.5);}
 .update-date-box input[type=date]{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12.5px;color:var(--text);font-family:inherit;}
 .btn-refresh{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;margin-left:2px;padding:0;border:1px solid var(--border);border-radius:50%;background:var(--surface);box-shadow:var(--shadow);font-size:15px;line-height:1;cursor:pointer;transition:transform .2s,background .2s;}
 .btn-refresh:hover{background:var(--navy-100);}
@@ -414,6 +418,11 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
   <div class="confronto-banner-row">
     <div class="confronto-banner-title">Painel de Horas x Valores</div>
     <div style="display:flex;align-items:center;gap:10px;position:relative;">
+      <div class="update-date-box" id="update-date-box">
+        <label for="update-date">Data de atualização:</label>
+        <input type="date" id="update-date">
+        <button type="button" class="btn-refresh" id="btn-refresh-data" title="Atualizar dados">&#9881;</button>
+      </div>
       <button type="button" class="confronto-banner-switch" id="btn-supa-login" style="display:none;" title="Entrar para publicar os dados no Supabase (todos que abrirem o relatório passam a ver os números atualizados)">&#9729; <span id="supa-login-label">Entrar</span></button>
       <div id="supa-login-panel" style="display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:90;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px;width:260px;">
         <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Entrar para publicar no Supabase</div>
@@ -489,11 +498,6 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
     </div>
   </div>
 
-  <div class="update-date-box" id="update-date-box">
-    <label for="update-date">Data de atualização:</label>
-    <input type="date" id="update-date">
-    <button type="button" class="btn-refresh" id="btn-refresh-data" title="Atualizar dados">&#9881;</button>
-  </div>
   <div class="kpi-strip" id="kpi-strip"></div>
   </div>
 
