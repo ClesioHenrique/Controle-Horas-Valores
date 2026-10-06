@@ -429,7 +429,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
   <button type="button" class="confronto-banner-switch" id="btn-toggle-filters">&#9881; Filtros &#9662;</button>
   <div class="confronto-banner-filters">
     <div class="month-filter" id="month-filter">
-      <button type="button" class="mf-toggle" id="mf-toggle">&#128197; Meses: <span id="mf-summary">últimos 3</span> &#9662;</button>
+      <button type="button" class="mf-toggle" id="mf-toggle">&#128197; Meses: <span id="mf-summary">últimos 4</span> &#9662;</button>
       <div class="mf-panel" id="mf-panel"></div>
     </div>
     <div class="item-filter" id="item-filter">
@@ -513,7 +513,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
   <details class="notes">
     <summary><b>Notas metodologicas</b></summary>
     <ul>
-      <li>Use o filtro "Meses" (canto superior direito) para escolher quais meses aparecem nas colunas — vale para MOA, PCI e Geral ao mesmo tempo. Por padrao mostra os 5 mais recentes.</li>
+      <li>Use o filtro "Meses" (canto superior direito) para escolher quais meses aparecem nas colunas — vale para MOA, PCI e Geral ao mesmo tempo. Por padrao mostra os 4 mais recentes (o mes novo so aparece quando o resumo geral do SGE tiver dados nele).</li>
       <li>A coluna "Total Geral" soma <b>apenas os meses selecionados</b> no filtro "Meses" — se voce desmarcar um mes, ele sai da soma dessa coluna (em todos os resumos: FADS, FIA e RATEIO).</li>
       <li>As somas ("Total Geral FADS", "Total Geral FIA+RATEIO", "Total Global" e o grafico de percentual) tambem seguem o filtro "Itens" — se voce desmarcar uma secao (ex.: "3 - Aprovado"), ela sai de todas as somas, nao so da tabela.</li>
       <li>(%) = valor da linha dividido pelo valor da linha "Total Geral" na <b>mesma coluna</b> (percentual vertical do periodo).</li>
@@ -683,9 +683,9 @@ let ALL_MONTHS = Array.from(new Set([
   ...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano), ...RAW_FISCAL_PENDENTE.map(r=>r.mesano),
   ...RAW_MEDIDO_FR.map(r=>r.mesano), ...RAW_FIA_MEDIDO.map(r=>r.mesano), ...RAW_RATEIO_MEDIDO.map(r=>r.mesano),
   ...RAW_FIA_EXTRATO.map(r=>r.mesano), ...RAW_RATEIO_EXTRATO.map(r=>r.mesano),
-  ...RAW_RDC_NAO_APROVADA.map(r=>r.mesano), ...RAW_RDC_MOBILE_PENDENTE.map(r=>r.mesano)
+  ...RAW_RDC_NAO_APROVADA.map(r=>r.mesano)
 ])).sort((a,b)=>mesKey(a)-mesKey(b));
-let DISPLAY_MONTHS = ALL_MONTHS.slice(-3);
+let DISPLAY_MONTHS = ALL_MONTHS.slice(-4);
 let SELECTED_SECTIONS = new Set([1,2,3,4,5]);
 const ALL_SECTIONS = [1,2,3,4,5];
 const SECTION_LABELS = { 1:'1 - Apresentou pendência', 2:'2 - Carregamento no SGE', 3:'3 - Aprovado', 4:'FIA', 5:'RATEIO' };
@@ -1828,9 +1828,9 @@ function buildMonthFilterPanel(){
   const panel = document.getElementById('mf-panel');
   const selected = new Set(DISPLAY_MONTHS);
   // lista aparece do mes mais novo pro mais antigo (ALL_MONTHS continua em ordem crescente,
-  // usada por "Últimos 3" e outras contas — so a exibicao no dropdown e invertida). Botoes
-  // "Últimos 3"/"Todos" ficam no topo, antes da lista, pra nao precisar rolar ate o fim.
-  panel.innerHTML = '<div class="mf-actions mf-actions-top"><button type="button" id="mf-last3">Últimos 3</button><button type="button" id="mf-all">Todos</button></div>' +
+  // usada por "Últimos 4" e outras contas — so a exibicao no dropdown e invertida). Botoes
+  // "Últimos 4"/"Todos" ficam no topo, antes da lista, pra nao precisar rolar ate o fim.
+  panel.innerHTML = '<div class="mf-actions mf-actions-top"><button type="button" id="mf-last3">Últimos 4</button><button type="button" id="mf-all">Todos</button></div>' +
     ALL_MONTHS.slice().reverse().map(m =>
       '<label><input type="checkbox" value="'+m+'"'+(selected.has(m)?' checked':'')+'> '+m+'</label>'
     ).join('');
@@ -1844,7 +1844,7 @@ function buildMonthFilterPanel(){
     });
   });
   document.getElementById('mf-last3').addEventListener('click', ()=>{
-    DISPLAY_MONTHS = ALL_MONTHS.slice(-3);
+    DISPLAY_MONTHS = ALL_MONTHS.slice(-4);
     buildMonthFilterPanel();
     render();
   });
@@ -3152,9 +3152,9 @@ window.addEventListener('resize', ()=>{
       ...RAW_EXTRATO.map(r=>r.mesano), ...RAW_PENDENCIAS.map(r=>r.mesano), ...RAW_FISCAL_PENDENTE.map(r=>r.mesano),
       ...RAW_MEDIDO_FR.map(r=>r.mesano), ...RAW_FIA_MEDIDO.map(r=>r.mesano), ...RAW_RATEIO_MEDIDO.map(r=>r.mesano),
       ...RAW_FIA_EXTRATO.map(r=>r.mesano), ...RAW_RATEIO_EXTRATO.map(r=>r.mesano),
-      ...RAW_RDC_NAO_APROVADA.map(r=>r.mesano), ...RAW_RDC_MOBILE_PENDENTE.map(r=>r.mesano)
+      ...RAW_RDC_NAO_APROVADA.map(r=>r.mesano)
     ])).sort((a,b)=>mesKey(a)-mesKey(b));
-    DISPLAY_MONTHS = ALL_MONTHS.slice(-3);
+    DISPLAY_MONTHS = ALL_MONTHS.slice(-4);
     buildMonthFilterPanel();
     render();
   }
