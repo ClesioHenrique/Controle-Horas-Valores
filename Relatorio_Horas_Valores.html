@@ -634,13 +634,13 @@ const PEND_OUTRAS_LABEL = "Outras pendências específicas (por OS)";
 const PEND_TAIL = "Ajustar RDC";
 
 const SGE_SEC2 = [
-  { label:"Aguardando revisão", match:"Aguardando Revisão", obs:"TECHINT" },
-  { label:"Em Elaboração", match:"Em elaboração", obs:"TECHINT" },
+  { label:"Aguardando revisão", match:"Aguardando Revisão", obs:"Usiminas" },
+  { label:"Em Elaboração", match:"Em elaboração", obs:"Usiminas" },
   { label:"Pendente de aprovação", match:"Pendente de aprovação", obs:"Usiminas" }
 ];
 
-const OBS_S1 = "TECHINT";
-const OBS_S2 = "TECHINT";
+const OBS_S1 = "Usiminas";
+const OBS_S2 = "Usiminas";
 const OBS_S3 = "Usiminas";
 const OBS_FIA = "Usiminas";
 const OBS_RATEIO = "Usiminas";
@@ -940,6 +940,7 @@ function renderTableHTML(data, printMode){
     return out;
   }
   function obsCell(text){ return '<td class="obs">'+(text?esc(text):'—')+'</td>'; }
+  function obsEmpty(){ return '<td class="obs"></td>'; }  // responsabilidade em branco nas linhas-titulo (1, 2, 3, FIA 1, RATEIO 2)
   function isZeroTotal(vals){
     const t = vals['__TOTAL__'];
     return !t || (Math.round(t.hh)===0 && Math.round(t.rs)===0);
@@ -948,7 +949,7 @@ function renderTableHTML(data, printMode){
   // SECAO 1
   if (SELECTED_SECTIONS.has(1)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s1values[c].total);
-    html += '<tr class="sec-head"><td class="item-idx">1</td><td class="desc">Apresentou pendência</td>'+rowCellsX(vals, data.totalGeral)+obsCell(OBS_S1)+'</tr>';
+    html += '<tr class="sec-head"><td class="item-idx">1</td><td class="desc">Apresentou pendência</td>'+rowCellsX(vals, data.totalGeral)+obsEmpty()+'</tr>';
     data.s1items.forEach((label,i)=>{
       const v2 = {}; data.cols.forEach(c=>v2[c]=data.s1values[c].perItem[i]);
       if (isZeroTotal(v2)) return;
@@ -963,7 +964,7 @@ function renderTableHTML(data, printMode){
   // SECAO 2
   if (SELECTED_SECTIONS.has(2)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s2values[c].total);
-    html += '<tr class="sec-head"><td class="item-idx">2</td><td class="desc">Carregamento no SGE</td>'+rowCellsX(vals, data.totalGeral)+obsCell(OBS_S2)+'</tr>';
+    html += '<tr class="sec-head"><td class="item-idx">2</td><td class="desc">Carregamento no SGE</td>'+rowCellsX(vals, data.totalGeral)+obsEmpty()+'</tr>';
     SGE_SEC2.forEach((s,i)=>{
       const v2 = {}; data.cols.forEach(c=>v2[c]=data.s2values[c].perItem[i]);
       html += '<tr'+(i===2?' class="hl-yellow-row"':'')+'><td class="item-idx">2.'+(i+1)+'</td><td class="desc'+(i===2?' hl-yellow-lbl':'')+'">'+esc(s.label)+'</td>'+rowCellsX(v2, data.totalGeral, {hlTotal:i===2})+obsCell(s.obs)+'</tr>';
@@ -973,7 +974,7 @@ function renderTableHTML(data, printMode){
   // SECAO 3
   if (SELECTED_SECTIONS.has(3)){
     const vals = {}; data.cols.forEach(c=>vals[c]=data.s3values[c]);
-    html += '<tr class="sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCellsX(vals, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
+    html += '<tr class="sec-head"><td class="item-idx">3</td><td class="desc">Aprovado</td>'+rowCellsX(vals, data.totalGeral)+obsEmpty()+'</tr>';
     html += '<tr class="sec3 bgwhite"><td class="item-idx">3.1</td><td class="desc">Aprovado - SGE</td>'+rowCellsX(data.s3sub1values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
     html += '<tr class="sec3 bgwhite"><td class="item-idx">3.2</td><td class="desc">Medição em Andamento - SGE</td>'+rowCellsX(data.s3sub2values, data.totalGeral)+obsCell(OBS_S3)+'</tr>';
     html += '<tr class="sec3 blue"><td class="item-idx">3.3</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.s3sub3values, data.totalGeral, {detail:'fad'})+obsCell(OBS_S3)+'</tr>';
@@ -992,7 +993,7 @@ function renderTableHTML(data, printMode){
 
     // FIA
     if (SELECTED_SECTIONS.has(4)){
-    html += '<tr class="fia darkgray sec-head"><td class="item-idx">1</td><td class="desc">FIA - equipamentos auxiliares</td>'+rowCellsX(data.fiaTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_FIA)+'</tr>';
+    html += '<tr class="fia darkgray sec-head"><td class="item-idx">1</td><td class="desc">FIA - equipamentos auxiliares</td>'+rowCellsX(data.fiaTotal, data.fiaRateioTotal, {noHH:true})+obsEmpty()+'</tr>';
     FIA_ITEMS.forEach((it,i)=>{
       html += '<tr class="fia bgwhite"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
@@ -1001,7 +1002,7 @@ function renderTableHTML(data, printMode){
 
     // RATEIO
     if (SELECTED_SECTIONS.has(5)){
-    html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO - Hs Mão de Obra Indireta</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsCell(OBS_RATEIO)+'</tr>';
+    html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO - Hs Mão de Obra Indireta</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsEmpty()+'</tr>';
     RATEIO_ITEMS.forEach((it,i)=>{
       html += '<tr class="rateio bgwhite"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
     });
