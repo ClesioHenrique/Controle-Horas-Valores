@@ -85,6 +85,11 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .confronto-banner-filters .mf-toggle:hover, .confronto-banner-filters .if-toggle:hover{background:rgba(255,255,255,.2);}
 .confronto-banner-filters .if-toggle.frs-hidden-active{background:#fff;color:var(--navy);border-color:#fff;}
 .confronto-banner-filters .mf-panel, .confronto-banner-filters .if-panel{color:var(--text);}
+/* telas largas: todos os botoes do banner numa linha so (pedido do usuario em 06/10/2026) */
+@media (min-width: 1700px){
+  .confronto-banner-filters{flex-wrap:nowrap;gap:4px;}
+  .confronto-banner-filters .mf-toggle, .confronto-banner-filters .if-toggle{padding:6px 7px;font-size:11px;white-space:nowrap;}
+}
 
 .app{width:100%;max-width:none;margin:0;padding:20px 28px 50px;}
 .sticky-topbar{position:sticky;top:var(--banner-h,0px);z-index:60;background:var(--bg);padding-bottom:10px;box-shadow:0 6px 12px -8px rgba(0,43,92,.25);}
