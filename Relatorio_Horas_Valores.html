@@ -98,7 +98,9 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .header .sub{font-size:12px;color:var(--text-muted);margin-top:3px;}
 .tabs{display:flex;flex-wrap:nowrap;width:fit-content;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;}
 /* Agrupa as abas por sistema (Sistema SGE / Sistema SGE Mobile), como no print de referencia */
-.tabs-groups-row{display:flex;flex-wrap:wrap;gap:22px;margin-bottom:16px;}
+.tabs-groups-row{display:flex;flex-wrap:wrap;gap:22px;margin-bottom:16px;align-items:flex-end;}
+/* cartoes de total ao lado das abas (pedido do usuario em 06/10/2026) */
+.tabs-groups-row .kpi-strip{margin:0;}
 .tabs-group-label{font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px;}
 .tab-btn{flex:0 0 auto;padding:11px 26px;border:none;border-right:1px solid var(--border);background:var(--surface);font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;text-align:center;}
 .tab-btn:last-child{border-right:none;}
@@ -421,7 +423,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
 <div class="confronto-banner">
   <div class="confronto-banner-label">Painel de Confronto &middot; Techint Engenharia e Constru&ccedil;&atilde;o</div>
   <div class="confronto-banner-row">
-    <div class="confronto-banner-title">Painel de Horas x Valores</div>
+    <div class="confronto-banner-title">Relatorio Gerencial &mdash; Controle de Horas x Valores (R$)</div>
     <div style="display:flex;align-items:center;gap:10px;position:relative;">
       <div class="update-date-box" id="update-date-box">
         <label for="update-date">Data de atualização:</label>
@@ -477,11 +479,6 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
 </div>
 <div class="app">
   <div class="sticky-topbar">
-  <div class="header">
-    <div>
-      <h1>Relatorio Gerencial &mdash; Controle de Horas x Valores (R$)</h1>
-    </div>
-  </div>
 
   <div class="toolbar">
     <div class="tabs-groups-row">
@@ -500,10 +497,10 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
           <button class="tab-btn" data-proj="MOBILE_PENDENTE">Pendente Aprovação Fiscalização</button>
         </div>
       </div>
+      <div class="kpi-strip" id="kpi-strip"></div>
     </div>
   </div>
 
-  <div class="kpi-strip" id="kpi-strip"></div>
   </div>
 
   <div id="content"></div>
