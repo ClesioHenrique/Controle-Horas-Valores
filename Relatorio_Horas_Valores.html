@@ -3383,11 +3383,20 @@ window.addEventListener('resize', ()=>{
   async function processFile(file){
     btn.classList.add('spinning'); btn.disabled = true;
     try{
+      // ultimo mes com dados do SGE (Extrato) antes e depois — se a planilha nova termina ANTES do que
+      // ja estava na tela (ex.: aba Extrato SGE colada de uma extracao antiga, sem Set/Out), avisa antes
+      // de publicar pra todos (08/10/2026: um Set/26 de 12.439 HH sumiu assim)
+      function ultimoMesExtrato(){ var best = null; RAW_EXTRATO.forEach(function(r){ if (!best || mesKey(r.mesano) > mesKey(best)) best = r.mesano; }); return best; }
+      var mesAntes = ultimoMesExtrato();
       var nd = await regenerateFromFile(file);
       applyNewData(nd);
       dlBtn.style.display = 'inline-flex';
+      var mesDepois = ultimoMesExtrato();
+      var regrediu = !!(mesAntes && mesDepois && mesKey(mesDepois) < mesKey(mesAntes));
       var pubMsg;
-      if (supa && supaUser){
+      if (regrediu && supa && supaUser && !window.confirm('ATENÇÃO: a aba "Extrato SGE" desta planilha só vai até '+mesDepois+', mas os dados que estavam na tela vão até '+mesAntes+'.\n\nPublicar mesmo assim vai fazer os valores de '+mesAntes+' sumirem do painel pra todo mundo.\n\nOK = publicar assim mesmo   |   Cancelar = só atualizar aqui, sem publicar')){
+        pubMsg = ' NÃO publicado no Supabase: o Extrato SGE termina em '+mesDepois+' (antes ia até '+mesAntes+'). Confira a aba "Extrato SGE" da planilha.';
+      } else if (supa && supaUser){
         try { await publishToSupabase(file.name); pubMsg = ' Publicado no Supabase: quem abrir o relatório já vê estes números.'; }
         catch(pe){ console.error(pe); pubMsg = ' ATENÇÃO: não consegui publicar no Supabase ('+(pe.message||pe)+').'; }
       } else if (supa){
@@ -3395,7 +3404,7 @@ window.addEventListener('resize', ()=>{
       } else {
         pubMsg = ' Clique em "Baixar relatório atualizado" se quiser publicar essa versão pra outras pessoas.';
       }
-      showUpdateToast('Dados atualizados a partir de "'+file.name+'".'+pubMsg, pubMsg.indexOf('ATENÇÃO')!==-1);
+      showUpdateToast('Dados atualizados a partir de "'+file.name+'" (SGE até '+mesDepois+').'+pubMsg, pubMsg.indexOf('ATENÇÃO')!==-1 || regrediu);
     } catch(err){
       console.error(err);
       showUpdateToast('Falha ao atualizar: ' + err.message, true);
