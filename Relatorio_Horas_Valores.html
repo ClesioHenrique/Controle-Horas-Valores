@@ -469,6 +469,10 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
       <button type="button" class="mf-toggle" id="mobilepapel-toggle">&#128100; Papel aprovador: <span id="mobilepapel-summary">Fiscal</span> &#9662;</button>
       <div class="mf-panel" id="mobilepapel-panel"></div>
     </div>
+    <div class="month-filter" id="mobile-mes-filter" style="display:none;">
+      <button type="button" class="mf-toggle" id="mobilemes-toggle">&#128197; Meses: <span id="mobilemes-summary">todos</span> &#9662;</button>
+      <div class="mf-panel" id="mobilemes-panel"></div>
+    </div>
     <button type="button" class="if-toggle" id="btn-toggle-rank-side">&#128202; Ranking: <span id="rank-side-label">abaixo da tabela</span></button>
     <button type="button" class="if-toggle frs-hidden-active" id="btn-toggle-rank-export">&#128202; Ranking na impressão/cópia: <span id="rank-export-label">sim</span></button>
     <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
@@ -1450,10 +1454,17 @@ function renderRdcKpiStrip(){
 // "Sistema SGE Mobile" -> "Pendente Aprovação Fiscalização": consulta da aba "RDC_Mobile aprov.pendente"
 // (uma linha por RDC pendente de aprovacao de um papel). Linhas = Projeto / Papel / Aprovador pendente,
 // colunas = cada mes selecionado (soma de Horas Pendentes, col. I) + total, do maior fiscal pro menor.
-// "Pendente Aprovação Fiscalização" mostra TODO o pendente (todos os meses da aba RDC_Mobile, inclusive
-// Out/26), desvinculado do filtro de meses do SGE — pedido do usuario em 08/10/2026.
-function mobileMonths(){ return Array.from(new Set(RAW_RDC_MOBILE_PENDENTE.map(r=>r.mesano))).sort((a,b)=>mesKey(a)-mesKey(b)); }
-function mobilePendRowsSelected(){ return RAW_RDC_MOBILE_PENDENTE.filter(r=>RDC_PROJ_SELECTED.includes(r.projeto) && MOBILE_PAPEL_SELECTED.includes(r.papel)); }
+// "Pendente Aprovação Fiscalização" tem filtro de meses PROPRIO (todos os meses da aba RDC_Mobile,
+// inclusive Out/26), desvinculado do filtro de meses do SGE — pedido do usuario em 08/10/2026.
+// Padrao: todos os meses marcados. "MOBILE_MES_SELECTED" fica vazio ate o painel ser montado.
+let MOBILE_MES_ALL = [];
+let MOBILE_MES_SELECTED = [];
+function mobileMonths(){
+  const all = Array.from(new Set(RAW_RDC_MOBILE_PENDENTE.map(r=>r.mesano))).sort((a,b)=>mesKey(a)-mesKey(b));
+  const sel = all.filter(m=>MOBILE_MES_SELECTED.includes(m));
+  return sel.length ? sel : all;
+}
+function mobilePendRowsSelected(){ const ms = mobileMonths(); return RAW_RDC_MOBILE_PENDENTE.filter(r=>ms.includes(r.mesano) && RDC_PROJ_SELECTED.includes(r.projeto) && MOBILE_PAPEL_SELECTED.includes(r.papel)); }
 function renderMobilePendenteHTML(){
   const months = mobileMonths();
   const rows = mobilePendRowsSelected();
@@ -1609,7 +1620,7 @@ function renderMobilePendenteKpiStrip(){
   ].map(c=>'<div class="kpi-card '+c[1]+'"><div class="kpi-icon">'+c[0]+'</div><div><div class="kpi-label">'+c[2]+'</div><div class="kpi-value">'+c[3]+'</div></div></div>').join('');
 }
 function openMobilePendenteModal(proj, papel, aprovador){
-  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador)
+  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador && mobileMonths().includes(r.mesano))
     .sort((a,b)=> mesKey(a.mesano)-mesKey(b.mesano));
   document.getElementById('fa-modal-title').textContent = 'Pendente Aprovação Fiscalização — detalhe';
   document.getElementById('fa-modal-sub').textContent = proj+' — Papel: '+papel+' | Aprovador: '+aprovador;
@@ -1631,7 +1642,7 @@ function openMobilePendenteModal(proj, papel, aprovador){
 // Duplo-clique na mesma linha: em vez de listar RDC por RDC, agrupa por "OS / Entregável"
 // (soma HH, conta RDCs e lista os numeros) — pedido do usuario em 01/10/2026, "extrair por OS".
 function openMobilePendenteByOSModal(proj, papel, aprovador){
-  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador);
+  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador && mobileMonths().includes(r.mesano));
   document.getElementById('fa-modal-title').textContent = 'Pendente Aprovação Fiscalização — extração por OS';
   document.getElementById('fa-modal-sub').textContent = proj+' — Papel: '+papel+' | Aprovador: '+aprovador;
   let body = '';
@@ -1686,6 +1697,9 @@ function render(){
   // filtro de Papel aprovador so existe na aba "Pendente Aprovação Fiscalização" (a de "RDC não
   // aprovada" e outra fonte de dados, sem essa coluna)
   document.getElementById('mobile-papel-filter').style.display = active==='MOBILE_PENDENTE' ? '' : 'none';
+  // nessa aba o filtro de meses do SGE nao vale (usa o proprio, com todos os meses da RDC_Mobile)
+  document.getElementById('mobile-mes-filter').style.display = active==='MOBILE_PENDENTE' ? '' : 'none';
+  document.getElementById('month-filter').style.display = active==='MOBILE_PENDENTE' ? 'none' : '';
   if (active === 'RDC'){
     document.getElementById('content').innerHTML = renderRdcHTML() + renderFreeNoteHTML('RDC');
     document.getElementById('kpi-strip').innerHTML = renderRdcKpiStrip();
@@ -2039,6 +2053,41 @@ document.getElementById('mobilepapel-toggle').addEventListener('click', e=>{
   document.getElementById('mobilepapel-panel').classList.toggle('open');
 });
 
+// Filtro de MESES proprio da aba "Pendente Aprovação Fiscalização" (08/10/2026): lista os meses que
+// existem na aba RDC_Mobile (inclusive Out/26) e comeca com todos marcados; a cada "Atualizar dados"
+// volta a todos (mes novo da planilha ja entra marcado).
+function updateMobileMesFilterSummary(){
+  const n = MOBILE_MES_SELECTED.length;
+  document.getElementById('mobilemes-summary').textContent =
+    n===0 ? 'nenhum' : (n===MOBILE_MES_ALL.length ? 'todos' : (n<=2 ? MOBILE_MES_SELECTED.join(', ') : n+' selecionados'));
+}
+function buildMobileMesFilterPanel(resetAll){
+  MOBILE_MES_ALL = Array.from(new Set(RAW_RDC_MOBILE_PENDENTE.map(r=>r.mesano))).sort((a,b)=>mesKey(a)-mesKey(b));
+  MOBILE_MES_SELECTED = resetAll ? MOBILE_MES_ALL.slice() : MOBILE_MES_SELECTED.filter(m=>MOBILE_MES_ALL.includes(m));
+  if (!MOBILE_MES_SELECTED.length) MOBILE_MES_SELECTED = MOBILE_MES_ALL.slice();
+  const panel = document.getElementById('mobilemes-panel');
+  const selected = new Set(MOBILE_MES_SELECTED);
+  panel.innerHTML = MOBILE_MES_ALL.map(m =>
+    '<label><input type="checkbox" value="'+esc(m)+'"'+(selected.has(m)?' checked':'')+'> '+esc(m)+'</label>'
+  ).join('');
+  panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const checked = Array.from(panel.querySelectorAll('input[type=checkbox]:checked')).map(c=>c.value);
+      MOBILE_MES_SELECTED = MOBILE_MES_ALL.filter(m=>checked.includes(m));
+      if (!MOBILE_MES_SELECTED.length){ MOBILE_MES_SELECTED = MOBILE_MES_ALL.slice(); buildMobileMesFilterPanel(); }
+      updateMobileMesFilterSummary();
+      render();
+    });
+  });
+  updateMobileMesFilterSummary();
+}
+buildMobileMesFilterPanel(true);
+document.getElementById('mobilemes-toggle').addEventListener('click', e=>{
+  e.stopPropagation();
+  document.getElementById('mobilemes-panel').classList.toggle('open');
+});
+document.getElementById('mobilemes-panel').addEventListener('click', e=>e.stopPropagation());
+
 document.getElementById('mf-panel').addEventListener('click', e=>e.stopPropagation());
 document.getElementById('if-panel').addEventListener('click', e=>e.stopPropagation());
 document.getElementById('frsdate-panel').addEventListener('click', e=>e.stopPropagation());
@@ -2052,6 +2101,7 @@ document.addEventListener('click', ()=>{
   document.getElementById('frsforn-panel').classList.remove('open');
   document.getElementById('rdcproj-panel').classList.remove('open');
   document.getElementById('mobilepapel-panel').classList.remove('open');
+  document.getElementById('mobilemes-panel').classList.remove('open');
 });
 
 /* ---------------- Detalhe por No FA / RATEIO (duplo-clique em 1.5 / 2.5) ---------------- */
@@ -3144,6 +3194,7 @@ window.addEventListener('resize', ()=>{
     // a deixar so "Fiscal" marcado (o usuario seleciona Supervisor manualmente quando quiser)
     MOBILE_PAPEL_SELECTED = ['Fiscal'];
     buildMobilePapelFilterPanel();
+    buildMobileMesFilterPanel(true);
     updateMobilePapelFilterSummary();
     // pedido do usuario em 28/09/2026: o grafico "Percentual do Valor por Status" e as "Notas
     // metodologicas" devem voltar fechados a cada "Atualizar dados", mesmo que estivessem
