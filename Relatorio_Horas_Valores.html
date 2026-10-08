@@ -1450,9 +1450,12 @@ function renderRdcKpiStrip(){
 // "Sistema SGE Mobile" -> "Pendente Aprovação Fiscalização": consulta da aba "RDC_Mobile aprov.pendente"
 // (uma linha por RDC pendente de aprovacao de um papel). Linhas = Projeto / Papel / Aprovador pendente,
 // colunas = cada mes selecionado (soma de Horas Pendentes, col. I) + total, do maior fiscal pro menor.
-function mobilePendRowsSelected(){ return RAW_RDC_MOBILE_PENDENTE.filter(r=>DISPLAY_MONTHS.includes(r.mesano) && RDC_PROJ_SELECTED.includes(r.projeto) && MOBILE_PAPEL_SELECTED.includes(r.papel)); }
+// "Pendente Aprovação Fiscalização" mostra TODO o pendente (todos os meses da aba RDC_Mobile, inclusive
+// Out/26), desvinculado do filtro de meses do SGE — pedido do usuario em 08/10/2026.
+function mobileMonths(){ return Array.from(new Set(RAW_RDC_MOBILE_PENDENTE.map(r=>r.mesano))).sort((a,b)=>mesKey(a)-mesKey(b)); }
+function mobilePendRowsSelected(){ return RAW_RDC_MOBILE_PENDENTE.filter(r=>RDC_PROJ_SELECTED.includes(r.projeto) && MOBILE_PAPEL_SELECTED.includes(r.papel)); }
 function renderMobilePendenteHTML(){
-  const months = DISPLAY_MONTHS;
+  const months = mobileMonths();
   const rows = mobilePendRowsSelected();
   let html = '<div class="fiscal-block rdc-block" style="border-top:none;margin-top:0;padding-top:0;">';
   html += '<h3>Pendente Aprovação Fiscalização &mdash; RDC_Mobile</h3>';
@@ -1606,7 +1609,7 @@ function renderMobilePendenteKpiStrip(){
   ].map(c=>'<div class="kpi-card '+c[1]+'"><div class="kpi-icon">'+c[0]+'</div><div><div class="kpi-label">'+c[2]+'</div><div class="kpi-value">'+c[3]+'</div></div></div>').join('');
 }
 function openMobilePendenteModal(proj, papel, aprovador){
-  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador && DISPLAY_MONTHS.includes(r.mesano))
+  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador)
     .sort((a,b)=> mesKey(a.mesano)-mesKey(b.mesano));
   document.getElementById('fa-modal-title').textContent = 'Pendente Aprovação Fiscalização — detalhe';
   document.getElementById('fa-modal-sub').textContent = proj+' — Papel: '+papel+' | Aprovador: '+aprovador;
@@ -1628,7 +1631,7 @@ function openMobilePendenteModal(proj, papel, aprovador){
 // Duplo-clique na mesma linha: em vez de listar RDC por RDC, agrupa por "OS / Entregável"
 // (soma HH, conta RDCs e lista os numeros) — pedido do usuario em 01/10/2026, "extrair por OS".
 function openMobilePendenteByOSModal(proj, papel, aprovador){
-  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador && DISPLAY_MONTHS.includes(r.mesano));
+  const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador);
   document.getElementById('fa-modal-title').textContent = 'Pendente Aprovação Fiscalização — extração por OS';
   document.getElementById('fa-modal-sub').textContent = proj+' — Papel: '+papel+' | Aprovador: '+aprovador;
   let body = '';
@@ -1707,7 +1710,7 @@ function render(){
     const mobTbl = document.getElementById('mobile-pend-tbl');
     if (mobTbl){
       const mpRoles = ['projeto','papel','aprovador'];
-      DISPLAY_MONTHS.forEach(()=>{ mpRoles.push('monthHH','monthRS'); });
+      mobileMonths().forEach(()=>{ mpRoles.push('monthHH','monthRS'); });
       mpRoles.push('totalHH','totalRS');
       enableColResize(mobTbl, 'mobile-pend-tbl', mpRoles);
     }
