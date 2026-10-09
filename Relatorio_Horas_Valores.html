@@ -120,8 +120,8 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .kpi-card.kpi-navy{border-left:4px solid var(--navy);}
 /* cartao "Em aprovação SAP": só o valor pisca (valor a ser medido) */
 .kpi-card.kpi-blink .kpi-value{animation:kpi-blink-val .9s steps(1,end) infinite;}
-@keyframes kpi-blink-val{0%{color:var(--navy);opacity:1;text-shadow:none;}50%{color:#FFD400;opacity:1;text-shadow:0 0 6px rgba(255,212,0,.9);}}
-@media (prefers-reduced-motion: reduce){.kpi-card.kpi-blink .kpi-value{animation:none;color:#FFD400;}}
+@keyframes kpi-blink-val{0%{color:var(--navy);opacity:1;}50%{color:#2fa300;opacity:.15;}}
+@media (prefers-reduced-motion: reduce){.kpi-card.kpi-blink .kpi-value{animation:none;color:#2fa300;}}
 .kpi-card.kpi-warn{border-left:4px solid var(--warn);}
 .kpi-card.kpi-frs-clickable{cursor:pointer;}
 .kpi-card.kpi-frs-clickable:hover{filter:brightness(0.97);}
@@ -136,7 +136,7 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .donut-legend-item{display:flex;align-items:center;gap:8px;}
 .donut-dot{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
 .donut-legend-text .lbl{font-weight:800;color:var(--navy);font-size:12.5px;}
-.donut-legend-text .val{font-size:13px;font-weight:800;color:#042341;background:#FFE94D;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px;white-space:nowrap;}
+.donut-legend-text .val{font-size:11px;color:var(--text-muted);}
 /* data de atualizacao + engrenagem agora ficam no banner azul, no topo (pedido do usuario em 06/10/2026) */
 .confronto-banner .update-date-box{margin-bottom:0;padding:4px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.5);border-radius:999px;box-shadow:none;color:#fff;}
 .confronto-banner .update-date-box input[type=date]{background:var(--surface);}
