@@ -1273,9 +1273,9 @@ function chartsPanelHTML(prefix){
     '<div id="'+prefix+ringId+'" class="donut-ring"></div>'+
     '<div id="'+prefix+legendId+'-r" class="donut-legend donut-legend-side"></div></div></div>';
   return '<div class="kpi-charts-panel">'+
-    donutBlock('Distribuição por Status', '% do valor (R$) — Total Geral "FADS"', 'donut-status-ring', 'donut-status-legend')+
     donutBlock('FAD / FIA / RATEIO', 'Participação de cada frente — Total Global', 'donut-category-ring', 'donut-category-legend')+
-    donutBlock('Pipeline de Faturamento', 'Emitido, pronto e em processo — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
+    donutBlock('Distribuição por Status', '% do valor (R$) — Total Geral "FADS"', 'donut-status-ring', 'donut-status-legend')+
+    donutBlock('Status de Faturamento', 'Emitido, em aprovação no SAP_Usiminas e em processo — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
     '</div>';
 }
 function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, centerSmall){
@@ -1358,7 +1358,7 @@ function renderChartsPanel(proj, data, prefix){
   const totalG = data.totalGlobal['__TOTAL__'].rs;
   const restante = Math.max(0, totalG - emitido - pronto);
   renderDonutCard(prefix+'donut-pipeline-ring', prefix+'donut-pipeline-legend-l', prefix+'donut-pipeline-legend-r',
-    ['Já Emitido (FR)','Pronto p/ Faturar','Em processo'], [emitido, pronto, restante],
+    ['Já Emitido (FR)','Em aprovação no SAP_Usiminas','Em processo'], [emitido, pronto, restante],
     ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global', totalG ? (emitido+pronto)/totalG : 0, 'Emitido+Pronto');
 }
 
