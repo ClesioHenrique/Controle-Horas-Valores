@@ -1275,7 +1275,7 @@ function chartsPanelHTML(prefix){
   return '<div class="kpi-charts-panel">'+
     donutBlock('FAD / FIA / RATEIO', 'Participação de cada frente — Total Global', 'donut-category-ring', 'donut-category-legend')+
     donutBlock('Distribuição por Status', '% do valor (R$) — Total Geral "FADS"', 'donut-status-ring', 'donut-status-legend')+
-    donutBlock('Status de Faturamento', 'Emitido, em aprovação no SAP_Usiminas e em processo — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
+    donutBlock('Status de Faturamento', 'Emitido, em aprovação SAP_Usiminas e em processo — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
     '</div>';
 }
 function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, centerSmall){
@@ -1358,7 +1358,7 @@ function renderChartsPanel(proj, data, prefix){
   const totalG = data.totalGlobal['__TOTAL__'].rs;
   const restante = Math.max(0, totalG - emitido - pronto);
   renderDonutCard(prefix+'donut-pipeline-ring', prefix+'donut-pipeline-legend-l', prefix+'donut-pipeline-legend-r',
-    ['Já Emitido (FR)','Em aprovação no SAP_Usiminas','Em processo'], [emitido, pronto, restante],
+    ['Já Emitido (FR)','Em aprovação SAP_Usiminas','Em processo'], [emitido, pronto, restante],
     ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global', totalG ? (emitido+pronto)/totalG : 0, 'Emitido+Pronto');
 }
 
@@ -1371,7 +1371,7 @@ function renderKpiStrip(proj, data){
   const cards = [
     { icon:'💰', cls:'kpi-navy', label:'Total Geral', value:'R$ '+fmtBRL(totalGlobalRS) },
     { icon:'⏱️', cls:'kpi-blue', label:'Total HH', value:fmtInt(totalHH) },
-    { icon:'✅', cls:'kpi-green', label:'Pronto p/ Faturar', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' }
+    { icon:'✅', cls:'kpi-green', label:'Em aprovação SAP', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' }
   ];
   if (!HIDE_FRS_EMITIDAS && Math.round(frsEmitido)!==0){
     cards.push({ icon:'📄', cls:'kpi-warn kpi-frs-clickable', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido), clickProj:proj });
