@@ -3500,5 +3500,111 @@ if (bannerEl && 'ResizeObserver' in window){
   if(c)c.addEventListener('click',function(){set(false);});
 })();
 </script>
+<script>
+/* Soma de celulas selecionadas (pedido do usuario em 09/10/2026): Ctrl/Cmd+clique numa celula numerica
+   marca/desmarca (fica verde) e, arrastando o mouse por varias celulas, todas as numericas entram na
+   soma. Barra fixa embaixo mostra a soma e a quantidade; vale em todas as abas, resumos e popups.
+   Soma o que aparece na tela (numeros ja arredondados). Percentuais somam a parte, em "%". */
+(function(){
+  var st = document.createElement('style');
+  st.textContent =
+    'body table td.num.sum-sel{background:#b9ec9c !important;color:#042341 !important;box-shadow:inset 0 0 0 2px #6FA834;}' +
+    '.sum-bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:150;display:none;align-items:center;gap:12px;' +
+      'background:var(--navy);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:9px 14px;font-size:13px;' +
+      'box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:calc(100vw - 24px);flex-wrap:wrap;}' +
+    'html.dark-theme .sum-bar{background:#042341;}' +
+    '.sum-bar b{font-size:16px;font-variant-numeric:tabular-nums;}' +
+    '.sum-bar small{opacity:.8;}' +
+    '.sum-bar button{border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;}' +
+    '.sum-bar button:hover{background:rgba(255,255,255,.18);}' +
+    'body.printing .sum-bar{display:none !important;}';
+  document.head.appendChild(st);
+
+  var bar = document.createElement('div');
+  bar.className = 'sum-bar';
+  bar.innerHTML = '<span>&Sigma; Soma:</span> <b id="sum-val">0</b> <span id="sum-pct" style="display:none;"></span> <small id="sum-n"></small>' +
+    '<button type="button" id="sum-copy" title="Copiar a soma">Copiar</button><button type="button" id="sum-clear" title="Limpar seleção (Esc)">Limpar</button>';
+  document.body.appendChild(bar);
+
+  var RE = /^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+(,\d+)?$/;
+  function parseCell(td){
+    var t = (td.textContent || '').replace(/\s/g,'');
+    var pct = t.charAt(t.length-1) === '%';
+    if (pct) t = t.slice(0,-1);
+    if (!RE.test(t)) return null;
+    return { v: parseFloat(t.replace(/\./g,'').replace(',','.')), pct: pct, dec: t.indexOf(',') !== -1 };
+  }
+  function isSelectable(td){ return td && td.tagName === 'TD' && td.classList.contains('num') && parseCell(td) !== null; }
+  function fmt(n, dec){ return n.toLocaleString('pt-BR', { minimumFractionDigits: dec?2:0, maximumFractionDigits: dec?2:0 }); }
+  var last = '';
+  function refresh(){
+    var cells = Array.prototype.slice.call(document.querySelectorAll('td.sum-sel'));
+    var sum = 0, pct = 0, nv = 0, np = 0, dec = false;
+    cells.forEach(function(td){ var p = parseCell(td); if (!p) return; if (p.pct){ pct += p.v; np++; } else { sum += p.v; nv++; if (p.dec) dec = true; } });
+    if (!cells.length){ bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+    last = fmt(sum, dec);
+    document.getElementById('sum-val').textContent = last;
+    var pe = document.getElementById('sum-pct');
+    pe.style.display = np ? '' : 'none';
+    pe.textContent = np ? ('| % somados: ' + fmt(pct, true) + '%') : '';
+    document.getElementById('sum-n').textContent = '(' + cells.length + ' célula' + (cells.length>1?'s':'') + ')';
+  }
+  function clearAll(){ document.querySelectorAll('td.sum-sel').forEach(function(td){ td.classList.remove('sum-sel'); }); refresh(); }
+
+  // Ctrl/Cmd+clique: marca/desmarca. Fase de captura pra nao disparar o clique da linha (modais de detalhe)
+  document.addEventListener('click', function(e){
+    if (!(e.ctrlKey || e.metaKey)) return;
+    var td = e.target.closest && e.target.closest('td');
+    if (!isSelectable(td) || !td.closest('#content, #fa-modal-body')) return;
+    e.preventDefault(); e.stopPropagation();
+    td.classList.toggle('sum-sel');
+    var sel = window.getSelection && window.getSelection(); if (sel) sel.removeAllRanges();
+    refresh();
+  }, true);
+
+  // arrastar o mouse por varias celulas: todas as numericas viram selecionadas
+  document.addEventListener('mouseup', function(e){
+    if (e.ctrlKey || e.metaKey) return;
+    var sel = window.getSelection && window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0), hit = [];
+    function cellOf(n){ var el = n && (n.nodeType === 1 ? n : n.parentElement); return el && el.closest ? el.closest('td, th') : null; }
+    var a = cellOf(sel.anchorNode), f = cellOf(sel.focusNode);
+    if (a && f && a !== f){
+      // bloco retangular (como no Excel) entre a celula onde comecou o arraste e onde terminou,
+      // pela posicao na tela — funciona mesmo com celulas mescladas (colspan)
+      var ra = a.getBoundingClientRect(), rf = f.getBoundingClientRect();
+      var x1 = Math.min(ra.left, rf.left), x2 = Math.max(ra.right, rf.right), y1 = Math.min(ra.top, rf.top), y2 = Math.max(ra.bottom, rf.bottom);
+      var scope = a.closest('#fa-modal-body') ? '#fa-modal-body td.num' : '#content td.num';
+      document.querySelectorAll(scope).forEach(function(td){
+        var r = td.getBoundingClientRect(), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+        if (cx >= x1 && cx <= x2 && cy >= y1 && cy <= y2 && isSelectable(td)) hit.push(td);
+      });
+    } else {
+      document.querySelectorAll('#content td.num, #fa-modal-body td.num').forEach(function(td){
+        if (range.intersectsNode(td) && isSelectable(td)) hit.push(td);
+      });
+    }
+    if (hit.length < 2) return;
+    hit.forEach(function(td){ td.classList.add('sum-sel'); });
+    sel.removeAllRanges();
+    refresh();
+  });
+
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && document.querySelector('td.sum-sel')) clearAll(); });
+  document.getElementById('sum-clear').addEventListener('click', clearAll);
+  document.getElementById('sum-copy').addEventListener('click', function(){
+    var b = this;
+    function ok(){ var o = b.textContent; b.textContent = 'Copiado!'; setTimeout(function(){ b.textContent = o; }, 1500); }
+    try { navigator.clipboard.writeText(last).then(ok, function(){}); } catch(err){}
+  });
+
+  // a tela e redesenhada (trocar de aba/filtro/atualizar dados): as marcas somem junto, entao reconta
+  ['content','fa-modal-body'].forEach(function(id){
+    new MutationObserver(function(){ refresh(); }).observe(document.getElementById(id), { childList: true });
+  });
+})();
+</script>
 </body>
 </html>
