@@ -100,7 +100,7 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 /* Agrupa as abas por sistema (Sistema SGE / Sistema SGE Mobile), como no print de referencia */
 .tabs-groups-row{display:flex;flex-wrap:wrap;gap:22px;margin-bottom:16px;align-items:flex-end;}
 /* cartoes de total ao lado das abas (pedido do usuario em 06/10/2026) */
-.tabs-groups-row .kpi-strip{margin:0;}
+.tabs-groups-row .kpi-strip{margin:0;align-items:flex-end;}
 .tabs-group-label{font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px;}
 .tab-btn{flex:0 0 auto;padding:11px 26px;border:none;border-right:1px solid var(--border);background:var(--surface);font-size:14px;font-weight:700;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;text-align:center;}
 .tab-btn:last-child{border-right:none;}
@@ -118,6 +118,16 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .kpi-card.kpi-green{border-left:4px solid var(--green-dark);}
 .kpi-card.kpi-blue{border-left:4px solid var(--info-blue);}
 .kpi-card.kpi-navy{border-left:4px solid var(--navy);}
+/* destaque exclusivo do cartao "Em aprovação SAP" (valor a ser medido) — pisca com brilho verde e selo "A MEDIR" (pedido do usuario em 09/10/2026) */
+.kpi-card.kpi-blink{position:relative;margin-top:10px;border:2px solid #6FA834;border-left-width:5px;animation:kpi-blink 1.1s ease-in-out infinite;}
+.kpi-card.kpi-blink::after{content:"A MEDIR";position:absolute;top:-9px;right:10px;background:#E8A33D;color:#042341;font-size:9.5px;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:999px;animation:kpi-blink-tag 1.1s ease-in-out infinite;}
+.kpi-card.kpi-blink .kpi-value{animation:kpi-blink-val 1.1s ease-in-out infinite;}
+@keyframes kpi-blink{0%,100%{box-shadow:0 0 0 0 rgba(111,168,52,0);background:linear-gradient(135deg,var(--surface),var(--navy-100));}50%{box-shadow:0 0 20px 6px rgba(146,208,80,.9);background:#dcf5c4;}}
+@keyframes kpi-blink-tag{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.55;transform:scale(1.08);}}
+@keyframes kpi-blink-val{0%,100%{color:var(--navy);}50%{color:#2c6b00;}}
+html.dark-theme .kpi-card.kpi-blink{animation-name:kpi-blink-dark;}
+@keyframes kpi-blink-dark{0%,100%{box-shadow:0 0 0 0 rgba(146,208,80,0);}50%{box-shadow:0 0 20px 6px rgba(146,208,80,.7);background:#2d4a1d;}}
+@media (prefers-reduced-motion: reduce){.kpi-card.kpi-blink,.kpi-card.kpi-blink::after,.kpi-card.kpi-blink .kpi-value{animation:none;}.kpi-card.kpi-blink{box-shadow:0 0 14px 4px rgba(146,208,80,.8);}}
 .kpi-card.kpi-warn{border-left:4px solid var(--warn);}
 .kpi-card.kpi-frs-clickable{cursor:pointer;}
 .kpi-card.kpi-frs-clickable:hover{filter:brightness(0.97);}
@@ -1371,7 +1381,7 @@ function renderKpiStrip(proj, data){
   const cards = [
     { icon:'💰', cls:'kpi-navy', label:'Total Geral', value:'R$ '+fmtBRL(totalGlobalRS) },
     { icon:'⏱️', cls:'kpi-blue', label:'Total HH', value:fmtInt(totalHH) },
-    { icon:'✅', cls:'kpi-green', label:'Em aprovação SAP', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' }
+    { icon:'✅', cls:'kpi-green kpi-blink', label:'Em aprovação SAP', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' }
   ];
   if (!HIDE_FRS_EMITIDAS && Math.round(frsEmitido)!==0){
     cards.push({ icon:'📄', cls:'kpi-warn kpi-frs-clickable', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido), clickProj:proj });
