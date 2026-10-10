@@ -118,10 +118,6 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .kpi-card.kpi-green{border-left:4px solid var(--green-dark);}
 .kpi-card.kpi-blue{border-left:4px solid var(--info-blue);}
 .kpi-card.kpi-navy{border-left:4px solid var(--navy);}
-/* cartao "Em aprovação SAP": só o valor pisca (valor a ser medido) */
-.kpi-card.kpi-blink .kpi-value{animation:kpi-blink-val .9s steps(1,end) infinite;}
-@keyframes kpi-blink-val{0%{color:var(--navy);opacity:1;}50%{color:#2fa300;opacity:.15;}}
-@media (prefers-reduced-motion: reduce){.kpi-card.kpi-blink .kpi-value{animation:none;color:#2fa300;}}
 .kpi-card.kpi-warn{border-left:4px solid var(--warn);}
 .kpi-card.kpi-ariba{border-left:4px solid #7B4FC9;}
 .kpi-card.kpi-frs-clickable{cursor:pointer;}
@@ -1369,7 +1365,7 @@ function renderChartsPanel(proj, data, prefix){
     ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global', totalG ? (emitido+pronto)/totalG : 0, 'Emitido+Pronto');
 }
 
-// Cartao "Liberado Ariba": soma da coluna R$_PENDENTE da aba "Ariba" (RAW_ARIBA). So aparece quando ha valor.
+// Cartao "Liberado SAP_USM": soma da coluna R$_PENDENTE da aba "Ariba" (RAW_ARIBA). So aparece quando ha valor.
 // Clique abre o resumo: Contrato, Fornecedor, FAD/FIA/RAT, Mes/Ano em que a FR foi liberada e Periodo_Mes.
 const ARIBA_CONTRATO_PROJ = {'4600184457':'PCI','4600185340':'MOA','4600185359':'MOA'};
 function aribaRowsFor(proj){
@@ -1378,7 +1374,7 @@ function aribaRowsFor(proj){
 function aribaTotalFor(proj){ return aribaRowsFor(proj).reduce((s,r)=>s+r.rs,0); }
 function openAribaModal(proj){
   const rows = aribaRowsFor(proj);
-  document.getElementById('fa-modal-title').textContent = 'Liberado Ariba';
+  document.getElementById('fa-modal-title').textContent = 'Liberado SAP_USM';
   document.getElementById('fa-modal-sub').textContent = (proj==='GERAL'?'MOA & PCI':proj)+' — valores em R$_PENDENTE da aba Ariba';
   let body = '<table><tr><th>Contrato</th><th>Fornecedor</th><th>FAD / FIA / RAT</th><th>Mês/Ano liberação da FR</th><th>Período (mês)</th><th class="num">R$</th></tr>';
   let tot = 0;
@@ -1396,6 +1392,47 @@ document.getElementById('kpi-strip').addEventListener('click', e=>{
   if (card) openAribaModal(card.dataset.proj);
 });
 
+// Cartao "FR em aprovacao SAP_USM": mesmo total do item "Medido" (FAD 3.3 + FIA + RATEIO, conforme secoes/meses
+// selecionados). Clique abre o resumo no mesmo formato do "Liberado SAP_USM". Fornecedor vem da col V da aba
+// FAD_FIA & RATEIO (apos o proximo "Atualizar dados"); Mes/Ano de liberacao so existe quando a FR tambem consta
+// na aba Ariba ou em FR'S Emitidas — senao fica "—".
+function aprovRowsFor(proj){
+  const ok = r => DISPLAY_MONTHS.includes(r.mesano);
+  const out = [];
+  if (SELECTED_SECTIONS.has(3)) filterProj(RAW_MEDIDO_FR_DETAIL, proj).filter(ok).forEach(r=>out.push({tipo:'FAD', fr:r.sapmed, fa:r.med, projeto:r.projeto, forn:r.forn||'', mesano:r.mesano, rs:r.rs}));
+  if (SELECTED_SECTIONS.has(4)) filterProj(RAW_FIA_MEDIDO_DETAIL, proj).filter(ok).forEach(r=>out.push({tipo:'FIA', fr:r.numsapmed, fa:r.numfa, projeto:r.projeto, forn:r.forn||'', mesano:r.mesano, rs:r.rs}));
+  if (SELECTED_SECTIONS.has(5)) filterProj(RAW_RATEIO_MEDIDO_DETAIL, proj).filter(ok).forEach(r=>out.push({tipo:'RAT', fr:r.numsapmed, fa:r.numfa, projeto:r.projeto, forn:r.forn||'', mesano:r.mesano, rs:r.rs}));
+  return out.sort((a,b)=> b.rs-a.rs);
+}
+function frMesLiberacaoMap(){
+  const m = new Map();
+  RAW_FRS_EMITIDAS.forEach(r=>{ const mm = (r.dataSolic||'').match(/^\d{1,2}\/(\d{1,2})\/(\d{4})$/); if (mm) (r.frs||[]).forEach(f=>m.set(String(f), mm[1].padStart(2,'0')+'/'+mm[2])); });
+  RAW_ARIBA.forEach(r=>{ if (r.fr && r.mesFR) m.set(String(r.fr), r.mesFR); });
+  return m;
+}
+const CONTRATO_TXT = {MOA:'4600185340 / 4600185359 = MOA', PCI:'4600184457 = PCI'};
+function openAprovModal(proj){
+  const rows = aprovRowsFor(proj), lib = frMesLiberacaoMap();
+  document.getElementById('fa-modal-title').textContent = 'FR em aprovação SAP_USM';
+  document.getElementById('fa-modal-sub').textContent = (proj==='GERAL'?'MOA & PCI':proj)+' — FR\'S medidas, ainda não faturadas';
+  let body = '', tot = 0;
+  if (!rows.length) body = '<div class="fiscal-empty">Nenhuma FR em aprovação no período selecionado.</div>';
+  else {
+    body = '<table><tr><th>Contrato</th><th>Fornecedor</th><th>FAD / FIA / RAT</th><th>Nº FR</th><th>Mês/Ano liberação da FR</th><th>Período (mês)</th><th class="num">R$</th></tr>';
+    rows.forEach(r=>{
+      tot += r.rs;
+      body += '<tr title="'+esc(r.fa||'')+'"><td>'+esc(CONTRATO_TXT[r.projeto]||r.projeto)+'</td><td>'+esc(r.forn||'—')+'</td><td>'+esc(r.tipo)+'</td><td>'+esc(r.fr||'—')+'</td><td>'+esc(lib.get(String(r.fr))||'—')+'</td><td>'+esc(r.mesano)+'</td><td class="num">'+fmtBRL2(r.rs)+'</td></tr>';
+    });
+    body += '<tr class="fa-total"><td>Total ('+rows.length+')</td><td></td><td></td><td></td><td></td><td></td><td class="num">'+fmtBRL2(tot)+'</td></tr></table>';
+  }
+  document.getElementById('fa-modal-body').innerHTML = body;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+}
+document.getElementById('kpi-strip').addEventListener('click', e=>{
+  const card = e.target.closest('[data-aprov-kpi]');
+  if (card) openAprovModal(card.dataset.proj);
+});
+
 function renderKpiStrip(proj, data){
   const totalGlobalRS = data.totalGlobal['__TOTAL__'].rs;
   const totalHH = data.totalGeral['__TOTAL__'].hh;
@@ -1405,17 +1442,17 @@ function renderKpiStrip(proj, data){
   const cards = [
     { icon:'💰', cls:'kpi-navy', label:'Total Geral', value:'R$ '+fmtBRL(totalGlobalRS) },
     { icon:'⏱️', cls:'kpi-blue', label:'Total HH', value:fmtInt(totalHH) },
-    { icon:'✅', cls:'kpi-green kpi-blink', label:'Em aprovação SAP', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total' }
+    { icon:'✅', cls:'kpi-green kpi-frs-clickable', label:'FR em aprovação SAP_USM', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total', aprovProj:proj }
   ];
   if (!HIDE_FRS_EMITIDAS && Math.round(frsEmitido)!==0){
     cards.push({ icon:'📄', cls:'kpi-warn kpi-frs-clickable', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido), clickProj:proj });
   }
   const aribaTot = aribaTotalFor(proj);
   if (Math.round(aribaTot*100)!==0){
-    cards.splice(3, 0, { icon:'🔷', cls:'kpi-ariba kpi-frs-clickable', label:'Liberado Ariba', value:'R$ '+fmtBRL2(aribaTot), sub:aribaRowsFor(proj).length+" FR's", aribaProj:proj });
+    cards.splice(3, 0, { icon:'🔷', cls:'kpi-ariba kpi-frs-clickable', label:'Liberado SAP_USM', value:'R$ '+fmtBRL2(aribaTot), sub:aribaRowsFor(proj).length+" FR's", aribaProj:proj });
   }
   return cards.map(c=>
-    '<div class="kpi-card '+c.cls+'"'+(c.clickProj?' data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aribaProj?' data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo do Liberado Ariba"':'')+'><div class="kpi-icon">'+c.icon+'</div><div><div class="kpi-label">'+esc(c.label)+'</div><div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
+    '<div class="kpi-card '+c.cls+'"'+(c.clickProj?' data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?' data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?' data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo do Liberado SAP_USM"':'')+'><div class="kpi-icon">'+c.icon+'</div><div><div class="kpi-label">'+esc(c.label)+'</div><div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
   ).join('');
 }
 
@@ -3001,21 +3038,22 @@ window.addEventListener('resize', ()=>{
       // a col K vem sempre IGUAL a col L "Valor Avanço" - ou seja, repete o R$, nao e horas -
       // entao NAO usar col K como HH para FIA/RATEIO, so pedir pra conferir a origem da coluna).
       var avunV=cellAt(row,C.avun); var hh = typeof avunV==='number'?avunV:0;
+      var fornDet = titleCaseName(txtOrBlank(cellAt(row,C.forn)));
       if (tipoS==='FIA' && situS==='Medida' && fatS==='Não faturado'){
         var k3=projS+'|'+mes; if(!fiaMedidoAgg[k3]) fiaMedidoAgg[k3]={projeto:projS,mesano:mes,rs:0}; fiaMedidoAgg[k3].rs+=rs;
         // FIA tem "Nº Med." (col G) sempre preenchido, entao usa a mesma coluna do FAD (so o identificador;
         // sem HH, pelo motivo acima)
-        var fk=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fiaMedidoDetail[fk]) fiaMedidoDetail[fk]={projeto:projS,mesano:mes,numfa:nmedS,numsapmed:sapmedS,rs:0}; fiaMedidoDetail[fk].rs+=rs;
+        var fk=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fiaMedidoDetail[fk]) fiaMedidoDetail[fk]={projeto:projS,mesano:mes,numfa:nmedS,numsapmed:sapmedS,forn:fornDet,rs:0}; fiaMedidoDetail[fk].rs+=rs;
       }
       if (tipoS==='RAT' && situS==='Concluído' && fatS==='Não faturado'){
         var k4=projS+'|'+mes; if(!rateioMedidoAgg[k4]) rateioMedidoAgg[k4]={projeto:projS,mesano:mes,rs:0}; rateioMedidoAgg[k4].rs+=rs;
         // RATEIO nao tem "Nº Med." preenchido (col G sempre vazia nesta aba) — usa "Nº FA" (col D) no lugar
-        var fk2=projS+'|'+mes+'|'+fa+'|'+sapmedS; if(!rateioMedidoDetail[fk2]) rateioMedidoDetail[fk2]={projeto:projS,mesano:mes,numfa:String(fa),numsapmed:sapmedS,rs:0}; rateioMedidoDetail[fk2].rs+=rs;
+        var fk2=projS+'|'+mes+'|'+fa+'|'+sapmedS; if(!rateioMedidoDetail[fk2]) rateioMedidoDetail[fk2]={projeto:projS,mesano:mes,numfa:String(fa),numsapmed:sapmedS,forn:fornDet,rs:0}; rateioMedidoDetail[fk2].rs+=rs;
       }
       if (tipoS==='FAD' && situS==='Medida' && fatS==='Não faturado'){
         var k5=projS+'|'+mes; if(!fadMedidoAgg[k5]) fadMedidoAgg[k5]={projeto:projS,mesano:mes,hh:0,rs:0};
         fadMedidoAgg[k5].hh+=hh; fadMedidoAgg[k5].rs+=rs;
-        var fk3=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fadMedidoDetail[fk3]) fadMedidoDetail[fk3]={projeto:projS,mesano:mes,med:nmedS,sapmed:sapmedS,hh:0,rs:0};
+        var fk3=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fadMedidoDetail[fk3]) fadMedidoDetail[fk3]={projeto:projS,mesano:mes,med:nmedS,sapmed:sapmedS,forn:fornDet,hh:0,rs:0};
         fadMedidoDetail[fk3].hh+=hh; fadMedidoDetail[fk3].rs+=rs;
       }
     }
