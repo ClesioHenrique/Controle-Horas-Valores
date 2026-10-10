@@ -1278,7 +1278,7 @@ function chartsPanelHTML(prefix){
   return '<div class="kpi-charts-panel">'+
     donutBlock('FAD / FIA / RATEIO', 'Participação de cada frente — Total Global', 'donut-category-ring', 'donut-category-legend')+
     donutBlock('Distribuição por Status', '% do valor (R$) — Total Geral "FADS"', 'donut-status-ring', 'donut-status-legend')+
-    donutBlock('Status de Faturamento', 'Emitido, em aprovação SAP_Usiminas e em processo — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
+    donutBlock('Status de Faturamento', 'Emitido, em aprovação SAP_Usiminas e em processamento (fluxo SGE) — Total Global', 'donut-pipeline-ring', 'donut-pipeline-legend')+
     '</div>';
 }
 function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, centerSmall){
@@ -1361,7 +1361,7 @@ function renderChartsPanel(proj, data, prefix){
   const totalG = data.totalGlobal['__TOTAL__'].rs;
   const restante = Math.max(0, totalG - emitido - pronto);
   renderDonutCard(prefix+'donut-pipeline-ring', prefix+'donut-pipeline-legend-l', prefix+'donut-pipeline-legend-r',
-    ['Já Emitido (FR)','Em aprovação SAP_Usiminas','Em processo'], [emitido, pronto, restante],
+    ['Já Emitido (FR)','Em aprovação SAP_Usiminas','Em Processamento - Fluxo SGE'], [emitido, pronto, restante],
     ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global', totalG ? (emitido+pronto)/totalG : 0, 'Emitido+Pronto');
 }
 
@@ -1374,7 +1374,7 @@ function aribaRowsFor(proj){
 function aribaTotalFor(proj){ return aribaRowsFor(proj).reduce((s,r)=>s+r.rs,0); }
 function openAribaModal(proj){
   const rows = aribaRowsFor(proj);
-  document.getElementById('fa-modal-title').textContent = 'Liberado SAP_USM';
+  document.getElementById('fa-modal-title').textContent = 'FR LIBERADA SAP_USM';
   document.getElementById('fa-modal-sub').textContent = (proj==='GERAL'?'MOA & PCI':proj)+' — valores em R$_PENDENTE da aba Ariba';
   let body = '<table><tr><th>Contrato</th><th>Fornecedor</th><th>FAD / FIA / RAT</th><th>Mês/Ano liberação da FR</th><th>Período (mês)</th><th class="num">R$</th></tr>';
   let tot = 0;
@@ -1449,10 +1449,10 @@ function renderKpiStrip(proj, data){
   }
   const aribaTot = aribaTotalFor(proj);
   if (Math.round(aribaTot*100)!==0){
-    cards.splice(3, 0, { icon:'🔷', cls:'kpi-ariba kpi-frs-clickable', label:'Liberado SAP_USM', value:'R$ '+fmtBRL2(aribaTot), sub:aribaRowsFor(proj).length+" FR's", aribaProj:proj });
+    cards.splice(3, 0, { icon:'🔷', cls:'kpi-ariba kpi-frs-clickable', label:'FR LIBERADA SAP_USM', value:'R$ '+fmtBRL2(aribaTot), sub:(medidoFR.rs ? (aribaTot/medidoFR.rs*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% da FR em aprovação' : aribaRowsFor(proj).length+" FR's"), aribaProj:proj });
   }
   return cards.map(c=>
-    '<div class="kpi-card '+c.cls+'"'+(c.clickProj?' data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?' data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?' data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo do Liberado SAP_USM"':'')+'><div class="kpi-icon">'+c.icon+'</div><div><div class="kpi-label">'+esc(c.label)+'</div><div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
+    '<div class="kpi-card '+c.cls+'"'+(c.clickProj?' data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?' data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?' data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo da FR liberada SAP_USM"':'')+'><div class="kpi-icon">'+c.icon+'</div><div><div class="kpi-label">'+esc(c.label)+'</div><div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
   ).join('');
 }
 
