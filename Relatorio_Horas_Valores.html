@@ -134,6 +134,14 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .donut-dot{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
 .donut-legend-text .lbl{font-weight:800;color:var(--navy);font-size:12.5px;}
 .donut-legend-text .val{font-size:11px;color:var(--text-muted);}
+/* nota livre oculta na legenda "Em Processamento - Fluxo SGE": aparece ao passar o mouse (ou ao focar/digitar) */
+.donut-legend-item.has-note{position:relative;cursor:text;}
+.donut-legend-item.has-note.note-filled .lbl::after{content:" 📝";font-size:11px;}
+.legend-note{display:none;position:absolute;right:0;top:100%;z-index:30;padding-top:4px;}
+.donut-legend-item.has-note:hover .legend-note, .donut-legend-item.has-note:focus-within .legend-note{display:block;}
+.legend-note-ta{width:230px;min-height:70px;resize:both;border:1px solid #e8c96b;border-radius:6px;padding:6px 8px;font-family:inherit;font-size:12px;line-height:1.35;color:#222;background:#fff59d;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+body.printing .legend-note{display:none !important;}
+tr.medido-row td{background:#fffbe3 !important;}
 /* data de atualizacao + engrenagem agora ficam no banner azul, no topo (pedido do usuario em 06/10/2026) */
 .confronto-banner .update-date-box{margin-bottom:0;padding:4px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.5);border-radius:999px;box-shadow:none;color:#fff;}
 .confronto-banner .update-date-box input[type=date]{background:var(--surface);}
@@ -1330,13 +1338,25 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
     '<text x="'+cx+'" y="'+(cy+18)+'" text-anchor="middle" font-size="9" fill="#8a94a3" font-family="Segoe UI, Arial, sans-serif">'+esc(centerSmall)+'</text>'+
     '</svg>';
 }
+document.addEventListener('input', e=>{
+  const ta = e.target.closest && e.target.closest('.legend-note-ta'); if (!ta) return;
+  try { localStorage.setItem(ta.dataset.key, ta.value); } catch(err){}
+  const it = ta.closest('.donut-legend-item'); if (it) it.classList.toggle('note-filled', !!ta.value.trim());
+});
 function renderDonutCard(ringId, legendLeftId, legendRightId, labels, values, colors, centerBig, centerSmall, progress, progressLabel){
   document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 170, 26, centerBig, centerSmall);
   const total = values.reduce((a,b)=>a+b,0);
   const itemHTML = i => {
     const pct = total ? (values[i]/total*100) : 0;
-    return '<div class="donut-legend-item"><span class="donut-dot" style="background:'+colors[i]+'"></span>'+
-      '<div class="donut-legend-text"><div class="lbl">'+esc(labels[i])+'</div><div class="val">R$ '+fmtBRL(values[i])+' ('+fmtPct(pct/100)+')</div></div></div>';
+    const noteKey = 'legnote_' + String(labels[i]);
+    let noteHTML = '', noteCls = '';
+    if (labels[i]==='Em Processamento - Fluxo SGE'){
+      let saved = ''; try { saved = localStorage.getItem(noteKey) || ''; } catch(e){}
+      noteCls = ' has-note'+(saved.trim()?' note-filled':'');
+      noteHTML = '<div class="legend-note"><textarea class="legend-note-ta" data-key="'+esc(noteKey)+'" placeholder="Nota livre (salva automaticamente)...">'+esc(saved)+'</textarea></div>';
+    }
+    return '<div class="donut-legend-item'+noteCls+'"><span class="donut-dot" style="background:'+colors[i]+'"></span>'+
+      '<div class="donut-legend-text"><div class="lbl">'+esc(labels[i])+'</div><div class="val">R$ '+fmtBRL(values[i])+' ('+fmtPct(pct/100)+')</div></div>'+noteHTML+'</div>';
   };
   // metade dos itens de cada lado do mostrador (como os mostradores auxiliares dos dois lados
   // do velocimetro na foto de referencia), em vez de uma unica lista so a direita
