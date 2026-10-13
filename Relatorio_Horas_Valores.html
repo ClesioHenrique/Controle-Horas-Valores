@@ -116,8 +116,8 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .kpi-group-title{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);}
 .kpi-group-row{display:flex;align-items:flex-end;gap:8px;}
 .kpi-grp-col{display:flex;flex-direction:column;align-items:center;gap:2px;width:166px;flex:0 0 166px;}
-.kpi-grp-cap{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--text-muted);}
-.kpi-group .kpi-card{flex:none;width:166px;height:82px;}
+.kpi-grp-cap{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);text-align:center;line-height:1.15;min-height:12px;}
+.kpi-grp-col .kpi-card{flex:none;width:166px;height:82px;}
 .kpi-eq{align-self:center;margin-bottom:4px;width:28px;height:28px;border-radius:8px;background:var(--navy);color:var(--green);font-size:20px;font-weight:800;line-height:26px;text-align:center;}
 .kpi-strip{align-items:flex-end;}
 .kpi-card .kpi-icon{font-size:20px;line-height:1;}
@@ -1493,7 +1493,7 @@ function renderKpiStrip(proj, data){
   const grpCard = (cap, c) => '<div class="kpi-grp-col"><div class="kpi-grp-cap">'+cap+'</div>'+cardHTML(Object.assign({}, c, {label:cap, hideLabel:true}))+'</div>';
   const group = '<div class="kpi-group"><div class="kpi-group-title">Total Geral</div><div class="kpi-group-row">'+
     grpCard('HH', cards[1])+'<div class="kpi-eq">=</div>'+grpCard('R$', cards[0])+'</div></div>';
-  return group + cards.slice(2).map(cardHTML).join('');
+  return group + cards.slice(2).map(c=> (c.aprovProj||c.aribaProj) ? grpCard(esc(c.label), c) : cardHTML(c)).join('');
 }
 // Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
 // linhas = Projeto / Lider / Fiscal, colunas = cada mes selecionado (HH e R$) + total.
