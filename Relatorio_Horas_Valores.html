@@ -1560,6 +1560,11 @@ function renderRdcHTML(){
   html += (includeRanking?'</div>':'')+'</div>';
   return html;
 }
+// Cartao de contagem no mesmo padrao do grupo "Total Geral": titulo em cima, legenda "QTD" e o cartao
+function kpiCountGroupHTML(icon, cls, title, value){
+  return '<div class="kpi-group"><div class="kpi-group-title sm">'+esc(title)+'</div><div class="kpi-group-row"><div class="kpi-grp-col"><div class="kpi-grp-cap">QTD</div>'+
+    '<div class="kpi-card '+cls+'"><div class="kpi-icon">'+icon+'</div><div><div class="kpi-value">'+value+'</div></div></div></div></div></div>';
+}
 // Grupo "TOTAL GERAL" (HH = R$) reutilizado nas abas RDC nao aprovada e Pendente Aprovacao Fiscalizacao
 function kpiTotalGroupHTML(hhText, rsText){
   const card = (icon, cls, v) => '<div class="kpi-grp-col"><div class="kpi-grp-cap">'+(cls==='kpi-blue'?'HH':'R$')+'</div><div class="kpi-card '+cls+'"><div class="kpi-icon">'+icon+'</div><div><div class="kpi-value">'+v+'</div></div></div></div>';
@@ -1572,7 +1577,7 @@ function renderRdcKpiStrip(){
   const fiscais = new Set(rows.map(r=>r.projeto+'|'+r.fiscal)).size;
   return kpiTotalGroupHTML(fmtInt(hh), 'R$ '+fmtBRL(rs)) + [
     ['👷','kpi-green','Fiscais com pendência',String(fiscais)]
-  ].map(c=>'<div class="kpi-card '+c[1]+'"><div class="kpi-icon">'+c[0]+'</div><div><div class="kpi-label">'+c[2]+'</div><div class="kpi-value">'+c[3]+'</div></div></div>').join('');
+  ].map(c=>kpiCountGroupHTML(c[0], c[1], c[2], c[3])).join('');
 }
 
 // "Sistema SGE Mobile" -> "Pendente Aprovação Fiscalização": consulta da aba "RDC_Mobile aprov.pendente"
@@ -1739,7 +1744,7 @@ function renderMobilePendenteKpiStrip(){
   return kpiTotalGroupHTML(fmtInt(hhTotal), 'R$ '+fmtBRL(rsTotal)) + [
     ['📋','kpi-green','RDCs pendentes',String(rdcsDistintas)],
     ['👷','kpi-green','Aprovadores com pendência',String(aprovadores)]
-  ].map(c=>'<div class="kpi-card '+c[1]+'"><div class="kpi-icon">'+c[0]+'</div><div><div class="kpi-label">'+c[2]+'</div><div class="kpi-value">'+c[3]+'</div></div></div>').join('');
+  ].map(c=>kpiCountGroupHTML(c[0], c[1], c[2], c[3])).join('');
 }
 function openMobilePendenteModal(proj, papel, aprovador){
   const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador && mobileMonths().includes(r.mesano))
