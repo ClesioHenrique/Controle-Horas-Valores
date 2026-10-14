@@ -1560,13 +1560,17 @@ function renderRdcHTML(){
   html += (includeRanking?'</div>':'')+'</div>';
   return html;
 }
+// Grupo "TOTAL GERAL" (HH = R$) reutilizado nas abas RDC nao aprovada e Pendente Aprovacao Fiscalizacao
+function kpiTotalGroupHTML(hhText, rsText){
+  const card = (icon, cls, v) => '<div class="kpi-grp-col"><div class="kpi-grp-cap">'+(cls==='kpi-blue'?'HH':'R$')+'</div><div class="kpi-card '+cls+'"><div class="kpi-icon">'+icon+'</div><div><div class="kpi-value">'+v+'</div></div></div></div>';
+  return '<div class="kpi-group"><div class="kpi-group-title">Total Geral</div><div class="kpi-group-row">'+
+    card('⏱️','kpi-blue',hhText)+'<div class="kpi-eq">=</div>'+card('💰','kpi-navy',rsText)+'</div></div>';
+}
 function renderRdcKpiStrip(){
   const rows = rdcRowsSelected();
   const hh = rows.reduce((a,r)=>a+r.hh,0), rs = rows.reduce((a,r)=>a+r.rs,0);
   const fiscais = new Set(rows.map(r=>r.projeto+'|'+r.fiscal)).size;
-  return [
-    ['💰','kpi-navy','Total R$ (RDC não aprovada)','R$ '+fmtBRL(rs)],
-    ['⏱️','kpi-blue','Total HH',fmtInt(hh)],
+  return kpiTotalGroupHTML(fmtInt(hh), 'R$ '+fmtBRL(rs)) + [
     ['👷','kpi-green','Fiscais com pendência',String(fiscais)]
   ].map(c=>'<div class="kpi-card '+c[1]+'"><div class="kpi-icon">'+c[0]+'</div><div><div class="kpi-label">'+c[2]+'</div><div class="kpi-value">'+c[3]+'</div></div></div>').join('');
 }
@@ -1732,9 +1736,7 @@ function renderMobilePendenteKpiStrip(){
   const rsTotal = rows.reduce((a,r)=>a+(r.rs||0),0);
   const rdcsDistintas = new Set(rows.map(r=>r.projeto+'|'+r.rdc)).size;
   const aprovadores = new Set(rows.map(r=>r.projeto+'|'+r.aprovador)).size;
-  return [
-    ['💰','kpi-navy','Total R$ pendente','R$ '+fmtBRL(rsTotal)],
-    ['⏱️','kpi-blue','Total HH pendentes',fmtInt(hhTotal)],
+  return kpiTotalGroupHTML(fmtInt(hhTotal), 'R$ '+fmtBRL(rsTotal)) + [
     ['📋','kpi-green','RDCs pendentes',String(rdcsDistintas)],
     ['👷','kpi-green','Aprovadores com pendência',String(aprovadores)]
   ].map(c=>'<div class="kpi-card '+c[1]+'"><div class="kpi-icon">'+c[0]+'</div><div><div class="kpi-label">'+c[2]+'</div><div class="kpi-value">'+c[3]+'</div></div></div>').join('');
