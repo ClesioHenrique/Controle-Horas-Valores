@@ -174,6 +174,10 @@ tr.medido-row td{background:#fffbe3 !important;}
 .settings-panel .if-toggle:hover{background:var(--navy-100);}
 .settings-panel .if-toggle.frs-hidden-active{background:#e4f3d2;border-color:var(--green-dark);color:#2c5a0b;}
 .settings-panel .if-toggle:last-child{margin-bottom:0;}
+.settings-panel .confronto-banner-switch{display:flex;width:100%;justify-content:flex-start;margin:0 0 6px;padding:9px 12px;background:var(--bg);color:var(--navy);border:1px solid var(--border);border-radius:8px;font-weight:700;font-size:12.5px;}
+.settings-panel .confronto-banner-switch:hover{background:var(--navy-100);border-color:var(--border);}
+.settings-panel #btn-supa-login[style*="display:none"]{display:none !important;}
+.settings-panel #supa-login-panel{position:static !important;width:auto !important;box-shadow:none !important;margin:0 0 4px;background:var(--bg) !important;}
 .update-date-box input[type=date]{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12.5px;color:var(--text);font-family:inherit;}
 .btn-refresh{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;margin-left:2px;padding:0;border:1px solid var(--border);border-radius:50%;background:var(--surface);box-shadow:var(--shadow);font-size:15px;line-height:1;cursor:pointer;transition:transform .2s,background .2s;}
 .btn-refresh:hover{background:var(--navy-100);}
@@ -465,15 +469,6 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
   <div class="confronto-banner-row">
     <div class="confronto-banner-title">Relatorio Gerencial &mdash; Controle de Horas x Valores (R$)</div>
     <div style="display:flex;align-items:center;gap:10px;position:relative;">
-      <button type="button" class="confronto-banner-switch" id="btn-supa-login" style="display:none;" title="Entrar para publicar os dados no Supabase (todos que abrirem o relatório passam a ver os números atualizados)">&#9729; <span id="supa-login-label">Entrar</span></button>
-      <div id="supa-login-panel" style="display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:90;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px;width:260px;">
-        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Entrar para publicar no Supabase</div>
-        <input type="email" id="supa-email" placeholder="E-mail" autocomplete="username" style="width:100%;margin-bottom:6px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12.5px;">
-        <input type="password" id="supa-password" placeholder="Senha" autocomplete="current-password" style="width:100%;margin-bottom:8px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12.5px;">
-        <button type="button" id="supa-login-submit" style="width:100%;padding:8px;border:none;border-radius:6px;background:var(--green);color:#042341;font-weight:800;font-size:12.5px;cursor:pointer;">Entrar</button>
-        <div id="supa-login-error" style="color:var(--danger);font-size:11.5px;margin-top:6px;min-height:14px;"></div>
-      </div>
-      <button type="button" class="confronto-banner-switch" id="btn-toggle-theme">&#127769; <span id="theme-toggle-label">Modo escuro</span></button>
       <a class="confronto-banner-switch" href="https://clesiohenrique.github.io/Painel-de-Confronto/">&#8617; Trocar de painel</a>
       <button type="button" class="confronto-banner-switch settings-gear" id="btn-settings" title="Configurações" aria-haspopup="true" aria-expanded="false">&#9881;</button>
       <div class="settings-panel" id="settings-panel" style="display:none;">
@@ -492,6 +487,19 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
         <div class="sp-sub">Ranking</div>
     <button type="button" class="if-toggle" id="btn-toggle-rank-side">&#128202; Ranking: <span id="rank-side-label">abaixo da tabela</span></button>
     <button type="button" class="if-toggle frs-hidden-active" id="btn-toggle-rank-export">&#128202; Ranking na impressão/cópia: <span id="rank-export-label">sim</span></button>
+        <div class="sp-sep"></div>
+        <div class="sp-sub">Aparência</div>
+      <button type="button" class="confronto-banner-switch" id="btn-toggle-theme">&#127769; <span id="theme-toggle-label">Modo escuro</span></button>
+        <div class="sp-sep"></div>
+        <div class="sp-sub">Fonte de dados (Supabase)</div>
+      <button type="button" class="confronto-banner-switch" id="btn-supa-login" style="display:none;" title="Entrar para publicar os dados no Supabase (todos que abrirem o relatório passam a ver os números atualizados)">&#9729; <span id="supa-login-label">Entrar</span></button>
+      <div id="supa-login-panel" style="display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:90;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px;width:260px;">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Entrar para publicar no Supabase</div>
+        <input type="email" id="supa-email" placeholder="E-mail" autocomplete="username" style="width:100%;margin-bottom:6px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12.5px;">
+        <input type="password" id="supa-password" placeholder="Senha" autocomplete="current-password" style="width:100%;margin-bottom:8px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12.5px;">
+        <button type="button" id="supa-login-submit" style="width:100%;padding:8px;border:none;border-radius:6px;background:var(--green);color:#042341;font-weight:800;font-size:12.5px;cursor:pointer;">Entrar</button>
+        <div id="supa-login-error" style="color:var(--danger);font-size:11.5px;margin-top:6px;min-height:14px;"></div>
+      </div>
       </div>
     </div>
   </div>
