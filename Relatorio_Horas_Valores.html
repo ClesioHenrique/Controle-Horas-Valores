@@ -324,7 +324,7 @@ td.pend-aprov-detail{cursor:pointer;text-decoration:underline dotted var(--dange
 td.fa-detail:hover{background:#eaf3fb !important;}
 .fa-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(13,27,42,.45);z-index:200;align-items:center;justify-content:center;}
 .fa-modal-backdrop.open{display:flex;}
-.fa-modal{background:var(--surface);border-radius:10px;box-shadow:0 20px 60px rgba(0,43,92,.3);width:min(760px,95vw);max-height:80vh;overflow:auto;padding:18px 20px;}
+.fa-modal{background:var(--surface);border-radius:10px;box-shadow:0 20px 60px rgba(0,43,92,.3);width:fit-content;min-width:min(760px,95vw);max-width:96vw;max-height:84vh;overflow:auto;padding:18px 20px;}
 .fa-modal h4{margin:0 0 4px;color:var(--navy);font-size:15px;}
 .fa-modal .fa-sub{font-size:12px;color:var(--text-muted);margin-bottom:12px;}
 /* Modal mais largo (pedido do usuario: tabelas com varias colunas - Mes/Data/RDC/Encarregado/
@@ -332,9 +332,9 @@ td.fa-detail:hover{background:#eaf3fb !important;}
    Tabela usa largura natural (table-layout:auto, sem quebra de linha) em vez de forcar 100% do
    modal — quando nao cabe, o proprio .fa-modal rola na horizontal (ja tem overflow:auto), em
    vez de espremer o texto. Colunas curtas continuam com largura minima pra nao ficar cortadas. */
-.fa-modal table{width:max-content;min-width:100%;table-layout:auto;border-collapse:collapse;font-size:12.5px;}
+.fa-modal table{width:100%;table-layout:auto;border-collapse:collapse;font-size:12.5px;}
 .fa-modal th,.fa-modal td{border:1px solid var(--border);padding:6px 10px;text-align:left;white-space:nowrap;min-width:40px;}
-.fa-modal th{background:var(--navy-100);color:var(--navy);}
+.fa-modal th{background:var(--navy-100);color:var(--navy);white-space:normal;vertical-align:bottom;}
 .fa-modal td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .fa-modal tr.fa-total td{font-weight:800;background:var(--navy-100);}
 .fa-modal tr.fa-comp-row{cursor:pointer;}
@@ -346,10 +346,11 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 .fa-modal-camera{float:right;border:none;background:none;font-size:16px;cursor:pointer;color:var(--text-muted);line-height:1;margin-right:10px;padding:0;}
 .fa-modal-camera:hover{color:var(--navy);}
 .fa-modal-camera.busy{cursor:wait;opacity:.6;}
-@media (max-width: 400px){
+@media (max-width: 720px){
   .fa-modal{padding:14px 10px;width:96vw;}
   .fa-modal table{font-size:11px;}
-  .fa-modal th,.fa-modal td{padding:5px 4px;}
+  .fa-modal th,.fa-modal td{padding:5px 4px;white-space:normal;min-width:0;overflow-wrap:anywhere;}
+  .fa-modal td.num{white-space:nowrap;}
 }
 .freenote-block{margin:10px 0 0;background:#fffbea;border:1px solid #e8c96b;border-radius:6px;padding:10px 12px;}
 .freenote-block label{display:block;font-size:11.5px;font-weight:700;color:var(--navy);margin-bottom:4px;}
@@ -1466,7 +1467,7 @@ function openAribaModal(proj){
   rows.forEach(r=>{
     tot += r.rs;
     const p = ARIBA_CONTRATO_PROJ[r.contrato];
-    body += '<tr title="FR '+esc(r.fr)+'"><td>'+esc(r.contrato)+(p?' = '+p:'')+'</td><td>'+esc(r.forn||'—')+'</td><td>'+esc(r.tipo||'—')+'</td><td>'+esc(r.mesFR||'—')+'</td><td>'+esc(r.periodo||'—')+'</td><td class="num">'+fmtBRL2(r.rs)+'</td></tr>';
+    body += '<tr title="FR '+esc(r.fr)+'"><td>'+esc(p||r.contrato)+'</td><td>'+esc(r.forn||'—')+'</td><td>'+esc(r.tipo||'—')+'</td><td>'+esc(r.mesFR||'—')+'</td><td>'+esc(r.periodo||'—')+'</td><td class="num">'+fmtBRL2(r.rs)+'</td></tr>';
   });
   body += '<tr class="fa-total"><td>Total</td><td></td><td></td><td></td><td></td><td class="num">'+fmtBRL2(tot)+'</td></tr></table>';
   document.getElementById('fa-modal-body').innerHTML = body;
@@ -1495,7 +1496,7 @@ function frMesLiberacaoMap(){
   RAW_ARIBA.forEach(r=>{ if (r.fr && r.mesFR) m.set(String(r.fr), r.mesFR); });
   return m;
 }
-const CONTRATO_TXT = {MOA:'4600185340 / 4600185359 = MOA', PCI:'4600184457 = PCI'};
+const CONTRATO_TXT = {MOA:'MOA', PCI:'PCI'};
 function openAprovModal(proj){
   const rows = aprovRowsFor(proj), lib = frMesLiberacaoMap();
   document.getElementById('fa-modal-title').textContent = 'FR em aprovação SAP_USM';
