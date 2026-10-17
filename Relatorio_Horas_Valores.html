@@ -550,6 +550,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
     <button type="button" class="if-toggle" id="btn-toggle-print-charts">&#128202; Gráficos na impressão: <span id="print-charts-label">não</span></button>
     <button type="button" class="if-toggle" id="btn-export-pdf">&#128424; Exportar PDF (todas as abas)</button>
     <button type="button" class="if-toggle" id="btn-copy-image" title="Copia o resumo da aba atual como imagem nítida (pra colar em e-mail/WhatsApp)">&#128247; Copiar imagem (aba atual)</button>
+    <button type="button" class="if-toggle" id="btn-export-excel" title="Exporta as tabelas da aba atual para Excel (.xlsx)">&#128202; Exportar Excel (aba atual)</button>
     <button type="button" class="if-toggle" id="btn-close-filters">&#10003; Aplicar e fechar filtros</button>
   </div>
 </div>
@@ -586,6 +587,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
     <div class="fa-modal" id="fa-modal-box">
       <button type="button" class="fa-modal-close" id="fa-modal-close">&times;</button>
       <button type="button" class="fa-modal-camera" id="fa-modal-camera" title="Copiar este resumo como imagem nítida (pra colar em e-mail/WhatsApp)">&#128247;</button>
+      <button type="button" class="fa-modal-camera" id="fa-modal-excel" title="Exportar este resumo para Excel (.xlsx)">&#128202;</button>
       <h4 id="fa-modal-title"></h4>
       <div class="fa-sub" id="fa-modal-sub"></div>
       <div id="fa-modal-body"></div>
@@ -1587,7 +1589,7 @@ function renderRdcHTML(){
     months.map(m=>'<th class="ft-band" colspan="2">'+esc(m)+'</th>').join('')+'<th class="ft-band" colspan="2">Total Geral</th></tr>';
   html += '<tr>'+months.map(()=>'<th class="ft-sub">HH</th><th class="ft-sub">R$</th>').join('')+'<th class="ft-sub">HH</th><th class="ft-sub">R$</th></tr>';
   list.forEach(g=>{
-    html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-lider="'+esc(g.lider)+'" data-fiscal="'+esc(g.fiscal)+'" title="Clique: lista as linhas (OS, RDC, HH, R$) · Duplo clique: extrai agrupado por OS"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.lider)+'</td><td class="ft-resp">'+
+    html += '<tr class="rdc-row" data-proj="'+esc(g.projeto)+'" data-lider="'+esc(g.lider)+'" data-fiscal="'+esc(g.fiscal)+'" title="Clique: extração por OS (visão macro) · Duplo clique: lista as linhas (OS, RDC, HH, R$)"><td>'+esc(g.projeto)+'</td><td class="ft-resp">'+esc(g.lider)+'</td><td class="ft-resp">'+
       '<span class="os-name" data-proj="'+esc(g.projeto)+'" data-lider="'+esc(g.lider)+'" data-fiscal="'+esc(g.fiscal)+'" title="Clique para ver o resumo agrupado por OS desta pessoa">'+esc(g.fiscal)+'</span></td>'+
       months.map(m=>{ const b=g.m[m]||{hh:0,rs:0}; return '<td class="num">'+fmtInt(b.hh)+'</td><td class="num">'+fmtBRL(b.rs)+'</td>'; }).join('')+
       '<td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
@@ -2513,7 +2515,7 @@ document.getElementById('content').addEventListener('dblclick', e=>{
     return;
   }
   if (rdcTr && rdcTr.dataset.lider!==undefined){
-    openRdcByOSModal(rdcTr.dataset.proj, rdcTr.dataset.lider, rdcTr.dataset.fiscal);
+    openRdcModal(rdcTr.dataset.proj, rdcTr.dataset.lider, rdcTr.dataset.fiscal);   // duplo clique = detalhe RDC a RDC
     return;
   }
   const td = e.target.closest('td.fa-detail');
@@ -2527,7 +2529,7 @@ document.getElementById('content').addEventListener('click', e=>{
   const rdcTr = e.target.closest('tr.rdc-row');
   if (rdcTr){
     if (rdcTr.dataset.papel!==undefined) openMobilePendenteModal(rdcTr.dataset.proj, rdcTr.dataset.papel, rdcTr.dataset.aprovador);
-    else openRdcModal(rdcTr.dataset.proj, rdcTr.dataset.lider, rdcTr.dataset.fiscal);
+    else openRdcByOSModal(rdcTr.dataset.proj, rdcTr.dataset.lider, rdcTr.dataset.fiscal);   // clique = visao macro por OS (igual ao do fiscal)
     return;
   }
   const td = e.target.closest('td.pend-aprov-detail');
@@ -2575,6 +2577,112 @@ async function copyModalAsImage(){
   }
 }
 document.getElementById('fa-modal-camera').addEventListener('click', copyModalAsImage);
+/* ---------------- Exportar para Excel (.xlsx gerado no navegador, sem biblioteca) ----------------
+   Gera um .xlsx minimo (zip "store" + XML) a partir de tabelas HTML da tela: serve para os resumos em
+   janela (botao ao lado da camera) e para a aba atual (botao no banner). Celulas numericas (td.num) viram
+   numero de verdade no Excel; "%" vira percentual; texto continua texto (ex.: Nº FR nao perde zeros). */
+const XLSX_CRC = (function(){ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function xlsxCrc32(b){ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c = XLSX_CRC[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function xlsxZip(files){
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const u16 = v=>[v&255,(v>>8)&255], u32 = v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255];
+  files.forEach(f=>{
+    const name = enc.encode(f.name), data = enc.encode(f.data), crc = xlsxCrc32(data);
+    const lh = new Uint8Array([0x50,0x4b,3,4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0)]);
+    parts.push(lh, name, data);
+    central.push({name, crc, size:data.length, off});
+    off += lh.length + name.length + data.length;
+  });
+  let cdSize = 0;
+  central.forEach(c=>{
+    const ch = new Uint8Array([0x50,0x4b,1,2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(c.crc), ...u32(c.size), ...u32(c.size), ...u16(c.name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(c.off)]);
+    parts.push(ch, c.name); cdSize += ch.length + c.name.length;
+  });
+  parts.push(new Uint8Array([0x50,0x4b,5,6, ...u16(0), ...u16(0), ...u16(central.length), ...u16(central.length), ...u32(cdSize), ...u32(off), ...u16(0)]));
+  return new Blob(parts, {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xlsxEsc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
+function xlsxColName(i){ let s=''; i++; while(i>0){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+// tabela HTML -> matriz (expande colspan/rowspan); cada celula {v, t:'n'|'d'|'p'|'s', h:cabecalho}
+function xlsxTableRows(table){
+  const grid = [];
+  Array.prototype.forEach.call(table.rows, (tr, ri)=>{
+    grid[ri] = grid[ri] || []; let ci = 0;
+    Array.prototype.forEach.call(tr.cells, td=>{
+      while (grid[ri][ci]) ci++;
+      const txt = (td.innerText||td.textContent||'').replace(/\s+/g,' ').trim();
+      let cell = { v: txt, t:'s', h: td.tagName==='TH' };
+      if (td.classList.contains('num') && txt){
+        const m = txt.replace(/\s/g,'');
+        if (/^-?\d{1,3}(\.\d{3})*(,\d+)?%?$/.test(m) || /^-?\d+(,\d+)?%?$/.test(m)){
+          const pct = m.endsWith('%'); const n = parseFloat(m.replace('%','').replace(/\./g,'').replace(',','.'));
+          if (isFinite(n)) cell = { v: pct ? n/100 : n, t: pct ? 'p' : (/,/.test(m) ? 'd' : 'n'), h:false };
+        }
+      }
+      const cs = Math.max(1, td.colSpan||1), rs = Math.max(1, td.rowSpan||1);
+      for (let r=0;r<rs;r++){ grid[ri+r] = grid[ri+r] || []; for (let c=0;c<cs;c++){ grid[ri+r][ci+c] = (r===0&&c===0) ? cell : { v:'', t:'s', h:cell.h }; } }
+      ci += cs;
+    });
+  });
+  return grid.map(r=>Array.from(r, c=>c||{v:'',t:'s',h:false}));
+}
+function xlsxBuild(sheets){
+  const used = new Set();
+  const names = sheets.map((s,i)=>{ let n = (s.name||('Planilha'+(i+1))).replace(/[\[\]:*?\/\\]/g,' ').trim().slice(0,31) || ('Planilha'+(i+1)); let b=n, k=2; while(used.has(n.toLowerCase())){ n = b.slice(0,28)+' '+k++; } used.add(n.toLowerCase()); return n; });
+  const files = [];
+  files.push({name:'[Content_Types].xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'</Types>'});
+  files.push({name:'_rels/.rels', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'});
+  files.push({name:'xl/workbook.xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map((n,i)=>'<sheet name="'+xlsxEsc(n)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets></workbook>'});
+  files.push({name:'xl/_rels/workbook.xml.rels', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'});
+  // estilos: 0 padrao | 1 percentual | 2 decimais | 3 cabecalho em negrito
+  files.push({name:'xl/styles.xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6EDF4"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs></styleSheet>'});
+  sheets.forEach((s,i)=>{
+    const widths = [];
+    const rowsXml = s.rows.map((row,ri)=>'<row r="'+(ri+1)+'">'+row.map((c,ci)=>{
+      const ref = xlsxColName(ci)+(ri+1);
+      const len = String(c.t==='s' ? c.v : (c.t==='p' ? (c.v*100).toFixed(1)+'%' : c.v)).length; widths[ci] = Math.min(60, Math.max(widths[ci]||8, len+2));
+      if (c.t==='s'){ if (c.v==='' && !c.h) return ''; return '<c r="'+ref+'" t="inlineStr"'+(c.h?' s="3"':'')+'><is><t xml:space="preserve">'+xlsxEsc(c.v)+'</t></is></c>'; }
+      return '<c r="'+ref+'"'+(c.t==='p'?' s="1"':c.t==='d'?' s="2"':'')+'><v>'+c.v+'</v></c>';
+    }).join('')+'</row>').join('');
+    const cols = widths.length ? '<cols>'+widths.map((w,ci)=>'<col min="'+(ci+1)+'" max="'+(ci+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols>' : '';
+    files.push({name:'xl/worksheets/sheet'+(i+1)+'.xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+cols+'<sheetData>'+rowsXml+'</sheetData></worksheet>'});
+  });
+  return xlsxZip(files);
+}
+function xlsxDownload(sheets, filename){
+  const blob = xlsxBuild(sheets);
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+}
+function xlsxSafeName(s){ return String(s||'Resumo').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().slice(0,80) || 'Resumo'; }
+// botao ao lado da camera no resumo em janela
+document.getElementById('fa-modal-excel').addEventListener('click', function(){
+  const tables = Array.prototype.slice.call(document.querySelectorAll('#fa-modal-body table'));
+  if (!tables.length){ return; }
+  const title = document.getElementById('fa-modal-title').textContent, sub = document.getElementById('fa-modal-sub').textContent;
+  const sheets = tables.map((t,i)=>{
+    const rows = xlsxTableRows(t);
+    if (i===0) rows.unshift([{v:title,t:'s',h:true}], [{v:sub,t:'s',h:false}], []);
+    return { name: tables.length>1 ? title+' '+(i+1) : title, rows };
+  });
+  xlsxDownload(sheets, xlsxSafeName(title)+'.xlsx');
+});
+// botao ao lado de "Copiar imagem (aba atual)": exporta as tabelas da aba atual (uma planilha por tabela)
+document.getElementById('btn-export-excel').addEventListener('click', function(){
+  const tab = document.querySelector('.tab-btn.active');
+  const tabName = tab ? tab.textContent.trim() : 'Resumo';
+  const tables = Array.prototype.slice.call(document.querySelectorAll('#content table')).filter(t=>t.rows.length>1);
+  if (!tables.length){ return; }
+  const sheets = tables.map((t,i)=>{
+    let heading = '';
+    const blk = t.closest('.fiscal-block, .rdc-block, .frs-block, .chart-block');
+    const h = blk && blk.querySelector('h3'); if (h) heading = h.textContent.trim();
+    if (!heading){ const prev = t.previousElementSibling; if (prev && /^H\d$/.test(prev.tagName)) heading = prev.textContent.trim(); }
+    return { name: (i===0 ? tabName : (heading || ('Tabela '+(i+1)))), rows: xlsxTableRows(t) };
+  });
+  xlsxDownload(sheets, xlsxSafeName('Resumo_'+tabName)+'.xlsx');
+});
 document.getElementById('fa-modal-backdrop').addEventListener('click', e=>{
   if (e.target.id === 'fa-modal-backdrop') closeFaModal();
 });
