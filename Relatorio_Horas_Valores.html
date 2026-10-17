@@ -126,9 +126,10 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .evol-chip.on{background:#e4f3d2;border-color:var(--green-dark);color:#2c5a0b;}
 .evol-chk{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--navy);cursor:pointer;}
 .evol-summary{font-size:11.5px;color:var(--text-muted);margin:0 0 6px;}
-table.evol-tbl{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--surface);}
+table.evol-tbl{border-collapse:collapse;font-size:12.5px;background:var(--surface);}
 table.evol-tbl th{background:var(--green);color:#042341;font-weight:800;padding:7px 10px;text-align:left;border:1px solid var(--border);white-space:nowrap;}
-table.evol-tbl td{padding:5px 10px;border:1px solid var(--border);white-space:nowrap;}
+table.evol-tbl td{padding:5px 10px;border:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+table.evol-tbl th.ctr,table.evol-tbl td.ctr{text-align:center;}
 table.evol-tbl th.num,table.evol-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
 table.evol-tbl tr.evol-tct td{background:#edf7e6;}
 table.evol-tbl tr.evol-usm td{background:#fdecee;}
@@ -1956,26 +1957,32 @@ function evolAggregate(rows){
     sitRank(a.situacao)-sitRank(b.situacao) || a.situacao.localeCompare(b.situacao) ||
     a.projeto.localeCompare(b.projeto) || a.nome.localeCompare(b.nome) || (b.dia||'').localeCompare(a.dia||''));
 }
+function evolColRoles(){ return ['seq','sit','proj','nome','ut','tct'].concat(EVOL_STATE.byDay?['dia']:[], ['hh','rs']); }
 function evolTableHTML(){
   const rows = evolAggregate(evolRowsFiltered());
   if (!rows.length) return '<div class="fiscal-empty">Nenhuma atualização encontrada para os filtros selecionados.</div>';
-  let html = '<table class="evol-tbl" id="evol-tbl"><thead><tr><th class="num">Seq.</th><th>Situação</th><th>Contrato</th><th>Usuário (UT_ATUALIZAÇÃO)</th><th>Usuário UT</th><th>Fiscal ou TCT</th>'+
-    (EVOL_STATE.byDay?'<th>Data</th>':'')+'<th class="num">Soma de HH</th><th class="num">Soma de R$</th></tr></thead><tbody>';
+  const W = { seq:48, sit:170, proj:80, nome:260, ut:100, tct:110, dia:110, hh:110, rs:130 };
+  const roles = evolColRoles();
+  let html = '<div class="table-wrap"><table class="rep fiscal-tbl resizable-tbl evol-tbl" id="evol-tbl"><colgroup>'+
+    roles.map(r=>'<col style="width:'+(getSavedColWidth('evol-tbl',r)||W[r])+'px">').join('')+'</colgroup>'+
+    '<thead><tr><th class="num">Seq.</th><th>Situação</th><th class="ctr">Contrato</th><th>Usuário (UT_ATUALIZAÇÃO)</th><th class="ctr">Usuário UT</th><th class="ctr">Fiscal ou TCT</th>'+
+    (EVOL_STATE.byDay?'<th class="ctr">Data</th>':'')+'<th class="ctr">Soma de HH</th><th class="ctr">Soma de R$</th></tr></thead><tbody>';
   const cols = EVOL_STATE.byDay ? 7 : 6;
   let curSit = null, sitHH = 0, sitRS = 0, totHH = 0, totRS = 0;
   const flush = ()=>{ if (curSit===null) return;
-    html += '<tr class="evol-sub"><td colspan="'+cols+'">Subtotal — '+esc(evolSitLabel(curSit)||'(sem situação)')+'</td><td class="num">'+fmtInt(sitHH)+'</td><td class="num">'+fmtBRL(sitRS)+'</td></tr>'; };
+    html += '<tr class="evol-sub"><td colspan="'+cols+'">Subtotal — '+esc(evolSitLabel(curSit)||'(sem situação)')+'</td><td class="ctr">'+fmtInt(sitHH)+'</td><td class="ctr">'+fmtBRL(sitRS)+'</td></tr>'; };
   rows.forEach(g=>{
     if (g.situacao!==curSit){ flush(); curSit = g.situacao; sitHH = 0; sitRS = 0; }
     sitHH += g.hh; sitRS += g.rs; totHH += g.hh; totRS += g.rs;
     const cls = g.tct==='TCT' ? 'evol-tct' : g.tct==='USM' ? 'evol-usm' : 'evol-other';
-    html += '<tr class="'+cls+'"><td class="num">'+esc(evolSitSeq(g.situacao))+'</td><td>'+esc(evolSitLabel(g.situacao)||'—')+'</td><td>'+esc(g.projeto)+'</td><td>'+esc(g.nome)+'</td><td>'+esc(g.ut)+'</td><td class="evol-tctcell">'+esc(g.tct)+'</td>'+
-      (EVOL_STATE.byDay?'<td>'+esc(g.dia)+'</td>':'')+'<td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+    html += '<tr class="'+cls+'"><td class="num">'+esc(evolSitSeq(g.situacao))+'</td><td>'+esc(evolSitLabel(g.situacao)||'—')+'</td><td class="ctr">'+esc(g.projeto)+'</td><td>'+esc(g.nome)+'</td><td class="ctr">'+esc(g.ut)+'</td><td class="ctr evol-tctcell">'+esc(g.tct)+'</td>'+
+      (EVOL_STATE.byDay?'<td class="ctr">'+esc(g.dia)+'</td>':'')+'<td class="ctr">'+fmtInt(g.hh)+'</td><td class="ctr">'+fmtBRL(g.rs)+'</td></tr>';
   });
   flush();
-  html += '</tbody><tfoot><tr class="fa-total"><td colspan="'+cols+'">Total Geral</td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></tfoot></table>';
+  html += '</tbody><tfoot><tr class="fa-total"><td colspan="'+cols+'">Total Geral</td><td class="ctr">'+fmtInt(totHH)+'</td><td class="ctr">'+fmtBRL(totRS)+'</td></tr></tfoot></table></div>';
   return html;
 }
+function evolEnableResize(){ const t = document.getElementById('evol-tbl'); if (t) enableColResize(t, 'evol-tbl', evolColRoles()); }
 function evolFilterSummary(){
   const p = [];
   p.push(EVOL_STATE.from||EVOL_STATE.to ? 'Período: '+evolDiaBR(EVOL_STATE.from)+' a '+evolDiaBR(EVOL_STATE.to) : 'Período: todos os dias');
@@ -2025,6 +2032,7 @@ function renderEvolKpiStrip(){
 }
 function evolRefresh(){
   const w = document.getElementById('evol-table-wrap'); if (w) w.innerHTML = evolTableHTML();
+  evolEnableResize();
   document.getElementById('kpi-strip').innerHTML = renderEvolKpiStrip();
   document.querySelectorAll('#evol-filters [data-evol-proj]').forEach(b=>b.classList.toggle('on', EVOL_STATE.projs.includes(b.dataset.evolProj)));
 }
@@ -2090,6 +2098,7 @@ function render(){
     // consulta propria: os filtros do banner (meses, itens, FR'S, projeto...) nao se aplicam — os filtros ficam na propria aba
     ['month-filter','item-filter','btn-toggle-frs','frs-date-filter','frs-forn-filter','rdc-proj-filter','mobile-papel-filter','mobile-mes-filter'].forEach(id=>{ document.getElementById(id).style.display = 'none'; });
     document.getElementById('content').innerHTML = renderEvolHTML(false) + renderFreeNoteHTML('EVOL');
+    evolEnableResize();
     document.getElementById('kpi-strip').innerHTML = renderEvolKpiStrip();
     const noteE = document.getElementById('freenote');
     if (noteE) noteE.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteE.dataset.proj, noteE.value); } catch(e){} });
@@ -2173,7 +2182,8 @@ function saveColWidth(tableKey, role, px){
 function enableColResize(table, tableKey, roles){
   const cols = table.querySelectorAll(':scope > colgroup > col');
   if (!cols.length) return;
-  const headerRows = Array.from(table.rows).slice(0,2);
+  const theadRows = Array.from(table.querySelectorAll(':scope > thead > tr'));
+  const headerRows = (theadRows.length ? theadRows : Array.from(table.rows)).slice(0,2);
   const occupied = [[],[]];
   const entries = []; // {cell, colIndex, rowIndex}, uma por celula de cabecalho colspan=1
   headerRows.forEach((row,ri)=>{
