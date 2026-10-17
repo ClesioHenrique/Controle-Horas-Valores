@@ -1897,7 +1897,12 @@ document.getElementById('content').addEventListener('click', e=>{
    Base: aba "Extrato SGE (FAD)" — Contrato (F), Situação (G), HH (L), R$ (M), "Atualizado em" (Q, data/hora → so o DIA)
    e "Usuário Atualização" (R, codigo UT). Os nomes e o "Fiscal ou TCT" vem da aba "UT's" (UT na col A, Nome na D,
    Fiscal ou TCT na H). RAW_EVOLUCAO ja vem somado por Projeto | Situação | UT | Dia. */
-const EVOL_SIT_ORDER = ['Pendente de aprovação','Aprovado','Medida'];
+// classificacao (sequencia) dos status, conforme definido pelo usuario
+const EVOL_SIT_ORDER = ['Aguardando Revisão','Em elaboração','Pendente de aprovação','Aprovado','Medição em Andamento','Medida'];
+const evolNorm = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+function evolSitIdx(s){ const n = evolNorm(s); return EVOL_SIT_ORDER.findIndex(x=>evolNorm(x)===n); }
+function evolSitLabel(s){ const i = evolSitIdx(s); return i===-1 ? s : EVOL_SIT_ORDER[i]; }
+function evolSitSeq(s){ const i = evolSitIdx(s); return i===-1 ? '' : String(i+1); }
 const EVOL_STATE = { from:'', to:'', projs:['MOA','PCI'], sits:null, tcts:null, byDay:true, init:false };
 function evolTctLabel(raw){
   const s = String(raw||'');
@@ -1946,7 +1951,7 @@ function evolAggregate(rows){
     if (!g){ g = { situacao:r.situacao, projeto:r.projeto, ut:r.ut, nome:r.nome, tct:r.tct, dia: EVOL_STATE.byDay ? r.dia : '', hh:0, rs:0 }; map.set(k,g); }
     g.hh += r.hh; g.rs += r.rs;
   });
-  const sitRank = s => { const i = EVOL_SIT_ORDER.indexOf(s); return i===-1 ? 99 : i; };
+  const sitRank = s => { const i = evolSitIdx(s); return i===-1 ? 99 : i; };
   return Array.from(map.values()).sort((a,b)=>
     sitRank(a.situacao)-sitRank(b.situacao) || a.situacao.localeCompare(b.situacao) ||
     a.projeto.localeCompare(b.projeto) || a.nome.localeCompare(b.nome) || (b.dia||'').localeCompare(a.dia||''));
@@ -1954,17 +1959,17 @@ function evolAggregate(rows){
 function evolTableHTML(){
   const rows = evolAggregate(evolRowsFiltered());
   if (!rows.length) return '<div class="fiscal-empty">Nenhuma atualização encontrada para os filtros selecionados.</div>';
-  let html = '<table class="evol-tbl" id="evol-tbl"><thead><tr><th>Situação</th><th>Contrato</th><th>Usuário (UT_ATUALIZAÇÃO)</th><th>Usuário UT</th><th>Fiscal ou TCT</th>'+
+  let html = '<table class="evol-tbl" id="evol-tbl"><thead><tr><th class="num">Seq.</th><th>Situação</th><th>Contrato</th><th>Usuário (UT_ATUALIZAÇÃO)</th><th>Usuário UT</th><th>Fiscal ou TCT</th>'+
     (EVOL_STATE.byDay?'<th>Data</th>':'')+'<th class="num">Soma de HH</th><th class="num">Soma de R$</th></tr></thead><tbody>';
-  const cols = EVOL_STATE.byDay ? 6 : 5;
+  const cols = EVOL_STATE.byDay ? 7 : 6;
   let curSit = null, sitHH = 0, sitRS = 0, totHH = 0, totRS = 0;
   const flush = ()=>{ if (curSit===null) return;
-    html += '<tr class="evol-sub"><td colspan="'+cols+'">Subtotal — '+esc(curSit||'(sem situação)')+'</td><td class="num">'+fmtInt(sitHH)+'</td><td class="num">'+fmtBRL(sitRS)+'</td></tr>'; };
+    html += '<tr class="evol-sub"><td colspan="'+cols+'">Subtotal — '+esc(evolSitLabel(curSit)||'(sem situação)')+'</td><td class="num">'+fmtInt(sitHH)+'</td><td class="num">'+fmtBRL(sitRS)+'</td></tr>'; };
   rows.forEach(g=>{
     if (g.situacao!==curSit){ flush(); curSit = g.situacao; sitHH = 0; sitRS = 0; }
     sitHH += g.hh; sitRS += g.rs; totHH += g.hh; totRS += g.rs;
     const cls = g.tct==='TCT' ? 'evol-tct' : g.tct==='USM' ? 'evol-usm' : 'evol-other';
-    html += '<tr class="'+cls+'"><td>'+esc(g.situacao||'—')+'</td><td>'+esc(g.projeto)+'</td><td>'+esc(g.nome)+'</td><td>'+esc(g.ut)+'</td><td class="evol-tctcell">'+esc(g.tct)+'</td>'+
+    html += '<tr class="'+cls+'"><td class="num">'+esc(evolSitSeq(g.situacao))+'</td><td>'+esc(evolSitLabel(g.situacao)||'—')+'</td><td>'+esc(g.projeto)+'</td><td>'+esc(g.nome)+'</td><td>'+esc(g.ut)+'</td><td class="evol-tctcell">'+esc(g.tct)+'</td>'+
       (EVOL_STATE.byDay?'<td>'+esc(g.dia)+'</td>':'')+'<td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
   });
   flush();
@@ -1980,7 +1985,7 @@ function evolFilterSummary(){
   return p.join(' · ');
 }
 function evolChips(group, values, selected){
-  return values.map(v=>'<button type="button" class="evol-chip'+((selected===null||selected.includes(v))?' on':'')+'" data-evol-'+group+'="'+esc(v)+'">'+esc(v)+'</button>').join('');
+  return values.map(v=>'<button type="button" class="evol-chip'+((selected===null||selected.includes(v))?' on':'')+'" data-evol-'+group+'="'+esc(v)+'">'+esc(group==='sit' ? evolSitLabel(v) : v)+'</button>').join('');
 }
 function renderEvolHTML(forExport){
   evolInitState();
@@ -1994,7 +1999,7 @@ function renderEvolHTML(forExport){
     html += '<div class="evol-summary">'+esc(evolFilterSummary())+'</div>'+evolTableHTML()+'</div>';
     return html;
   }
-  const sits = Array.from(new Set(RAW_EVOLUCAO.map(r=>r.situacao))).sort((a,b)=>{ const ia=EVOL_SIT_ORDER.indexOf(a), ib=EVOL_SIT_ORDER.indexOf(b); return (ia===-1?99:ia)-(ib===-1?99:ib) || a.localeCompare(b); });
+  const sits = Array.from(new Set(RAW_EVOLUCAO.map(r=>r.situacao))).sort((a,b)=>{ const ia=evolSitIdx(a), ib=evolSitIdx(b); return (ia===-1?99:ia)-(ib===-1?99:ib) || a.localeCompare(b); });
   const ut = evolUtMap();
   const tcts = Array.from(new Set(RAW_EVOLUCAO.map(r=>{ const u = ut.get(String(r.ut||'').trim().toUpperCase()); return u ? evolTctLabel(u.tct) : '—'; }))).sort();
   html += '<div class="evol-filters" id="evol-filters">'+
