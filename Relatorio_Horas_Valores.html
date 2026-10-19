@@ -149,6 +149,14 @@ table.evol-utres-tbl{border-collapse:collapse;font-size:12.5px;}
 table.evol-utres-tbl th{background:var(--navy-100);color:var(--navy);padding:5px 12px;border:1px solid var(--border);text-align:left;}
 table.evol-utres-tbl td{padding:4px 12px;border:1px solid var(--border);}
 table.evol-utres-tbl th.num,table.evol-utres-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.evol-layout{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;}
+#evol-table-wrap{flex:0 0 auto;max-width:100%;}
+.evol-chart-card{flex:1 1 380px;min-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:10px 14px 4px;}
+.evol-chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.evol-chart-head h4{margin:0;font-size:13.5px;color:var(--navy);}
+.evol-metric{display:flex;gap:6px;}
+.evol-chart-sub{font-size:11px;color:var(--text-muted);margin:2px 0 4px;}
+#evol-chart{width:100%;min-height:340px;}
 table.evol-tbl tr.evol-sub td{background:var(--navy-100);color:var(--navy);font-weight:800;}
 table.evol-tbl tr.fa-total td{background:var(--navy);color:#fff;font-weight:800;}
 html.dark-theme body:not(.printing) table.evol-tbl tr.evol-tct td{background:#1f3a24;}
@@ -613,7 +621,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
         </div>
       </div>
       <div class="tabs-group">
-        <div class="tabs-group-label">Consulta</div>
+        <div class="tabs-group-label">Consulta - Sistema SGE</div>
         <div class="tabs" id="tabs-evol">
           <button class="tab-btn" data-proj="EVOL">Evolução aprovadores &ldquo;TCT ou USM&rdquo;</button>
         </div>
@@ -1918,7 +1926,7 @@ const evolNorm = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,
 function evolSitIdx(s){ const n = evolNorm(s); return EVOL_SIT_ORDER.findIndex(x=>evolNorm(x)===n); }
 function evolSitLabel(s){ const i = evolSitIdx(s); return i===-1 ? s : EVOL_SIT_ORDER[i]; }
 function evolSitSeq(s){ const i = evolSitIdx(s); return i===-1 ? '' : String(i+1); }
-const EVOL_STATE = { from:'', to:'', projs:['MOA','PCI'], sits:null, tcts:null, byDay:true, q:'', init:false };
+const EVOL_STATE = { from:'', to:'', projs:['MOA','PCI'], sits:null, tcts:null, byDay:true, q:'', metric:'rs', init:false };
 function evolTctLabel(raw){
   const s = String(raw||'');
   if (/techint/i.test(s)) return 'TCT';
@@ -1990,6 +1998,32 @@ function evolUtResultHTML(){
     return h + '</tbody></table></div>';
   }).join('') + (matches.length>6 ? '<div class="evol-utres-none">… e mais '+(matches.length-6)+' resultado(s): digite mais letras para refinar.</div>' : '');
 }
+// Grafico em colunas: quem esta atuando (soma por usuario, conforme os filtros). Verde = TCT, vermelho = USM, laranja = SGE/sistema.
+function evolChartHTML(){
+  return '<div class="evol-chart-card"><div class="evol-chart-head"><h4>Quem está atuando nas aprovações</h4>'+
+    '<div class="evol-metric"><button type="button" class="evol-chip'+(EVOL_STATE.metric==='rs'?' on':'')+'" data-evol-metric="rs">R$</button>'+
+    '<button type="button" class="evol-chip'+(EVOL_STATE.metric==='hh'?' on':'')+'" data-evol-metric="hh">HH</button></div></div>'+
+    '<div class="evol-chart-sub">Soma por usuário nos filtros aplicados (data, contrato, situação e TCT/USM)</div><div id="evol-chart"></div></div>';
+}
+function evolDrawChart(){
+  const el = document.getElementById('evol-chart'); if (!el || typeof Plotly==='undefined') return;
+  const rows = evolRowsFiltered(); const byU = new Map();
+  rows.forEach(r=>{ let g = byU.get(r.ut); if (!g){ g = { nome:r.nome, tct:r.tct, hh:0, rs:0 }; byU.set(r.ut,g); } g.hh += r.hh; g.rs += r.rs; });
+  const m = EVOL_STATE.metric;
+  const list = Array.from(byU.values()).sort((a,b)=>b[m]-a[m]).slice(0,15);
+  if (!list.length){ Plotly.purge(el); el.innerHTML = '<div class="fiscal-empty">Sem dados para os filtros selecionados.</div>'; return; }
+  const col = t => t==='TCT' ? '#6FA834' : t==='USM' ? '#d9534f' : '#E8A33D';
+  const fmt = v => m==='rs' ? 'R$ '+fmtBRL(v) : fmtInt(v)+' HH';
+  const txt = getComputedStyle(document.body).color;
+  Plotly.newPlot(el, [{
+    type:'bar', x:list.map(g=>g.nome), y:list.map(g=>g[m]), marker:{ color:list.map(g=>col(g.tct)) },
+    text:list.map(g=>fmt(g[m])), textposition:'outside', cliponaxis:false,
+    customdata:list.map(g=>g.tct), hovertemplate:'%{x} (%{customdata})<br>%{text}<extra></extra>'
+  }], {
+    margin:{t:24,b:90,l:60,r:10}, xaxis:{tickangle:-35, automargin:true, tickfont:{size:10.5}}, yaxis:{title: m==='rs'?'R$':'HH', tickformat:',.0f', gridcolor:'rgba(128,128,128,.25)'},
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)', font:{family:'Segoe UI', size:11.5, color:txt}, showlegend:false
+  }, { displaylogo:false, responsive:true, displayModeBar:false });
+}
 function evolColRoles(){ return ['seq','sit','proj','nome','ut','tct'].concat(EVOL_STATE.byDay?['dia']:[], ['hh','rs']); }
 function evolTableHTML(){
   const rows = evolAggregate(evolRowsFiltered());
@@ -2055,7 +2089,7 @@ function renderEvolHTML(forExport){
     '<div class="evol-fgrp"><span class="evol-flbl">Fiscal ou TCT</span>'+evolChips('tct',tcts,EVOL_STATE.tcts)+'</div>'+
     '<div class="evol-fgrp"><label class="evol-chk"><input type="checkbox" id="evol-byday"'+(EVOL_STATE.byDay?' checked':'')+'> Separar por dia</label></div>'+
     '<div class="evol-fgrp evol-search"><span class="evol-flbl">Consultar UT</span><input type="text" id="evol-ut-q" list="evol-ut-list" autocomplete="off" placeholder="Digite o UT (ex.: UT13440) ou o nome" value="'+esc(EVOL_STATE.q)+'"><datalist id="evol-ut-list">'+RAW_UTS.map(u=>'<option value="'+esc(u.ut)+'">'+esc(u.nome)+'</option>').join('')+'</datalist></div>'+
-    '</div><div id="evol-ut-result">'+evolUtResultHTML()+'</div><div id="evol-table-wrap">'+evolTableHTML()+'</div></div>';
+    '</div><div id="evol-ut-result">'+evolUtResultHTML()+'</div><div class="evol-layout"><div id="evol-table-wrap">'+evolTableHTML()+'</div>'+evolChartHTML()+'</div></div>';
   return html;
 }
 function renderEvolKpiStrip(){
@@ -2067,6 +2101,7 @@ function renderEvolKpiStrip(){
 function evolRefresh(){
   const w = document.getElementById('evol-table-wrap'); if (w) w.innerHTML = evolTableHTML();
   evolEnableResize();
+  evolDrawChart();
   const ur = document.getElementById('evol-ut-result'); if (ur) ur.innerHTML = evolUtResultHTML();
   document.getElementById('kpi-strip').innerHTML = renderEvolKpiStrip();
   document.querySelectorAll('#evol-filters [data-evol-proj]').forEach(b=>b.classList.toggle('on', EVOL_STATE.projs.includes(b.dataset.evolProj)));
@@ -2077,6 +2112,8 @@ function evolToggle(list, all, v){
   return cur.length===all.length ? null : cur;
 }
 document.getElementById('content').addEventListener('click', e=>{
+  const mt = e.target.closest('[data-evol-metric]');
+  if (mt){ EVOL_STATE.metric = mt.dataset.evolMetric; document.querySelectorAll('[data-evol-metric]').forEach(b=>b.classList.toggle('on', b.dataset.evolMetric===EVOL_STATE.metric)); evolDrawChart(); return; }
   const qb = e.target.closest('[data-evol-quick]');
   if (qb){
     const days = evolDays(); if (!days.length) return;
@@ -2137,6 +2174,7 @@ function render(){
     ['month-filter','item-filter','btn-toggle-frs','frs-date-filter','frs-forn-filter','rdc-proj-filter','mobile-papel-filter','mobile-mes-filter'].forEach(id=>{ document.getElementById(id).style.display = 'none'; });
     document.getElementById('content').innerHTML = renderEvolHTML(false) + renderFreeNoteHTML('EVOL');
     evolEnableResize();
+    evolDrawChart();
     document.getElementById('kpi-strip').innerHTML = renderEvolKpiStrip();
     const noteE = document.getElementById('freenote');
     if (noteE) noteE.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteE.dataset.proj, noteE.value); } catch(e){} });
