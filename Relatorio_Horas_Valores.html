@@ -156,7 +156,7 @@ table.evol-utres-tbl th.num,table.evol-utres-tbl td.num{text-align:right;font-va
 .evol-chart-head h4{margin:0;font-size:13.5px;color:var(--navy);}
 .evol-metric{display:flex;gap:6px;}
 .evol-chart-sub{font-size:11px;color:var(--text-muted);margin:2px 0 4px;}
-#evol-chart{width:100%;min-height:340px;}
+#evol-chart{width:100%;min-height:260px;}
 table.evol-tbl tr.evol-sub td{background:var(--navy-100);color:var(--navy);font-weight:800;}
 table.evol-tbl tr.fa-total td{background:var(--navy);color:#fff;font-weight:800;}
 html.dark-theme body:not(.printing) table.evol-tbl tr.evol-tct td{background:#1f3a24;}
@@ -2007,6 +2007,14 @@ function evolChartHTML(){
 }
 function evolDrawChart(){
   const el = document.getElementById('evol-chart'); if (!el || typeof Plotly==='undefined') return;
+  // lado a lado: o grafico acompanha a altura da tabela (mesmo alinhamento de topo e base); empilhado: altura padrao
+  const wrapEl = document.getElementById('evol-table-wrap'), cardEl = el.closest('.evol-chart-card');
+  if (wrapEl && cardEl){
+    el.style.height = '300px';
+    const sameRow = cardEl.offsetTop < wrapEl.offsetTop + wrapEl.offsetHeight/2;
+    if (sameRow){ const chrome = cardEl.offsetHeight - 300; el.style.height = Math.min(520, Math.max(260, wrapEl.offsetHeight - chrome)) + 'px'; }
+    else el.style.height = '340px';
+  }
   const rows = evolRowsFiltered(); const byU = new Map();
   rows.forEach(r=>{ let g = byU.get(r.ut); if (!g){ g = { nome:r.nome, tct:r.tct, hh:0, rs:0 }; byU.set(r.ut,g); } g.hh += r.hh; g.rs += r.rs; });
   const m = EVOL_STATE.metric;
@@ -2020,7 +2028,7 @@ function evolDrawChart(){
     text:list.map(g=>fmt(g[m])), textposition:'outside', cliponaxis:false,
     customdata:list.map(g=>g.tct), hovertemplate:'%{x} (%{customdata})<br>%{text}<extra></extra>'
   }], {
-    margin:{t:24,b:90,l:60,r:10}, xaxis:{tickangle:-35, automargin:true, tickfont:{size:10.5}}, yaxis:{title: m==='rs'?'R$':'HH', tickformat:',.0f', gridcolor:'rgba(128,128,128,.25)'},
+    autosize:true, margin:{t:24,b:90,l:60,r:10}, xaxis:{tickangle:-35, automargin:true, tickfont:{size:10.5}}, yaxis:{title: m==='rs'?'R$':'HH', tickformat:',.0f', gridcolor:'rgba(128,128,128,.25)'},
     paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)', font:{family:'Segoe UI', size:11.5, color:txt}, showlegend:false
   }, { displaylogo:false, responsive:true, displayModeBar:false });
 }
