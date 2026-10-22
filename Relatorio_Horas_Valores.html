@@ -1600,7 +1600,7 @@ function renderKpiStrip(proj, data){
   const grpCard = (cap, c) => '<div class="kpi-grp-col"><div class="kpi-grp-cap">'+cap+'</div>'+cardHTML(Object.assign({}, c, {label:cap, hideLabel:true}))+'</div>';
   const group = '<div class="kpi-group"><div class="kpi-group-title">Total Geral</div><div class="kpi-group-row">'+
     grpCard('HH', cards[1])+'<div class="kpi-eq">=</div>'+grpCard('R$', cards[0])+'</div></div>';
-  return group + cards.slice(2).map(c=> (c.aprovProj||c.aribaProj) ? '<div class="kpi-group"><div class="kpi-group-title sm">'+esc(c.label)+'</div><div class="kpi-group-row">'+grpCard('R$', c)+'</div></div>' : cardHTML(c)).join('');
+  return group + cards.slice(2).map(c=> (c.aprovProj||c.aribaProj||c.clickProj) ? '<div class="kpi-group"><div class="kpi-group-title sm">'+esc(c.label)+'</div><div class="kpi-group-row">'+grpCard('R$', c)+'</div></div>' : cardHTML(c)).join('');
 }
 // Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
 // linhas = Projeto / Lider / Fiscal, colunas = cada mes selecionado (HH e R$) + total.
