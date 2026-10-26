@@ -124,6 +124,7 @@ button.confronto-banner-switch{background:transparent;cursor:pointer;font-family
 .evol-quick:hover,.evol-chip:hover{background:var(--navy-100);}
 .evol-chip.on{background:#e4f3d2;border-color:var(--green-dark);color:#2c5a0b;}
 .evol-chk{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--navy);cursor:pointer;}
+.frs-emissao{font-size:12.5px;font-weight:700;color:var(--text-muted);}
 .evol-summary{font-size:11.5px;color:var(--text-muted);margin:0 0 6px;}
 table.evol-tbl{border-collapse:collapse;font-size:12.5px;background:var(--surface);}
 table.evol-tbl th{background:var(--green);color:#042341;font-weight:800;padding:7px 10px;text-align:left;border:1px solid var(--border);white-space:nowrap;}
@@ -1324,13 +1325,20 @@ function frsNfText(nfs, max){
   if (!nfs || !nfs.length) return '—';
   return nfs.length<=max ? nfs.join(', ') : nfs.slice(0,max).join(', ')+' (+'+(nfs.length-max)+')';
 }
+// data(s) de emissao das FR's conforme o filtro "Datas FR" (uma data, ou o intervalo quando ha varias)
+function frsEmissaoTxt(proj){
+  const ds = Array.from(new Set(filterFrsRows(proj).map(r=>r.dataSolic).filter(Boolean))).sort((a,b)=>dataKeyBR(a)-dataKeyBR(b));
+  if (!ds.length) return '';
+  if (ds.length===1) return ds[0];
+  return ds.length<=3 ? ds.join(', ') : ds[0]+' a '+ds[ds.length-1]+' ('+ds.length+' datas)';
+}
 function renderFrsEmitidasHTML(proj){
   if (HIDE_FRS_EMITIDAS) return '';
   const groups = frsSummaryRows(proj);
   if (!groups.length) return '';
   const geral = proj==='GERAL';
   let html = '<div class="fiscal-block">';
-  html += '<h3>FR\'S Emitidas</h3>';
+  html += '<h3>FR\'S Emitidas'+(frsEmissaoTxt(proj)?' em '+esc(frsEmissaoTxt(proj)):'')+'</h3>';
   html += '<div class="table-wrap"><table class="rep fiscal-tbl">';
   html += '<colgroup>'+(geral?'<col style="width:80px">':'')+'<col style="width:150px"><col style="width:110px"><col style="width:130px"><col style="width:220px"></colgroup>';
   html += '<tr>'+(geral?'<th class="ft-band">Projeto</th>':'')+'<th class="ft-band">FAD / FIA / RATEIO</th><th class="ft-band">HH</th><th class="ft-band">R$</th><th class="ft-band">NF</th></tr>';
