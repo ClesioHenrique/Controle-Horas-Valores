@@ -400,7 +400,7 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 }
 .freenote-block{margin:10px 0 0;background:#fffbea;border:1px solid #e8c96b;border-radius:6px;padding:10px 12px;}
 .freenote-block label{display:block;font-size:11.5px;font-weight:700;color:var(--navy);margin-bottom:4px;}
-.freenote-block textarea{width:100%;min-height:56px;border:1px solid #e8c96b;border-radius:6px;padding:8px 10px;font-family:inherit;font-size:12.5px;color:var(--text);resize:vertical;box-sizing:border-box;background:#fff59d;}
+.freenote-block textarea{width:100%;min-height:56px;overflow-y:hidden;border:1px solid #e8c96b;border-radius:6px;padding:8px 10px;font-family:inherit;font-size:12.5px;color:var(--text);resize:vertical;box-sizing:border-box;background:#fff59d;}
 .freenote-block textarea:focus{outline:2px solid var(--info-blue);outline-offset:1px;}
 tr.medido-row td, tr.medido-row td *{font-weight:800 !important;}
 .freenote-text{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #e8c96b;border-radius:6px;padding:8px 10px;background:#fff59d;font-size:12.5px;line-height:1.4;color:#222;}
@@ -2194,6 +2194,16 @@ document.getElementById('content').addEventListener('change', e=>{
   else if (e.target.id==='evol-to'){ EVOL_STATE.to = e.target.value; evolRefresh(); }
   else if (e.target.id==='evol-byday'){ EVOL_STATE.byDay = e.target.checked; evolRefresh(); }
 });
+/* Observacoes / Anotacoes: a caixa cresce conforme o texto (mostra tudo que foi escrito, sem rolagem interna) */
+function autosizeFreeNote(ta){
+  ta = ta || document.getElementById('freenote'); if (!ta) return;
+  ta.style.height = 'auto';
+  ta.style.height = (ta.scrollHeight + 2) + 'px';
+}
+document.addEventListener('input', e=>{ if (e.target && e.target.id==='freenote') autosizeFreeNote(e.target); });
+window.addEventListener('resize', ()=>autosizeFreeNote());
+new MutationObserver(()=>autosizeFreeNote()).observe(document.getElementById('content'), { childList:true, subtree:true });
+setTimeout(()=>autosizeFreeNote(), 0);
 let lastChartData = null;
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
