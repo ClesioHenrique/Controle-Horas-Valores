@@ -169,6 +169,12 @@ table.pend-tbl tr.pn-it td.pn-desc{padding-left:26px;}
 table.pend-tbl tr.pn-mes td{font-size:11px;color:var(--text-muted);background:var(--surface);border-top-color:transparent;border-bottom-color:transparent;padding-top:1px;padding-bottom:1px;}
 table.pend-tbl tr.pn-mes td.pn-desc{padding-left:46px;}
 table.pend-tbl td.pn-tot{font-weight:800;}
+.pend-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 10px;}
+.pend-hint{font-size:11px;color:var(--text-muted);margin-left:8px;}
+table.pend-tbl tr.pn-hidden{display:none;}
+.pn-tg{cursor:pointer;display:inline-block;width:14px;color:var(--navy);font-weight:800;user-select:none;}
+table.pend-tbl tr.pn-mes-it td{background:var(--surface);}
+table.pend-tbl tr.pn-mes-it td.pn-desc{padding-left:64px;}
 html.dark-theme body:not(.printing) table.pend-tbl tr.pn-grand td{background:#33404f;}
 html.dark-theme body:not(.printing) table.pend-tbl tr.pn-sub1 td, html.dark-theme body:not(.printing) table.pend-tbl tr.pn-sub2 td{background:#2b3745;}
 .evol-layout{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;}
@@ -2272,49 +2278,88 @@ function pendBuild(){
   })));
   return { dM, dP, secs, val, secTot, grand, byResp };
 }
+// niveis (como o agrupamento do Excel): 1 = secao | 2 = grupo | 3 = item | 4 = meses do item. Estado de "recolhido" por linha.
+const PEND_COLLAPSED = new Set();
+let PEND_PARENTS = [];   // [{k, lvl}] de todas as linhas que tem filhas (usado pelos botoes de nivel)
 function pendTableHTML(){
   const B = pendBuild(), months = pendCols(), T = '__TOTAL__';
   const g0 = B.grand(T), gt = g0.tot || 0;
   const pct = v => gt ? fmtPct(v/gt) : '—';
   const money = v => Math.round(v)===0 ? '—' : 'R$ '+fmtBRL(v);
-  const row = (cls, item, desc, v, obs, pctTxt) => '<tr class="'+cls+'"><td class="pn-item">'+item+'</td><td class="pn-desc">'+desc+'</td><td class="pn-num">'+money(v.moa)+'</td><td class="pn-num">'+money(v.pci)+'</td><td class="pn-num pn-tot">'+money(v.tot)+'</td><td class="pn-pct">'+pctTxt+'</td><td class="pn-obs">'+(obs||'')+'</td></tr>';
-  let h = '<div class="fiscal-block pend-block" style="border-top:none;margin-top:0;padding-top:0;"><div class="table-wrap"><table class="pend-tbl" id="pend-tbl">';
-  h += '<colgroup><col style="width:46px"><col style="width:360px"><col style="width:120px"><col style="width:120px"><col style="width:130px"><col style="width:70px"><col style="width:360px"></colgroup>';
-  h += '<thead><tr><th colspan="7" class="pn-title">Resumo de Valores Pendentes — Medição (Techint)</th></tr>'+
-       '<tr><th>Item</th><th>Descrição</th><th>MOA</th><th>PCI</th><th>TOTAL</th><th>(%)</th><th>Observações</th></tr></thead><tbody>';
-  h += row('pn-grand','','Total Geral pendente', g0, 'Meses: '+months.join(', '), '100,0%');
-  h += row('pn-sub1','','Pendente com a Techint (TCT)', B.byResp.Techint, 'Enviar suplementação / ajustar / concluir elaboração', pct(B.byResp.Techint.tot));
-  h += row('pn-sub2','','Pendente com a Usiminas (USM)', B.byResp.Usiminas, 'Aprovar / realizar RDC / liberar FR', pct(B.byResp.Usiminas.tot));
-  // resumo FADS / FIA / RATEIO
-  h += '<tr class="pn-band"><td colspan="7">FAD / FIA &amp; RATEIO</td></tr>';
-  const names = ['FADS — horas','FIA — equipamentos auxiliares','RATEIO'];
-  B.secs.forEach((s,i)=>{ const v = B.secTot(s,T); h += row('pn-res','', names[i], v, s.groups.map(g=>g.obs).filter((x,k,a)=>a.indexOf(x)===k).join(' | '), pct(v.tot)); });
-  // detalhe por secao
-  B.secs.forEach(s=>{
-    const sv = B.secTot(s,T);
-    h += '<tr class="pn-band"><td colspan="7">&nbsp;</td></tr>';
-    h += row('pn-sec', s.sec, esc(s.title), sv, '', pct(sv.tot));
+  const parents = new Map();   // k -> lvl (so as que realmente tem filhas)
+  const rows = [];             // {cls, item, desc, v, obs, pctTxt, k, lvl, anc}
+  const add = (cls, item, desc, v, obs, pctTxt, k, lvl, anc) => { rows.push({cls,item,desc,v,obs,pctTxt,k,lvl,anc:anc||[]}); (anc||[]).forEach(a=>{ if (!parents.has(a)) parents.set(a, null); }); };
+  const lvlOf = {};            // k -> nivel, para marcar parents
+  B.secs.forEach((s,si)=>{
+    const sk = 's'+si, sv = B.secTot(s,T);
+    lvlOf[sk] = 1;
+    rows.push({cls:'pn-sec', item:s.sec, desc:esc(s.title), v:sv, obs:'', pctTxt:pct(sv.tot), k:sk, lvl:1, anc:[]});
+    // meses da secao (FAD / FIA / RATEIO), so os que tem pendencia
+    months.forEach(m=>{ const v = B.secTot(s,m); if (Math.round(v.tot)===0) return; add('pn-mes','', m.toLowerCase(), v, '', sv.tot ? fmtPct(v.tot/sv.tot) : '—', sk+'m'+m, 2, [sk]); });
     s.groups.forEach((g,gi)=>{
-      const gv = B.val(g,T);
-      h += row('pn-grp', s.sec+'.'+(gi+1), esc(g.title), gv, esc(g.obs), sv.tot ? fmtPct(gv.tot/sv.tot) : '—');
-      // itens (so os que tem valor)
-      g.items.forEach(it=>{
+      const gk = sk+'g'+gi, gv = B.val(g,T); lvlOf[gk] = 2;
+      rows.push({cls:'pn-grp', item:s.sec+'.'+(gi+1), desc:esc(g.title), v:gv, obs:esc(g.obs), pctTxt:sv.tot ? fmtPct(gv.tot/sv.tot) : '—', k:gk, lvl:2, anc:[sk]});
+      g.items.forEach((it,ii)=>{
         const a = it.get(B.dM,T)||0, b = it.get(B.dP,T)||0;
         if (Math.round(a+b)===0) return;
-        h += row('pn-it','', esc(it.label), {moa:a,pci:b,tot:a+b}, it.resp, gv.tot ? fmtPct((a+b)/gv.tot) : '—');
+        const ik = gk+'i'+ii, iv = {moa:a,pci:b,tot:a+b}; lvlOf[ik] = 3;
+        rows.push({cls:'pn-it', item:'', desc:esc(it.label), v:iv, obs:it.resp, pctTxt:gv.tot ? fmtPct(iv.tot/gv.tot) : '—', k:ik, lvl:3, anc:[sk,gk]});
+        // meses do item (so os que tem pendencia)
+        months.forEach(m=>{
+          const x = it.get(B.dM,m)||0, y = it.get(B.dP,m)||0; if (Math.round(x+y)===0) return;
+          add('pn-mes pn-mes-it','', m.toLowerCase(), {moa:x,pci:y,tot:x+y}, '', iv.tot ? fmtPct((x+y)/iv.tot) : '—', ik+'m'+m, 4, [sk,gk,ik]);
+        });
       });
-      // meses embaixo do grupo (linhas pequenas, como no resumo de reunião)
+      // meses do grupo
       months.forEach(m=>{
         const v = B.val(g,m); if (Math.round(v.tot)===0) return;
-        h += row('pn-mes','', m.toLowerCase(), v, '', gv.tot ? fmtPct(v.tot/gv.tot) : '—');
+        add('pn-mes','', m.toLowerCase(), v, '', gv.tot ? fmtPct(v.tot/gv.tot) : '—', gk+'m'+m, 3, [sk,gk]);
       });
     });
   });
-  h += '</tbody></table></div></div>';
+  PEND_PARENTS = Array.from(parents.keys()).filter(k=>lvlOf[k]).map(k=>({k, lvl:lvlOf[k]}));
+  const tr = r => {
+    const hidden = r.anc.some(a=>PEND_COLLAPSED.has(a));
+    const hasKids = parents.has(r.k);
+    const tg = hasKids ? '<span class="pn-tg" data-pn-k="'+esc(r.k)+'" title="Recolher / expandir">'+(PEND_COLLAPSED.has(r.k)?'▸':'▾')+'</span> ' : '';
+    return '<tr class="'+r.cls+(hidden?' pn-hidden':'')+'"><td class="pn-item">'+r.item+'</td><td class="pn-desc">'+tg+r.desc+'</td><td class="pn-num">'+money(r.v.moa)+'</td><td class="pn-num">'+money(r.v.pci)+'</td><td class="pn-num pn-tot">'+money(r.v.tot)+'</td><td class="pn-pct">'+r.pctTxt+'</td><td class="pn-obs">'+(r.obs||'')+'</td></tr>';
+  };
+  const topRow = (cls, desc, v, obs, pctTxt) => '<tr class="'+cls+'"><td class="pn-item"></td><td class="pn-desc">'+desc+'</td><td class="pn-num">'+money(v.moa)+'</td><td class="pn-num">'+money(v.pci)+'</td><td class="pn-num pn-tot">'+money(v.tot)+'</td><td class="pn-pct">'+pctTxt+'</td><td class="pn-obs">'+(obs||'')+'</td></tr>';
+  let h = '<div class="table-wrap"><table class="pend-tbl" id="pend-tbl">';
+  h += '<colgroup><col style="width:46px"><col style="width:360px"><col style="width:120px"><col style="width:120px"><col style="width:130px"><col style="width:70px"><col style="width:360px"></colgroup>';
+  h += '<thead><tr><th colspan="7" class="pn-title">Resumo de Valores Pendentes — Medição (Techint)</th></tr>'+
+       '<tr><th>Item</th><th>Descrição</th><th>MOA</th><th>PCI</th><th>TOTAL</th><th>(%)</th><th>Observações</th></tr></thead><tbody>';
+  h += topRow('pn-grand','Total Geral pendente', g0, 'Meses: '+months.join(', '), '100,0%');
+  h += topRow('pn-sub1','Pendente com a Techint (TCT)', B.byResp.Techint, 'Enviar suplementação / ajustar / concluir elaboração', pct(B.byResp.Techint.tot));
+  h += topRow('pn-sub2','Pendente com a Usiminas (USM)', B.byResp.Usiminas, 'Aprovar / realizar RDC / liberar FR', pct(B.byResp.Usiminas.tot));
+  h += '<tr class="pn-band"><td colspan="7">FAD / FIA &amp; RATEIO</td></tr>';
+  const names = ['FADS — horas','FIA — equipamentos auxiliares','RATEIO'];
+  B.secs.forEach((s,i)=>{ const v = B.secTot(s,T); h += topRow('pn-res', names[i], v, s.groups.map(g=>g.obs).filter((x,k,a)=>a.indexOf(x)===k).join(' | '), pct(v.tot)); });
+  h += '<tr class="pn-band"><td colspan="7">Detalhamento por nível (use ▾ ▸ ou os botões de nível acima)</td></tr>';
+  h += rows.map(tr).join('');
+  h += '</tbody></table></div>';
   return h;
 }
+function pendControlsHTML(){
+  return '<div class="pend-controls"><span class="evol-flbl">Níveis</span>'+
+    [1,2,3,4].map(n=>'<button type="button" class="evol-chip" data-pn-level="'+n+'" title="Mostrar até o nível '+n+'">'+n+'</button>').join('')+
+    '<button type="button" class="evol-quick" data-pn-level="4">Expandir tudo</button><button type="button" class="evol-quick" data-pn-level="1">Recolher tudo</button>'+
+    '<span class="pend-hint">1 = FADS/FIA/RATEIO · 2 = grupos · 3 = status · 4 = meses de cada status</span></div>';
+}
+function pendRefresh(){ const w = document.getElementById('pend-wrap'); if (w) w.innerHTML = pendTableHTML(); }
+document.getElementById('content').addEventListener('click', e=>{
+  const tg = e.target.closest('[data-pn-k]');
+  if (tg){ const k = tg.dataset.pnK; if (PEND_COLLAPSED.has(k)) PEND_COLLAPSED.delete(k); else PEND_COLLAPSED.add(k); pendRefresh(); return; }
+  const lv = e.target.closest('[data-pn-level]');
+  if (lv){
+    const n = parseInt(lv.dataset.pnLevel,10);
+    PEND_COLLAPSED.clear();
+    PEND_PARENTS.forEach(p=>{ if (p.lvl>=n) PEND_COLLAPSED.add(p.k); });
+    pendRefresh();
+  }
+});
 function renderPendHTML(forExport){
-  return pendTableHTML();
+  return '<div class="fiscal-block pend-block" style="border-top:none;margin-top:0;padding-top:0;">'+(forExport?'':pendControlsHTML())+'<div id="pend-wrap">'+pendTableHTML()+'</div></div>';
 }
 function renderPendKpiStrip(){
   const B = pendBuild(), T = '__TOTAL__', g = B.grand(T);
