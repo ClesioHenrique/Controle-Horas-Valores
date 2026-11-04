@@ -149,6 +149,28 @@ table.evol-utres-tbl{border-collapse:collapse;font-size:12.5px;}
 table.evol-utres-tbl th{background:var(--navy-100);color:var(--navy);padding:5px 12px;border:1px solid var(--border);text-align:left;}
 table.evol-utres-tbl td{padding:4px 12px;border:1px solid var(--border);}
 table.evol-utres-tbl th.num,table.evol-utres-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
+/* Resumo de Pendencias */
+table.pend-tbl{border-collapse:collapse;font-size:12.5px;background:var(--surface);table-layout:fixed;}
+table.pend-tbl th{background:var(--green);color:#042341;font-weight:800;padding:6px 10px;border:1px solid var(--border);text-align:center;}
+table.pend-tbl th.pn-title{font-size:15px;padding:9px;}
+table.pend-tbl td{padding:4px 10px;border:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+table.pend-tbl td.pn-num{text-align:right;font-variant-numeric:tabular-nums;}
+table.pend-tbl td.pn-pct{text-align:center;font-variant-numeric:tabular-nums;}
+table.pend-tbl td.pn-item{text-align:center;font-weight:800;}
+table.pend-tbl td.pn-obs{font-size:11.5px;color:var(--text-muted);white-space:normal;}
+table.pend-tbl tr.pn-grand td{background:#e1e5ea;font-weight:800;font-size:13px;}
+table.pend-tbl tr.pn-sub1 td, table.pend-tbl tr.pn-sub2 td{background:#f2f4f7;font-weight:700;}
+table.pend-tbl tr.pn-band td{background:var(--green);color:#042341;font-weight:800;padding:5px 10px;}
+table.pend-tbl tr.pn-res td{font-weight:700;background:var(--surface);}
+table.pend-tbl tr.pn-sec td{background:var(--green);color:#042341;font-weight:800;font-size:13px;}
+table.pend-tbl tr.pn-grp td{background:var(--navy-100);color:var(--navy);font-weight:800;}
+table.pend-tbl tr.pn-it td{background:var(--surface);}
+table.pend-tbl tr.pn-it td.pn-desc{padding-left:26px;}
+table.pend-tbl tr.pn-mes td{font-size:11px;color:var(--text-muted);background:var(--surface);border-top-color:transparent;border-bottom-color:transparent;padding-top:1px;padding-bottom:1px;}
+table.pend-tbl tr.pn-mes td.pn-desc{padding-left:46px;}
+table.pend-tbl td.pn-tot{font-weight:800;}
+html.dark-theme body:not(.printing) table.pend-tbl tr.pn-grand td{background:#33404f;}
+html.dark-theme body:not(.printing) table.pend-tbl tr.pn-sub1 td, html.dark-theme body:not(.printing) table.pend-tbl tr.pn-sub2 td{background:#2b3745;}
 .evol-layout{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;}
 #evol-table-wrap{flex:0 0 auto;max-width:100%;}
 .evol-chart-card{flex:1 1 380px;min-width:340px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:10px 14px 4px;}
@@ -624,6 +646,12 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
         <div class="tabs-group-label">Consulta - Sistema SGE</div>
         <div class="tabs" id="tabs-evol">
           <button class="tab-btn" data-proj="EVOL">Evolução aprovadores “TCT ou USM”</button>
+        </div>
+      </div>
+      <div class="tabs-group">
+        <div class="tabs-group-label">Reunião - Pendências</div>
+        <div class="tabs" id="tabs-pend">
+          <button class="tab-btn" data-proj="PEND">Resumo de Pendências</button>
         </div>
       </div>
       <div class="kpi-strip" id="kpi-strip"></div>
@@ -2204,6 +2232,95 @@ document.addEventListener('input', e=>{ if (e.target && e.target.id==='freenote'
 window.addEventListener('resize', ()=>autosizeFreeNote());
 new MutationObserver(()=>autosizeFreeNote()).observe(document.getElementById('content'), { childList:true, subtree:true });
 setTimeout(()=>autosizeFreeNote(), 0);
+/* ---------------- Resumo de Pendencias (reunioes diarias/semanais) ----------------
+   Mesmo conteudo do resumo principal (buildTable de MOA e PCI, com o filtro de Meses do banner), reorganizado por
+   "o que esta pendente e com quem": valores em R$ por MOA | PCI | TOTAL, com os meses embaixo de cada grupo. */
+function pendCols(){ return DISPLAY_MONTHS.slice(); }
+function pendResp(label){ return /^RDC não está aprovada$/i.test(String(label).trim()) ? 'Usiminas' : 'Techint'; }
+// grupos de pendencia: cada grupo tem uma funcao get(d, col) -> R$ e, opcionalmente, itens (linhas filhas)
+function pendGroups(dM, dP){
+  const d0 = dM;  // so para ler os rotulos (iguais em MOA e PCI)
+  const s1Lbl = d0.s1items.map((l,i)=>({ label:l, get:(d,c)=>d.s1values[c].perItem[i].rs, resp:pendResp(l) }));
+  const s2Lbl = SGE_SEC2.map((s,i)=>({ label:s.label, get:(d,c)=>d.s2values[c].perItem[i].rs, resp:s.obs }));
+  const fadS1 = { key:'fad1', title:'Planilha de Pendências (apresentou pendência)', obs:'TCT enviar suplementação/ajustar · USM realizar/aprovar (RDC)', get:(d,c)=>d.s1values[c].total.rs, items:s1Lbl };
+  const fadS2 = { key:'fad2', title:'Sistema SGE — carregamento (revisão, elaboração e aprovação)', obs:'TCT concluir elaboração · USM aprovar', get:(d,c)=>d.s2values[c].total.rs, items:s2Lbl };
+  const fadS3 = { key:'fad3', title:'Aprovado / medição / pronto para emitir FR', obs:'USM aprovar medição e liberar FR', get:(d,c)=>d.s3values[c].rs, items:[
+    { label:'Aprovado - SGE', get:(d,c)=>d.s3sub1values[c].rs, resp:'Usiminas' },
+    { label:'Medição em Andamento - SGE', get:(d,c)=>d.s3sub2values[c].rs, resp:'Usiminas' },
+    { label:'Medido - Para emitir FR - SAP', get:(d,c)=>d.s3sub3values[c].rs, resp:'Usiminas' } ] };
+  const mk = (arr, sub5, labels) => labels.map((it,i)=>({ label:it.label, get:(d,c)=>arr(d)[i][c].rs, resp:it.obs })).concat([{ label:'Medido - Para emitir FR - SAP', get:(d,c)=>sub5(d)[c].rs, resp:'Usiminas' }]);
+  const fia = { key:'fia', title:'FIA — equipamentos auxiliares', obs:'TCT criar a OS/FIA · USM aprovar', get:(d,c)=>d.fiaTotal[c].rs, items: mk(d=>d.fiaSubvalues, d=>d.fiaSub5values, FIA_ITEMS) };
+  const rat = { key:'rat', title:'RATEIO — HH de mão de obra indireta', obs:'TCT criar o RATEIO · USM aprovar', get:(d,c)=>d.rateioTotal[c].rs, items: mk(d=>d.rateioSubvalues, d=>d.rateioSub5values, RATEIO_ITEMS) };
+  return [
+    { sec:'1', title:'FADS — horas (HH)', groups:[fadS1, fadS2, fadS3] },
+    { sec:'2', title:'FIA — equipamentos auxiliares', groups:[fia] },
+    { sec:'3', title:'RATEIO', groups:[rat] }
+  ];
+}
+function pendBuild(){
+  const dM = buildTable('MOA'), dP = buildTable('PCI');
+  const secs = pendGroups(dM, dP);
+  const val = (g, c) => { const a = g.get(dM,c)||0, b = g.get(dP,c)||0; return { moa:a, pci:b, tot:a+b }; };
+  const secTot = (s, c) => s.groups.reduce((x,g)=>{ const v = val(g,c); return { moa:x.moa+v.moa, pci:x.pci+v.pci, tot:x.tot+v.tot }; }, {moa:0,pci:0,tot:0});
+  const grand = c => secs.reduce((x,s)=>{ const v = secTot(s,c); return { moa:x.moa+v.moa, pci:x.pci+v.pci, tot:x.tot+v.tot }; }, {moa:0,pci:0,tot:0});
+  // por responsavel (usa a "resp" de cada item)
+  const byResp = { Techint:{moa:0,pci:0,tot:0}, Usiminas:{moa:0,pci:0,tot:0} };
+  secs.forEach(s=>s.groups.forEach(g=>g.items.forEach(it=>{
+    const v = { moa:it.get(dM,'__TOTAL__')||0, pci:it.get(dP,'__TOTAL__')||0 };
+    const r = byResp[it.resp] || (byResp[it.resp]={moa:0,pci:0,tot:0});
+    r.moa += v.moa; r.pci += v.pci; r.tot += v.moa+v.pci;
+  })));
+  return { dM, dP, secs, val, secTot, grand, byResp };
+}
+function pendTableHTML(){
+  const B = pendBuild(), months = pendCols(), T = '__TOTAL__';
+  const g0 = B.grand(T), gt = g0.tot || 0;
+  const pct = v => gt ? fmtPct(v/gt) : '—';
+  const money = v => Math.round(v)===0 ? '—' : 'R$ '+fmtBRL(v);
+  const row = (cls, item, desc, v, obs, pctTxt) => '<tr class="'+cls+'"><td class="pn-item">'+item+'</td><td class="pn-desc">'+desc+'</td><td class="pn-num">'+money(v.moa)+'</td><td class="pn-num">'+money(v.pci)+'</td><td class="pn-num pn-tot">'+money(v.tot)+'</td><td class="pn-pct">'+pctTxt+'</td><td class="pn-obs">'+(obs||'')+'</td></tr>';
+  let h = '<div class="fiscal-block pend-block" style="border-top:none;margin-top:0;padding-top:0;"><div class="table-wrap"><table class="pend-tbl" id="pend-tbl">';
+  h += '<colgroup><col style="width:46px"><col style="width:360px"><col style="width:120px"><col style="width:120px"><col style="width:130px"><col style="width:70px"><col style="width:360px"></colgroup>';
+  h += '<thead><tr><th colspan="7" class="pn-title">Resumo de Valores Pendentes — Medição (Techint)</th></tr>'+
+       '<tr><th>Item</th><th>Descrição</th><th>MOA</th><th>PCI</th><th>TOTAL</th><th>(%)</th><th>Observações</th></tr></thead><tbody>';
+  h += row('pn-grand','','Total Geral pendente', g0, 'Meses: '+months.join(', '), '100,0%');
+  h += row('pn-sub1','','Pendente com a Techint (TCT)', B.byResp.Techint, 'Enviar suplementação / ajustar / concluir elaboração', pct(B.byResp.Techint.tot));
+  h += row('pn-sub2','','Pendente com a Usiminas (USM)', B.byResp.Usiminas, 'Aprovar / realizar RDC / liberar FR', pct(B.byResp.Usiminas.tot));
+  // resumo FADS / FIA / RATEIO
+  h += '<tr class="pn-band"><td colspan="7">FAD / FIA &amp; RATEIO</td></tr>';
+  const names = ['FADS — horas','FIA — equipamentos auxiliares','RATEIO'];
+  B.secs.forEach((s,i)=>{ const v = B.secTot(s,T); h += row('pn-res','', names[i], v, s.groups.map(g=>g.obs).filter((x,k,a)=>a.indexOf(x)===k).join(' | '), pct(v.tot)); });
+  // detalhe por secao
+  B.secs.forEach(s=>{
+    const sv = B.secTot(s,T);
+    h += '<tr class="pn-band"><td colspan="7">&nbsp;</td></tr>';
+    h += row('pn-sec', s.sec, esc(s.title), sv, '', pct(sv.tot));
+    s.groups.forEach((g,gi)=>{
+      const gv = B.val(g,T);
+      h += row('pn-grp', s.sec+'.'+(gi+1), esc(g.title), gv, esc(g.obs), sv.tot ? fmtPct(gv.tot/sv.tot) : '—');
+      // itens (so os que tem valor)
+      g.items.forEach(it=>{
+        const a = it.get(B.dM,T)||0, b = it.get(B.dP,T)||0;
+        if (Math.round(a+b)===0) return;
+        h += row('pn-it','', esc(it.label), {moa:a,pci:b,tot:a+b}, it.resp, gv.tot ? fmtPct((a+b)/gv.tot) : '—');
+      });
+      // meses embaixo do grupo (linhas pequenas, como no resumo de reunião)
+      months.forEach(m=>{
+        const v = B.val(g,m); if (Math.round(v.tot)===0) return;
+        h += row('pn-mes','', m.toLowerCase(), v, '', gv.tot ? fmtPct(v.tot/gv.tot) : '—');
+      });
+    });
+  });
+  h += '</tbody></table></div></div>';
+  return h;
+}
+function renderPendHTML(forExport){
+  return pendTableHTML();
+}
+function renderPendKpiStrip(){
+  const B = pendBuild(), T = '__TOTAL__', g = B.grand(T);
+  const grp = (title, v) => '<div class="kpi-group"><div class="kpi-group-title sm">'+esc(title)+'</div><div class="kpi-group-row"><div class="kpi-grp-col"><div class="kpi-grp-cap">R$</div><div class="kpi-card kpi-navy"><div class="kpi-icon">💰</div><div><div class="kpi-value">R$ '+fmtBRL(v)+'</div></div></div></div></div></div>';
+  return grp('Total pendente', g.tot) + grp('Pendente TCT', B.byResp.Techint.tot) + grp('Pendente USM', B.byResp.Usiminas.tot);
+}
 let lastChartData = null;
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
@@ -2221,6 +2338,17 @@ function render(){
   // nessa aba o filtro de meses do SGE nao vale (usa o proprio, com todos os meses da RDC_Mobile)
   document.getElementById('mobile-mes-filter').style.display = active==='MOBILE_PENDENTE' ? '' : 'none';
   document.getElementById('month-filter').style.display = active==='MOBILE_PENDENTE' ? 'none' : '';
+  if (active === 'PEND'){
+    // resumo de pendencias: vale o filtro de Meses do banner; os demais filtros nao se aplicam
+    ['item-filter','btn-toggle-frs','frs-date-filter','frs-forn-filter','rdc-proj-filter','mobile-papel-filter','mobile-mes-filter'].forEach(id=>{ document.getElementById(id).style.display = 'none'; });
+    document.getElementById('month-filter').style.display = '';
+    document.getElementById('content').innerHTML = renderPendHTML(false) + renderFreeNoteHTML('PEND');
+    document.getElementById('kpi-strip').innerHTML = renderPendKpiStrip();
+    updateMonthFilterSummary();
+    const noteP = document.getElementById('freenote');
+    if (noteP) noteP.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteP.dataset.proj, noteP.value); } catch(e){} });
+    return;
+  }
   if (active === 'EVOL'){
     // consulta propria: os filtros do banner (meses, itens, FR'S, projeto...) nao se aplicam — os filtros ficam na propria aba
     ['month-filter','item-filter','btn-toggle-frs','frs-date-filter','frs-forn-filter','rdc-proj-filter','mobile-papel-filter','mobile-mes-filter'].forEach(id=>{ document.getElementById(id).style.display = 'none'; });
@@ -2374,6 +2502,7 @@ function onTabClick(e){
 document.getElementById('tabs').addEventListener('click', onTabClick);
 document.getElementById('tabs-mobile').addEventListener('click', onTabClick);
 document.getElementById('tabs-evol').addEventListener('click', onTabClick);
+document.getElementById('tabs-pend').addEventListener('click', onTabClick);
 
 /* ---------------- Filtro de meses (aplica a todos os resumos) ---------------- */
 function updateMonthFilterSummary(){
@@ -3044,7 +3173,7 @@ document.getElementById('fa-modal-backdrop').addEventListener('click', e=>{
 document.addEventListener('keydown', e=>{ if (e.key === 'Escape') closeFaModal(); });
 
 /* ---------------- Exportar PDF (todas as abas) ---------------- */
-const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral', RDC:'Pendências - RDC não aprovada', MOBILE_PENDENTE:'Pendente Aprovação Fiscalização', EVOL:'Evolução aprovadores (TCT ou USM)' };
+const PROJ_TITLES = { MOA:'MOA', PCI:'PCI', GERAL:'MOA & PCI - Resumo Geral', RDC:'Pendências - RDC não aprovada', MOBILE_PENDENTE:'Pendente Aprovação Fiscalização', EVOL:'Evolução aprovadores (TCT ou USM)', PEND:'Resumo de Pendências' };
 function exportPDF(){
   const projs = ['GERAL','MOA','PCI'];
   const container = document.getElementById('print-content');
@@ -3166,7 +3295,7 @@ async function exportPDFHiRes(){
   const origLabel = btn.innerHTML;
   btn.disabled = true;
   const container = document.getElementById('print-content');
-  const keys = ['GERAL','MOA','PCI','RDC','MOBILE_PENDENTE'];
+  const keys = ['GERAL','MOA','PCI','RDC','MOBILE_PENDENTE','PEND'];
   const images = [];
   const prevTheme = document.body.style.zoom;
   try {
@@ -3178,6 +3307,7 @@ async function exportPDFHiRes(){
       let inner, data = null;
       if (k==='RDC') inner = renderRdcHTML() + renderFreeNoteHTML('RDC');
       else if (k==='MOBILE_PENDENTE') inner = renderMobilePendenteHTML() + renderFreeNoteHTML('MOBILE_PENDENTE');
+      else if (k==='PEND') inner = renderPendHTML(true) + renderFreeNoteHTML('PEND');
       else {
         data = buildTable(k);
         inner = (INCLUDE_CHARTS_IN_PRINT ? chartsPanelHTML('print-'+k+'-') : '') + renderTableHTML(data, true) + renderFiscalDetailHTML(k) + renderFreeNoteHTML(k) + renderFrsEmitidasHTML(k);
@@ -3232,6 +3362,7 @@ async function copyCurrentTabAsImage(){
       (proj==='RDC' ? renderRdcHTML() + renderFreeNoteHTML(proj) :
         proj==='MOBILE_PENDENTE' ? renderMobilePendenteHTML() + renderFreeNoteHTML(proj) :
         proj==='EVOL' ? renderEvolHTML(true) + renderFreeNoteHTML(proj) :
+        proj==='PEND' ? renderPendHTML(true) + renderFreeNoteHTML(proj) :
         renderTableHTML(buildTable(proj), true) + renderFiscalDetailHTML(proj) + renderFreeNoteHTML(proj) + renderFrsEmitidasHTML(proj)) +
       '</div></div>';
     EXPORT_CONTEXT = false;
