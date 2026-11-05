@@ -171,6 +171,12 @@ table.pend-tbl tr.pn-mes td.pn-desc{padding-left:46px;}
 table.pend-tbl td.pn-tot{font-weight:800;}
 table.pend-tbl td.pn-na{color:var(--text-muted);text-align:center;font-style:italic;}
 table.pend-tbl th[rowspan]{vertical-align:middle;}
+.pn-mdrop{position:relative;display:inline-block;}
+.pn-mpanel{position:absolute;z-index:50;top:30px;left:0;background:#fff;color:#1b2a3a;border:1px solid #b9c4d0;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.18);padding:8px;width:330px;}
+html.dark-theme .pn-mpanel{background:#1f2937;color:#e5e7eb;border-color:#475569;}
+.pn-mq{display:flex;gap:6px;margin-bottom:6px;}
+.pn-mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px 6px;font-size:11px;max-height:220px;overflow:auto;}
+.pn-mgrid label{cursor:pointer;white-space:nowrap;}
 .pend-os-in{border:1px solid #b9c4d0;border-radius:14px;padding:3px 10px;font-size:11px;width:170px;background:#fff;color:#1b2a3a;}
 html.dark-theme .pend-os-in{background:#1f2937;color:#e5e7eb;border-color:#475569;}
 .pend-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 10px;}
@@ -2439,7 +2445,7 @@ function pendFiltersHTML(){
     '<span class="evol-flbl" style="margin-left:14px">Colunas</span>'+
     ['hh','rs'].map(k=>'<button type="button" class="evol-chip'+(PEND_SHOW[k]?' on':'')+'" data-pn-col="'+k+'">'+(k==='hh'?'HH':'R$')+'</button>').join('')+
     '<span class="evol-flbl" style="margin-left:14px">Meses</span>'+
-    ALL_MONTHS.map(m=>'<button type="button" class="evol-chip'+(pendMonthsEff().includes(m)?' on':'')+'" data-pn-mes="'+esc(m)+'">'+esc(m)+'</button>').join('')+
+    pendMesDropHTML()+
     '<span class="evol-flbl" style="margin-left:14px">OS</span>'+
     '<input type="text" id="pend-os-in" class="pend-os-in" list="pend-os-list" placeholder="filtrar OS (extrato)…" value="'+esc(PEND_OS)+'" title="Filtra a OS no extrato por Fiscal (clique num valor da tabela)">'+
     '<datalist id="pend-os-list">'+pendOsList().map(o=>'<option value="'+esc(o)+'">').join('')+'</datalist>'+
@@ -2464,13 +2470,34 @@ function pendWithMonths(fn){
   renderPendKpiStrip = function(){ return pendWithMonths(_k); };
   openPendExtratoModal = function(id){ return pendWithMonths(()=>_m(id)); };
 }
+let PEND_MES_OPEN = false;
+function pendMesDropHTML(){
+  const eff = pendMonthsEff(), n = eff.length;
+  const txt = n===ALL_MONTHS.length ? 'Todos os meses' : (eff.join(', ').length<=26 ? eff.join(', ') : n+' meses selecionados');
+  let h = '<span class="pn-mdrop"><button type="button" class="evol-chip on pn-mbtn" data-pn-mopen="1">'+esc(txt)+' ▾</button>';
+  if (PEND_MES_OPEN){
+    h += '<div class="pn-mpanel"><div class="pn-mq"><button type="button" class="evol-quick" data-pn-mq="4">Últimos 4</button><button type="button" class="evol-quick" data-pn-mq="1">Último mês</button><button type="button" class="evol-quick" data-pn-mq="all">Todos</button></div><div class="pn-mgrid">'+
+      ALL_MONTHS.map(m=>'<label><input type="checkbox" data-pn-mes="'+esc(m)+'"'+(eff.includes(m)?' checked':'')+'> '+esc(m)+'</label>').join('')+'</div></div>';
+  }
+  return h+'</span>';
+}
+document.addEventListener('click', e=>{
+  if (PEND_MES_OPEN && !e.target.closest('.pn-mdrop')){ PEND_MES_OPEN = false; const fc = document.getElementById('pend-filters-wrap'); if (fc) fc.innerHTML = pendFiltersHTML(); }
+});
 document.getElementById('content').addEventListener('click', e=>{
-  const mb = e.target.closest('[data-pn-mes]');
+  if (e.target.closest('[data-pn-mopen]')){ PEND_MES_OPEN = !PEND_MES_OPEN; const fc = document.getElementById('pend-filters-wrap'); if (fc) fc.innerHTML = pendFiltersHTML(); return; }
+  const mq = e.target.closest('[data-pn-mq]');
+  if (mq){ const v = mq.dataset.pnMq; PEND_MESES = v==='all' ? ALL_MONTHS.slice() : ALL_MONTHS.slice(-parseInt(v,10)); pendRefreshAll(); return; }
+});
+document.getElementById('content').addEventListener('change', e=>{
+  const mb = e.target.closest && e.target.closest('input[data-pn-mes]');
   if (mb){
     const m = mb.dataset.pnMes, cur = pendMonthsEff(), i = cur.indexOf(m);
     if (i===-1) cur.push(m); else if (cur.length>1) cur.splice(i,1);
-    PEND_MESES = cur; pendRefreshAll(); return;
+    PEND_MESES = cur; pendRefreshAll();
   }
+});
+document.getElementById('content').addEventListener('click', e=>{
   if (e.target.closest('#pend-os-clr')){ PEND_OS = ''; pendRefreshAll(); }
 });
 document.getElementById('content').addEventListener('input', e=>{
