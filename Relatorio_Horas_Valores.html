@@ -171,6 +171,8 @@ table.pend-tbl tr.pn-mes td.pn-desc{padding-left:46px;}
 table.pend-tbl td.pn-tot{font-weight:800;}
 table.pend-tbl td.pn-na{color:var(--text-muted);text-align:center;font-style:italic;}
 table.pend-tbl th[rowspan]{vertical-align:middle;}
+tr.pn-mes-hdr td{background:#eef6dd;font-size:11.5px;font-style:italic;color:#4a5a2a;padding:2px 8px;}
+tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pend-ospanel{background:#fff9cc;border:2px solid #f2c200;border-radius:8px;padding:8px 10px;margin:4px 0 12px;overflow:auto;}
 .pend-ospanel .pop-h{font-size:13px;font-weight:600;margin-bottom:6px;color:#1b2a3a;}
 .pend-ospanel .pop-total{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 26px;background:#ffd633;border:2px solid #e0b000;border-radius:8px;padding:8px 14px;margin:0 0 8px;color:#1b2a3a;}
@@ -2392,10 +2394,16 @@ function pendTableHTML(){
       const gItems = itemsOfGroup(s,g);
       rows.push({cls:'pn-grp', item:s.sec+'.'+(gi+1), desc:esc(g.title), v:gv, obs:esc(g.obs), pctTxt:sv.tot ? fmtPct(gv.tot/sv.tot) : '—', k:gk, lvl:2, anc:[sk], sc:newSc(g.title, gItems)});
       // meses do grupo logo abaixo do titulo do grupo (total do grupo), antes dos status
+      const gMes = [];
       months.forEach(m=>{
         const v = B.val(g,m); if (Math.round(v.tot)===0 && Math.round(v.hTot)===0) return;
         if (gruposComValor > 1 && eqV(v, B.secTot(s,m))) return;   // so este grupo tem valor nesse mes: ja aparece no total da modalidade
-        add('pn-mes pn-mes-grp','', m.toLowerCase()+' · total do grupo', v, '', gv.tot ? fmtPct(v.tot/gv.tot) : '—', gk+'m'+m, 3, [sk,gk], newSc(g.title+' — '+m, gItems, m));
+        gMes.push({m, v});
+      });
+      const gmk = gk+'M';   // bloco "total do grupo por mes": pode ser recolhido/expandido a parte (nao entra nos botoes de nivel)
+      if (gMes.length) rows.push({cls:'pn-mes-hdr', hdr:true, item:'', desc:'Total do grupo por mês', k:gmk, lvl:0, anc:[sk,gk]});
+      gMes.forEach(({m,v})=>{
+        add('pn-mes pn-mes-grp','', m.toLowerCase()+' · total do grupo', v, '', gv.tot ? fmtPct(v.tot/gv.tot) : '—', gk+'m'+m, 3, [sk,gk,gmk], newSc(g.title+' — '+m, gItems, m));
       });
       const itensComValor = g.items.filter(it=>{ const x = B.mkv(it,T); return Math.round(x.tot)!==0 || Math.round(x.hTot)!==0; }).length;
       g.items.forEach((it,ii)=>{
@@ -2421,6 +2429,7 @@ function pendTableHTML(){
     const hidden = r.anc.some(a=>PEND_COLLAPSED.has(a));
     const hasKids = parents.has(r.k);
     const tg = hasKids ? '<span class="pn-tg" data-pn-k="'+esc(r.k)+'" title="Recolher / expandir">'+(PEND_COLLAPSED.has(r.k)?'▸':'▾')+'</span> ' : '';
+    if (r.hdr) return '<tr class="'+r.cls+(hidden?' pn-hidden':'')+'"><td class="pn-item"></td><td class="pn-desc" colspan="'+(V.n-1)+'">'+tg+'<span class="pn-hdr-t">'+esc(r.desc)+'</span> <span class="pn-note">(clique em '+(PEND_COLLAPSED.has(r.k)?'▸':'▾')+' para '+(PEND_COLLAPSED.has(r.k)?'mostrar':'agrupar')+' os meses)</span></td></tr>';
     return '<tr class="'+r.cls+(hidden?' pn-hidden':'')+(r.sc?' pn-click':'')+'"'+scAttr(r.sc)+'><td class="pn-item">'+r.item+'</td><td class="pn-desc">'+tg+r.desc+'</td>'+V.cols.map(c=>cell(r.v,c)).join('')+tail(r)+'</tr>';
   };
   const topRow = (cls, desc, v, obs, pctTxt, sc) => '<tr class="'+cls+(sc?' pn-click':'')+'"'+scAttr(sc)+'><td class="pn-item"></td><td class="pn-desc">'+desc+'</td>'+V.cols.map(c=>cell(v,c)).join('')+tail({pctTxt, obs})+'</tr>';
