@@ -171,6 +171,7 @@ table.pend-tbl tr.pn-mes td.pn-desc{padding-left:46px;}
 table.pend-tbl td.pn-tot{font-weight:800;}
 table.pend-tbl td.pn-na{color:var(--text-muted);text-align:center;font-style:italic;}
 table.pend-tbl th[rowspan]{vertical-align:middle;}
+#pend-tbl td.pn-obs{white-space:nowrap;}
 tr.pn-mes-hdr td{background:#eef6dd;font-size:11.5px;font-style:italic;color:#4a5a2a;padding:2px 8px;}
 tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pend-ospanel{background:#fff9cc;border:2px solid #f2c200;border-radius:8px;padding:8px 10px;margin:4px 0 12px;overflow:auto;}
@@ -2438,7 +2439,7 @@ function pendTableHTML(){
   const groupsHdr = ['moa','pci','tot'].filter(pr=>V.cols.some(c=>c.pr===pr));
   const subHdr = V.cols.length && V.cols.some(c=>c.kind==='hh') && V.cols.some(c=>c.kind==='rs');
   let h = '<div class="table-wrap"><table class="pend-tbl" id="pend-tbl"><colgroup><col style="width:46px"><col style="width:360px">'+
-    V.cols.map(c=>'<col style="width:'+(c.kind==='hh'?84:c.pr==='tot'?130:118)+'px">').join('')+'<col style="width:70px"><col style="width:360px"></colgroup>';
+    V.cols.map(c=>'<col style="width:'+(c.kind==='hh'?84:c.pr==='tot'?130:118)+'px">').join('')+'<col style="width:70px"><col style="width:540px"></colgroup>';
   h += '<thead><tr><th colspan="'+V.n+'" class="pn-title">Resumo de Valores Pendentes — Medição (Techint)</th></tr>';
   if (subHdr){
     h += '<tr><th rowspan="2">Item</th><th rowspan="2">Descrição</th>'+groupsHdr.map(pr=>'<th colspan="2">'+nm[pr]+'</th>').join('')+'<th rowspan="2">(%)</th><th rowspan="2">Observações</th></tr>'+
@@ -2452,7 +2453,7 @@ function pendTableHTML(){
   h += topRow('pn-sub2','Pendente com a Usiminas (USM)', B.byResp.Usiminas, 'Aprovar / realizar RDC / liberar FR', pct(B.byResp.Usiminas.tot), newSc('Pendente com a Usiminas (USM)', respItems('Usiminas')));
   h += '<tr class="pn-band"><td colspan="'+V.n+'">FAD / FIA &amp; RATEIO</td></tr>';
   const names = ['FADS — horas','FIA — equipamentos auxiliares','RATEIO'];
-  B.secs.forEach((s,i)=>{ const v = B.secTot(s,T); h += topRow('pn-res', names[s.idx], v, s.groups.map(g=>g.obs).filter((x,k,a)=>a.indexOf(x)===k).join(' | '), pct(v.tot), newSc(names[s.idx], itemsOfSec(s))); });
+  B.secs.forEach((s,i)=>{ const v = B.secTot(s,T); h += topRow('pn-res', names[s.idx], v, (s.idx===0 ? 'TCT: suplementar / ajustar / concluir elaboração · USM: realizar RDC / aprovar / liberar FR' : s.groups.map(g=>g.obs).filter((x,k,a)=>a.indexOf(x)===k).join(' | ')), pct(v.tot), newSc(names[s.idx], itemsOfSec(s))); });
   h += '<tr class="pn-band"><td colspan="'+V.n+'">Detalhamento por nível (use ▾ ▸ ou os botões de nível acima) · clique num valor para ver os fiscais</td></tr>';
   h += rows.map(tr).join('');
   h += '</tbody></table></div>';
