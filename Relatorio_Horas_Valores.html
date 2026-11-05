@@ -724,6 +724,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
       <button type="button" class="fa-modal-close" id="fa-modal-close">×</button>
       <button type="button" class="fa-modal-camera" id="fa-modal-camera" title="Copiar este resumo como imagem nítida (pra colar em e-mail/WhatsApp)">📷</button>
       <button type="button" class="fa-modal-camera" id="fa-modal-excel" title="Exportar este resumo para Excel (.xlsx)">📊</button>
+      <button type="button" class="fa-modal-camera" id="fa-modal-xlcopy" title="Copiar formatado para colar no Excel (mantém cores, negrito e bordas)">📋</button>
       <h4 id="fa-modal-title"></h4>
       <div class="fa-sub" id="fa-modal-sub"></div>
       <div id="fa-modal-body"></div>
@@ -2665,7 +2666,7 @@ function openPendExtratoModal(id, pr, kind){
       '<div class="pe-card"><span>'+(K==='hh'?'R$':'HH')+'</span><b>'+(K==='hh' ? 'R$ '+fmtBRL(tRS) : fmtInt(tHH))+'</b></div>'+
       '<div class="pe-card"><span>FISCAIS</span><b>'+fis.length+'</b></div>'+
       '<div class="pe-card"><span>RDC</span><b>'+tRDC+'</b></div>'+
-      '<div class="pe-card"><span>MAIOR DEVEDOR</span><b class="pe-card-nm">'+esc(fis[0].fiscal)+'</b><small>'+fv(fis[0])+' · '+fmtPct(tK?fis[0][K]/tK:0)+'</small></div>'+
+      '<div class="pe-card"><span>MAIOR VOLUME '+(K==='hh'?'HH':'R$')+'</span><b class="pe-card-nm">'+esc(fis[0].fiscal)+'</b><small>'+fv(fis[0])+' · '+fmtPct(tK?fis[0][K]/tK:0)+'</small></div>'+
       (fis.length>3?'<div class="pe-card"><span>TOP 3 CONCENTRAM</span><b>'+fmtPct(tK?top3/tK:0)+'</b></div>':'')+
       '</div>';
     body += '<table class="pe-tbl"><thead><tr><th class="pe-rkh">Ranking</th><th>Fiscal / OS-Entregável</th><th>Mês</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th><th class="num">%</th><th class="num">% acum.</th></tr></thead><tbody>';
@@ -3414,6 +3415,7 @@ async function copyModalAsImage(){
   box.style.maxHeight = 'none'; box.style.overflow = 'visible';
   document.getElementById('fa-modal-close').style.visibility = 'hidden';
   btn.style.visibility = 'hidden';
+  const _oth = ['fa-modal-excel','fa-modal-xlcopy'].map(i=>document.getElementById(i)); _oth.forEach(b=>{ if (b) b.style.visibility = 'hidden'; });
   try {
     const canvas = await html2canvas(box, { scale: 3, backgroundColor: '#ffffff' });
     const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
@@ -3434,7 +3436,7 @@ async function copyModalAsImage(){
   } finally {
     box.style.maxHeight = prevMaxH; box.style.overflow = prevOverflow;
     document.getElementById('fa-modal-close').style.visibility = '';
-    btn.style.visibility = '';
+    btn.style.visibility = ''; _oth.forEach(b=>{ if (b) b.style.visibility = ''; });
     setTimeout(function(){ btn.innerHTML = origIcon; btn.classList.remove('busy'); }, 2500);
   }
 }
@@ -3529,6 +3531,55 @@ document.getElementById('fa-modal-excel').addEventListener('click', function(){
     return { name: tables.length>1 ? title+' '+(i+1) : title, rows };
   });
   xlsxDownload(sheets, xlsxSafeName(title)+'.xlsx');
+});
+// 📋 copia o resumo da janela como tabela HTML formatada (cores, negrito, bordas) + texto TSV: ao colar no Excel mantem o visual
+document.getElementById('fa-modal-xlcopy').addEventListener('click', async function(){
+  const table = document.querySelector('#fa-modal-body table'); if (!table) return;
+  const title = document.getElementById('fa-modal-title').textContent, sub = document.getElementById('fa-modal-sub').textContent;
+  const ncol = Math.max.apply(null, Array.prototype.map.call(table.rows, r=>Array.prototype.reduce.call(r.cells,(s,c)=>s+(c.colSpan||1),0)));
+  const rgb = c => (!c || c==='transparent' || /rgba\(.*,\s*0\)$/.test(c)) ? '' : c;
+  const fx = (el, extra) => {
+    const cs = getComputedStyle(el), bg = rgb(cs.backgroundColor);
+    return 'font-family:Calibri,Arial,sans-serif;font-size:'+(extra&&extra.size||'11pt')+';color:'+(extra&&extra.color||cs.color)+';font-weight:'+((extra&&extra.bold)?'bold':cs.fontWeight)+(bg||(extra&&extra.bg)?';background:'+(bg||extra.bg):'')+';';
+  };
+  const bd = '1px solid #9fb2c6';
+  let h = '<table style="border-collapse:collapse;">';
+  h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:14pt;font-weight:bold;color:#12305a;">'+esc(title)+'</td></tr>';
+  h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:10pt;color:#5b6b7c;">'+esc(sub)+'</td></tr><tr><td colspan="'+ncol+'"></td></tr>';
+  const cards = Array.prototype.slice.call(document.querySelectorAll('#fa-modal-body .pe-card'));
+  let tsv = title+'\n'+sub+'\n\n';
+  if (cards.length){
+    const base = Math.floor(ncol/cards.length); let extra = ncol - base*cards.length;
+    const spans = cards.map((_,i)=> base + (i===0 ? extra : 0));
+    const lab = cards.map((c,i)=>{ const s = c.querySelector('span'); return '<td colspan="'+spans[i]+'" style="'+fx(c,{size:'9pt',bold:true})+'border:'+bd+';border-bottom:none;color:'+getComputedStyle(s).color+';">'+esc(s.textContent)+'</td>'; }).join('');
+    const val = cards.map((c,i)=>{ const b = c.querySelector('b'), sm = c.querySelector('small'); return '<td colspan="'+spans[i]+'" style="'+fx(c,{size:i===0?'18pt':'14pt',bold:true})+'border:'+bd+';border-top:none;color:'+getComputedStyle(b).color+';">'+esc(b.textContent)+(sm?'<br><span style="font-size:9pt;font-weight:normal;">'+esc(sm.textContent)+'</span>':'')+'</td>'; }).join('');
+    h += '<tr>'+lab+'</tr><tr>'+val+'</tr><tr><td colspan="'+ncol+'"></td></tr>';
+    tsv += cards.map(c=>c.innerText.replace(/\s*\n\s*/g,' ')).join('\t')+'\n\n';
+  }
+  Array.prototype.forEach.call(table.rows, row=>{
+    const cells = Array.prototype.slice.call(row.cells);
+    h += '<tr>'+cells.map(c=>{
+      const cs = getComputedStyle(c), medal = c.querySelector('.pe-medal');
+      let st = fx(c)+'border:'+bd+';text-align:'+(cs.textAlign==='right'||cs.textAlign==='center'?cs.textAlign:'left')+';vertical-align:middle;';
+      if (c.tagName==='TH') st += 'background:#dfe8f2;color:#12305a;font-weight:bold;';
+      if (medal){ const m = getComputedStyle(medal); st += 'background:'+(rgb(m.backgroundColor)||'#e3eaf2')+';color:'+m.color+';font-weight:bold;text-align:center;'; }
+      return '<'+c.tagName.toLowerCase()+' colspan="'+(c.colSpan||1)+'" style="'+st+'">'+esc(c.innerText.trim())+'</'+c.tagName.toLowerCase()+'>';
+    }).join('')+'</tr>';
+    tsv += cells.map(c=>c.innerText.trim().replace(/\s+/g,' ')).join('\t')+'\n';
+  });
+  h += '</table>';
+  const full = '<html><head><meta charset="utf-8"></head><body>'+h+'</body></html>';
+  let ok = false;
+  try {
+    await navigator.clipboard.write([ new ClipboardItem({ 'text/html': new Blob([full],{type:'text/html'}), 'text/plain': new Blob([tsv],{type:'text/plain'}) }) ]); ok = true;
+  } catch(e){
+    try {
+      const d = document.createElement('div'); d.contentEditable = 'true'; d.style.cssText = 'position:fixed;left:-9999px;top:0;'; d.innerHTML = h; document.body.appendChild(d);
+      const r = document.createRange(); r.selectNodeContents(d); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      ok = document.execCommand('copy'); sel.removeAllRanges(); document.body.removeChild(d);
+    } catch(e2){ ok = false; }
+  }
+  if (typeof showUpdateToast === 'function') showUpdateToast(ok ? 'Copiado! Abra o Excel e cole (Ctrl+V) — o visual vai junto.' : 'Não foi possível copiar. Use o botão 📊 para baixar o Excel.', !ok);
 });
 // botao ao lado de "Copiar imagem (aba atual)": exporta as tabelas da aba atual (uma planilha por tabela)
 document.getElementById('btn-export-excel').addEventListener('click', function(){
