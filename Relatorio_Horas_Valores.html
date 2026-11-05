@@ -173,6 +173,14 @@ table.pend-tbl td.pn-na{color:var(--text-muted);text-align:center;font-style:ita
 table.pend-tbl th[rowspan]{vertical-align:middle;}
 .pend-ospanel{background:#fff9cc;border:2px solid #f2c200;border-radius:8px;padding:8px 10px;margin:4px 0 12px;overflow:auto;}
 .pend-ospanel .pop-h{font-size:13px;font-weight:600;margin-bottom:6px;color:#1b2a3a;}
+.pend-ospanel .pop-total{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 26px;background:#ffd633;border:2px solid #e0b000;border-radius:8px;padding:8px 14px;margin:0 0 8px;color:#1b2a3a;}
+.pend-ospanel .pop-tl{font-size:12px;font-weight:800;letter-spacing:.06em;}
+.pend-ospanel .pop-tv{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;}
+.pend-ospanel .pop-tv small{font-size:12px;font-weight:700;margin-right:3px;}
+.pend-ospanel .pop-ts{font-size:12px;margin-left:auto;}
+.pn-stpanel{width:330px;}
+.pn-stlist{display:flex;flex-direction:column;gap:3px;font-size:11.5px;max-height:260px;overflow:auto;}
+.pn-stlist label{cursor:pointer;white-space:nowrap;}
 .pend-ospanel .pop-empty{font-size:12px;color:#5b4b00;padding:6px 0;}
 .pend-ospanel .pop-st td{background:#ffe680;font-weight:700;color:#1b2a3a;}
 .pend-ospanel .pe-tbl{background:#fff;color:#1b2a3a;}
@@ -2443,8 +2451,41 @@ function pendControlsHTML(){
   return '<div class="pend-controls"><span class="evol-flbl">Níveis</span>'+
     [1,2,3,4].map(n=>'<button type="button" class="evol-chip" data-pn-level="'+n+'" title="Mostrar até o nível '+n+'">'+n+'</button>').join('')+
     '<button type="button" class="evol-quick" data-pn-level="4">Expandir tudo</button><button type="button" class="evol-quick" data-pn-level="1">Recolher tudo</button>'+
-    '<span class="pend-hint">1 = FADS/FIA/RATEIO · 2 = grupos · 3 = status · 4 = meses de cada status</span></div>';
+    '<span class="pend-hint">1 = FADS/FIA/RATEIO · 2 = grupos · 3 = status · 4 = meses de cada status</span>'+
+    '<span class="evol-flbl" style="margin-left:14px">Status do quadro OS/Fiscal</span><span id="pend-st-wrap">'+pendStDropHTML()+'</span></div>';
 }
+let PEND_ST = null;       // null = todos os status; senao lista de status escolhidos para o quadro amarelo
+let PEND_ST_OPEN = false;
+function pendStLabels(){
+  const B = pendBuild(), s0 = B.secs.find(s=>s.idx===0), a = [];
+  if (s0) s0.groups.forEach(g=>g.items.forEach(it=>{ if (!a.includes(it.label)) a.push(it.label); }));
+  return a;
+}
+function pendStDropHTML(){
+  const all = pendStLabels(), sel = PEND_ST ? all.filter(l=>PEND_ST.includes(l)) : all;
+  const txt = !PEND_ST || sel.length===all.length ? 'Todos os status' : (sel.length===0 ? 'Nenhum status' : (sel.length===1 ? sel[0] : sel.length+' status'));
+  let h = '<span class="pn-mdrop"><button type="button" class="evol-chip on pn-mbtn" data-pn-stopen="1">'+esc(txt)+' ▾</button>';
+  if (PEND_ST_OPEN){
+    h += '<div class="pn-mpanel pn-stpanel"><div class="pn-mq"><button type="button" class="evol-quick" data-pn-stq="all">Todos</button><button type="button" class="evol-quick" data-pn-stq="none">Limpar</button></div><div class="pn-stlist">'+
+      all.map(l=>'<label><input type="checkbox" data-pn-st="'+esc(l)+'"'+(sel.includes(l)?' checked':'')+'> '+esc(l)+'</label>').join('')+'</div></div>';
+  }
+  return h+'</span>';
+}
+function pendStRefresh(){ const w = document.getElementById('pend-st-wrap'); if (w) w.innerHTML = pendStDropHTML(); pendOsRefresh(); }
+document.addEventListener('click', e=>{
+  if (PEND_ST_OPEN && !e.target.closest('[data-pn-stopen],.pn-stpanel')){ PEND_ST_OPEN = false; const w = document.getElementById('pend-st-wrap'); if (w) w.innerHTML = pendStDropHTML(); }
+});
+document.getElementById('content').addEventListener('click', e=>{
+  if (e.target.closest('[data-pn-stopen]')){ PEND_ST_OPEN = !PEND_ST_OPEN; const w = document.getElementById('pend-st-wrap'); if (w) w.innerHTML = pendStDropHTML(); return; }
+  const q = e.target.closest('[data-pn-stq]');
+  if (q){ PEND_ST = q.dataset.pnStq==='all' ? null : []; pendStRefresh(); }
+});
+document.getElementById('content').addEventListener('change', e=>{
+  const cb = e.target.closest && e.target.closest('input[data-pn-st]'); if (!cb) return;
+  const all = pendStLabels(), cur = PEND_ST ? PEND_ST.slice() : all.slice(), l = cb.dataset.pnSt, i = cur.indexOf(l);
+  if (cb.checked && i===-1) cur.push(l); else if (!cb.checked && i!==-1) cur.splice(i,1);
+  PEND_ST = cur.length===all.length ? null : cur; pendStRefresh();
+});
 function pendRefresh(){ const w = document.getElementById('pend-wrap'); if (w) w.innerHTML = pendTableHTML(); pendOsRefresh(); }
 function pendOsRefresh(){ const o = document.getElementById('pend-os-wrap'); if (o) o.innerHTML = pendOsPanelHTML(); }
 // Painel "OS" (destacado em amarelo): tudo que as FADS tem referenciado a OS digitada -> Status > Fiscal (mes, RDC, HH, R$)
@@ -2454,7 +2495,8 @@ function pendOsPanelHTML(){
     const B = pendBuild(), sec0 = B.secs.find(s=>s.idx===0);
     const items = sec0 ? sec0.groups.reduce((a,g)=>a.concat(g.items.map(it=>({sec:0,label:it.label,resp:it.resp}))),[]) : [];
     PEND_EXT_PR = 'tot';
-    const rows = pendDetailRowsFor({ title:'', items, mes:null });
+    let rows = pendDetailRowsFor({ title:'', items, mes:null });
+    if (PEND_ST) rows = rows.filter(r=>PEND_ST.includes(r.status));
     const head = '<div class="pend-ospanel"><div class="pop-h">'+(PEND_OS?'OS <b>'+esc(PEND_OS)+'</b> ':'')+(PEND_FISC?'Fiscal <b>'+esc(PEND_FISC)+'</b> ':'')+'— o que as FADS têm referenciado '+(PEND_OS&&PEND_FISC?'a essa OS e fiscal':PEND_OS?'a essa OS':'a esse fiscal')+' · '+(PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+esc(DISPLAY_MONTHS.join(', '))+'</div>';
     if (!rows.length) return head+'<div class="pop-empty">Nenhuma pendência de FADS encontrada para esse filtro nos projetos e meses marcados.</div></div>';
     const order = []; const byS = new Map();
@@ -2464,7 +2506,10 @@ function pendOsPanelHTML(){
       f.rs += r.rs; f.hh += r.hh; if (r.rdc) f.rdc.add(r.rdc); f.mes.add(r.mesano); f.os.add(r.os); });
     const rdcTxt = set => { const a = Array.from(set).sort((x,y)=>String(x).localeCompare(String(y),'pt-BR',{numeric:true})); return !a.length ? '—' : a.length<=8 ? a.join(', ') : a.slice(0,8).join(', ')+' (+'+(a.length-8)+' mais)'; };
     let tRS = 0, tHH = 0;
-    let h = head+'<table class="pe-tbl"><thead><tr><th>Status / Fiscal</th><th>OS</th><th>Meses</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th></tr></thead><tbody>';
+    const allRdc = new Set(); rows.forEach(r=>{ if (r.rdc) allRdc.add(r.rdc); });
+    const totRS = rows.reduce((s,r)=>s+r.rs,0), totHH = rows.reduce((s,r)=>s+r.hh,0);
+    const topBar = '<div class="pop-total"><span class="pop-tl">TOTAL'+(PEND_OS||PEND_FISC?' DO FILTRO':'')+'</span><span class="pop-tv"><small>R$</small> '+fmtBRL(totRS)+'</span><span class="pop-tv"><small>HH</small> '+fmtInt(totHH)+'</span><span class="pop-ts">'+order.length+' status · '+allRdc.size+' RDC</span></div>';
+    let h = head+topBar+'<table class="pe-tbl"><thead><tr><th>Status / Fiscal</th><th>OS</th><th>Meses</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th></tr></thead><tbody>';
     order.forEach(s=>{
       tRS += s.rs; tHH += s.hh;
       h += '<tr class="pop-st"><td colspan="5">'+esc(s.st)+'</td><td class="num">'+fmtInt(s.hh)+'</td><td class="num">R$ '+fmtBRL(s.rs)+'</td></tr>';
