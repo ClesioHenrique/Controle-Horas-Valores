@@ -179,6 +179,8 @@ table.pend-tbl th[rowspan]{vertical-align:middle;}
 .pend-ospanel .pop-tv small{font-size:12px;font-weight:700;margin-right:3px;}
 .pend-ospanel .pop-ts{font-size:12px;margin-left:auto;}
 .pn-stpanel{width:330px;}
+.pn-msq{width:100%;box-sizing:border-box;border:1px solid #b9c4d0;border-radius:6px;padding:4px 8px;font-size:12px;margin-bottom:6px;background:#fff;color:#1b2a3a;}
+html.dark-theme .pn-msq{background:#111827;color:#e5e7eb;border-color:#475569;}
 .pn-stlist{display:flex;flex-direction:column;gap:3px;font-size:11.5px;max-height:260px;overflow:auto;}
 .pn-stlist label{cursor:pointer;white-space:nowrap;}
 .pend-ospanel .pop-empty{font-size:12px;color:#5b4b00;padding:6px 0;}
@@ -2544,11 +2546,9 @@ function pendFiltersHTML(){
     '<span class="evol-flbl" style="margin-left:14px">Meses</span>'+
     pendMesDropHTML()+
     '<span class="evol-flbl" style="margin-left:14px">OS</span>'+
-    '<input type="text" id="pend-os-in" class="pend-os-in" list="pend-os-list" placeholder="filtrar OS (extrato)…" value="'+esc(PEND_OS)+'" title="Filtra a OS no extrato por Fiscal (clique num valor da tabela)">'+
-    '<datalist id="pend-os-list">'+pendOsList().map(o=>'<option value="'+esc(o)+'">').join('')+'</datalist>'+
+    '<span id="pend-ms-os">'+pendMsHTML('os')+'</span>'+
     '<span class="evol-flbl" style="margin-left:14px">Fiscal devedor</span>'+
-    '<input type="text" id="pend-fisc-in" class="pend-os-in pend-fisc-in" list="pend-fisc-list" placeholder="filtrar fiscal…" value="'+esc(PEND_FISC)+'" title="Filtra o fiscal devedor no extrato e no quadro amarelo">'+
-    '<datalist id="pend-fisc-list">'+pendFiscList().map(o=>'<option value="'+esc(o)+'">').join('')+'</datalist>'+
+    '<span id="pend-ms-fisc">'+pendMsHTML('fisc')+'</span>'+
     '<button type="button" class="evol-quick" id="pend-os-clr"'+((PEND_OS||PEND_FISC)?'':' style="display:none"')+'>Limpar OS / Fiscal</button>'+
     '<span class="pend-hint">os totais somam só o que estiver marcado · HH só existe no FADS (FIA e RATEIO ficam n/a) · a OS filtra o extrato por Fiscal ao clicar num valor</span></div>';
 }
@@ -2603,17 +2603,59 @@ document.getElementById('content').addEventListener('change', e=>{
     PEND_MESES = cur; pendRefreshAll();
   }
 });
+/* ---- filtros multi-selecao de OS e Fiscal devedor (lista suspensa com busca e caixas de selecao) ---- */
+let PEND_OS_SEL = [], PEND_FISC_SEL = [], PEND_MS_OPEN = null, PEND_MS_Q = '';
+function pendSelSync(){
+  const t = (a, un) => !a.length ? '' : (a.length<=2 ? a.join(', ') : a.length+' '+un+' selecionad'+(un==='OS'?'as':'os'));
+  PEND_OS = t(PEND_OS_SEL,'OS'); PEND_FISC = t(PEND_FISC_SEL,'fiscais');
+}
+function pendMsHTML(kind){
+  const sel = kind==='os' ? PEND_OS_SEL : PEND_FISC_SEL, txt = kind==='os' ? PEND_OS : PEND_FISC;
+  const lbl = txt ? txt : (kind==='os' ? 'Todas as OS' : 'Todos os fiscais');
+  let h = '<span class="pn-mdrop"><button type="button" class="evol-chip'+(sel.length?' on':'')+' pn-mbtn" data-pn-msopen="'+kind+'">'+esc(lbl)+' ▾</button>';
+  if (PEND_MS_OPEN===kind){
+    const all = kind==='os' ? pendOsList() : pendFiscList(), q = PEND_MS_Q.toLowerCase();
+    h += '<div class="pn-mspanel pn-mpanel"><input type="text" class="pn-msq" data-pn-msq="1" placeholder="buscar…" value="'+esc(PEND_MS_Q)+'">'+
+      '<div class="pn-mq"><button type="button" class="evol-quick" data-pn-msall="'+kind+'">Marcar listados</button><button type="button" class="evol-quick" data-pn-msclr="'+kind+'">Limpar (todos)</button></div>'+
+      '<div class="pn-stlist">'+all.map(l=>'<label'+(q && !l.toLowerCase().includes(q)?' style="display:none"':'')+'><input type="checkbox" data-pn-ms="'+kind+'" value="'+esc(l)+'"'+(sel.includes(l)?' checked':'')+'> '+esc(l)+'</label>').join('')+'</div></div>';
+  }
+  return h+'</span>';
+}
+function pendMsRefresh(full){
+  pendSelSync();
+  const a = document.getElementById('pend-ms-os'), b = document.getElementById('pend-ms-fisc');
+  if (a) a.innerHTML = pendMsHTML('os'); if (b) b.innerHTML = pendMsHTML('fisc');
+  const c = document.getElementById('pend-os-clr'); if (c) c.style.display = (PEND_OS||PEND_FISC) ? '' : 'none';
+  if (full) pendOsRefresh();
+  const qi = document.querySelector('.pn-msq'); if (qi && PEND_MS_Q && document.activeElement!==qi){ qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length); }
+}
+document.addEventListener('click', e=>{
+  if (PEND_MS_OPEN && !e.target.closest('[data-pn-msopen],.pn-mspanel')){ PEND_MS_OPEN = null; PEND_MS_Q = ''; pendMsRefresh(false); }
+});
 document.getElementById('content').addEventListener('click', e=>{
-  if (e.target.closest('#pend-os-clr')){ PEND_OS = ''; PEND_FISC = ''; pendRefreshAll(); }
+  const op = e.target.closest('[data-pn-msopen]');
+  if (op){ const k = op.dataset.pnMsopen; PEND_MS_OPEN = PEND_MS_OPEN===k ? null : k; PEND_MS_Q = ''; pendMsRefresh(false); return; }
+  const al = e.target.closest('[data-pn-msall]');
+  if (al){
+    const k = al.dataset.pnMsall, arr = k==='os' ? PEND_OS_SEL : PEND_FISC_SEL, q = PEND_MS_Q.toLowerCase();
+    (k==='os' ? pendOsList() : pendFiscList()).forEach(l=>{ if ((!q || l.toLowerCase().includes(q)) && !arr.includes(l)) arr.push(l); });
+    pendMsRefresh(true); return;
+  }
+  const cl = e.target.closest('[data-pn-msclr]');
+  if (cl){ if (cl.dataset.pnMsclr==='os') PEND_OS_SEL = []; else PEND_FISC_SEL = []; pendMsRefresh(true); return; }
+  if (e.target.closest('#pend-os-clr')){ PEND_OS_SEL = []; PEND_FISC_SEL = []; PEND_MS_OPEN = null; pendMsRefresh(true); }
+});
+document.getElementById('content').addEventListener('change', e=>{
+  const cb = e.target.closest && e.target.closest('input[data-pn-ms]'); if (!cb) return;
+  const arr = cb.dataset.pnMs==='os' ? PEND_OS_SEL : PEND_FISC_SEL, i = arr.indexOf(cb.value);
+  if (cb.checked && i===-1) arr.push(cb.value); else if (!cb.checked && i!==-1) arr.splice(i,1);
+  pendMsRefresh(true);
 });
 document.getElementById('content').addEventListener('input', e=>{
-  if (e.target && (e.target.id==='pend-os-in' || e.target.id==='pend-fisc-in')){
-    if (e.target.id==='pend-os-in') PEND_OS = e.target.value.trim(); else PEND_FISC = e.target.value.trim();
-    clearTimeout(pendOsTimer); pendOsTimer = setTimeout(pendOsRefresh, 250);
-    const b = document.getElementById('pend-os-clr'); if (b) b.style.display = (PEND_OS||PEND_FISC) ? '' : 'none';
-  }
+  if (!e.target || !e.target.matches || !e.target.matches('input[data-pn-msq]')) return;
+  PEND_MS_Q = e.target.value; const q = PEND_MS_Q.toLowerCase();
+  e.target.parentNode.querySelectorAll('.pn-stlist label').forEach(l=>{ l.style.display = (!q || l.textContent.toLowerCase().includes(q)) ? '' : 'none'; });
 });
-let pendOsTimer = null;
 document.getElementById('content').addEventListener('click', e=>{
   const pj = e.target.closest('[data-pn-proj]');
   if (pj){
@@ -2665,8 +2707,7 @@ function pendDetailRowsFor(scope){
     else if (n.indexOf('medicao em andamento')===0) pushRows(RAW_FISCAL_OUTROS.filter(r=>evolNorm(r.situacao).indexOf('medicao em andamento')===0), r=>std(r, it.label));
     else if (n.indexOf('medido')===0) pushRows(RAW_MEDIDO_FR_DETAIL, r=>({ projeto:r.projeto, mesano:r.mesano, fiscal:'(sem fiscal — FR medida, por FR)', os:r.med, rdc:'FR '+r.sapmed, hh:r.hh||0, rs:r.rs||0, status:it.label }));
   });
-  const qo = PEND_OS.toLowerCase(), qf = PEND_FISC.toLowerCase();
-  if (qo || qf) return out.filter(r=>(!qo || String(r.os||'').toLowerCase().includes(qo)) && (!qf || String(r.fiscal||'').toLowerCase().includes(qf)));
+  if (PEND_OS_SEL.length || PEND_FISC_SEL.length) return out.filter(r=>(!PEND_OS_SEL.length || PEND_OS_SEL.includes(String(r.os||'').trim())) && (!PEND_FISC_SEL.length || PEND_FISC_SEL.includes(String(r.fiscal||'').trim())));
   return out;
 }
 function pendScopeTotal(scope){
