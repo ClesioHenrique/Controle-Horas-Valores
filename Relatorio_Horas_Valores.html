@@ -2508,7 +2508,7 @@ function pendOsPanelHTML(){
     let tRS = 0, tHH = 0;
     const allRdc = new Set(); rows.forEach(r=>{ if (r.rdc) allRdc.add(r.rdc); });
     const totRS = rows.reduce((s,r)=>s+r.rs,0), totHH = rows.reduce((s,r)=>s+r.hh,0);
-    const topBar = '<div class="pop-total"><span class="pop-tl">TOTAL'+(PEND_OS||PEND_FISC?' DO FILTRO':'')+'</span><span class="pop-tv"><small>R$</small> '+fmtBRL(totRS)+'</span><span class="pop-tv"><small>HH</small> '+fmtInt(totHH)+'</span><span class="pop-ts">'+order.length+' status · '+allRdc.size+' RDC</span></div>';
+    const topBar = '<div class="pop-total"><span class="pop-tl">TOTAL'+(PEND_OS||PEND_FISC?' DO FILTRO':'')+'</span><span class="pop-tv"><small>HH</small> '+fmtInt(totHH)+'</span><span class="pop-tv"><small>R$</small> '+fmtBRL(totRS)+'</span><span class="pop-ts">'+order.length+' status · '+allRdc.size+' RDC</span></div>';
     let h = head+topBar+'<table class="pe-tbl"><thead><tr><th>Status / Fiscal</th><th>OS</th><th>Meses</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th></tr></thead><tbody>';
     order.forEach(s=>{
       tRS += s.rs; tHH += s.hh;
