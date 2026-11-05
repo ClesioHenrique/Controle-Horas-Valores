@@ -2356,8 +2356,8 @@ function pendTableHTML(){
   const money = v => Math.round(v)===0 ? '—' : 'R$ '+fmtBRL(v);
   const hhTxt = (v, k) => v.hna ? 'n/a' : (Math.round(v[k])===0 ? '—' : fmtInt(v[k]));
   const cell = (v, c) => {
-    if (c.kind==='hh') return '<td class="pn-num pn-hh'+(c.pr==='tot'?' pn-tot':'')+(v.hna?' pn-na':'')+'">'+hhTxt(v, c.pr==='moa'?'hMoa':c.pr==='pci'?'hPci':'hTot')+'</td>';
-    return '<td class="pn-num'+(c.pr==='tot'?' pn-tot':'')+'">'+money(v[c.pr])+'</td>';
+    if (c.kind==='hh') return '<td data-pr="'+c.pr+'" class="pn-num pn-hh'+(c.pr==='tot'?' pn-tot':'')+(v.hna?' pn-na':'')+'">'+hhTxt(v, c.pr==='moa'?'hMoa':c.pr==='pci'?'hPci':'hTot')+'</td>';
+    return '<td data-pr="'+c.pr+'" class="pn-num'+(c.pr==='tot'?' pn-tot':'')+'">'+money(v[c.pr])+'</td>';
   };
   PEND_SCOPES = {}; let scN = 0;
   const newSc = (title, items, mes) => { const id = 'sc'+(scN++); PEND_SCOPES[id] = { title, items, mes: mes||null }; return id; };
@@ -2452,6 +2452,7 @@ function pendOsPanelHTML(){
   return pendWithMonths(()=>{
     const B = pendBuild(), sec0 = B.secs.find(s=>s.idx===0);
     const items = sec0 ? sec0.groups.reduce((a,g)=>a.concat(g.items.map(it=>({sec:0,label:it.label,resp:it.resp}))),[]) : [];
+    PEND_EXT_PR = 'tot';
     const rows = pendDetailRowsFor({ title:'', items, mes:null });
     const head = '<div class="pend-ospanel"><div class="pop-h">OS <b>'+esc(PEND_OS)+'</b> — o que as FADS têm referenciado a essa OS · '+(PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+esc(DISPLAY_MONTHS.join(', '))+'</div>';
     if (!rows.length) return head+'<div class="pop-empty">Nenhuma pendência de FADS encontrada para essa OS nos projetos e meses marcados.</div></div>';
@@ -2518,7 +2519,7 @@ function pendWithMonths(fn){
 { const _t = pendTableHTML, _k = renderPendKpiStrip, _m = openPendExtratoModal;
   pendTableHTML = function(){ return pendWithMonths(_t); };
   renderPendKpiStrip = function(){ return pendWithMonths(_k); };
-  openPendExtratoModal = function(id){ return pendWithMonths(()=>_m(id)); };
+  openPendExtratoModal = function(id, pr, kind){ return pendWithMonths(()=>_m(id, pr, kind)); };
 }
 let PEND_MES_OPEN = false;
 function pendMesDropHTML(){
@@ -2589,9 +2590,10 @@ function pendRefreshAll(){
 /* ---------------- Extrato por Fiscal (clique num valor do Resumo de Pendencias) ----------------
    Fiscal -> OS -> Qtd de RDC, Nº dos RDC, HH e R$, com Pareto dos fiscais (maior -> menor) e % acumulado, pronto pra cobranca.
    Fontes: Pendencias MOA_PCI (RAW_PEND_FISCAL), Extrato SGE (RAW_FISCAL_PENDENTE_DETAIL e RAW_FISCAL_OUTROS) e FR's medidas (sem fiscal). */
+let PEND_EXT_PR = 'tot';   // coluna clicada: moa | pci | tot
 function pendDetailRowsFor(scope){
   const known = new Set(PEND_FIXED);
-  const okProj = r => PEND_PROJS.includes(r.projeto);
+  const okProj = r => PEND_PROJS.includes(r.projeto) && (PEND_EXT_PR==='moa' ? r.projeto==='MOA' : PEND_EXT_PR==='pci' ? r.projeto==='PCI' : true);
   const okMes = r => scope.mes ? r.mesano===scope.mes : DISPLAY_MONTHS.includes(r.mesano);
   const out = []; const done = new Set();
   const pushRows = (arr, mapFn) => arr.forEach(r=>{ if (okProj(r) && okMes(r)) out.push(mapFn(r)); });
@@ -2616,50 +2618,55 @@ function pendScopeTotal(scope){
   scope.items.forEach(it=>{
     const k = it.sec+'|'+it.label; if (seen.has(k)) return; seen.add(k);
     const sec = B.secs.find(s=>s.idx===it.sec); if (!sec) return;
-    sec.groups.forEach(g=>g.items.forEach(x=>{ if (x.label===it.label) rs += B.mkv(x,c).tot; }));
+    sec.groups.forEach(g=>g.items.forEach(x=>{ if (x.label===it.label) rs += B.mkv(x,c)[PEND_EXT_PR==='moa'?'moa':PEND_EXT_PR==='pci'?'pci':'tot']; }));
   });
   return rs;
 }
-function openPendExtratoModal(id){
+function openPendExtratoModal(id, pr, kind){
   const scope = PEND_SCOPES[id]; if (!scope) return;
+  PEND_EXT_PR = pr || 'tot';
   const rows = pendDetailRowsFor(scope);
-  const projTxt = PEND_PROJS.length===2 ? 'MOA e PCI' : PEND_PROJS[0];
+  const projTxt = PEND_EXT_PR==='moa' ? 'MOA' : PEND_EXT_PR==='pci' ? 'PCI' : (PEND_PROJS.length===2 ? 'MOA e PCI' : PEND_PROJS[0]);
   const perTxt = scope.mes ? scope.mes : (DISPLAY_MONTHS.length<=4 ? DISPLAY_MONTHS.join(', ') : DISPLAY_MONTHS[0]+' a '+DISPLAY_MONTHS[DISPLAY_MONTHS.length-1]);
-  document.getElementById('fa-modal-title').textContent = scope.title+' — extrato por Fiscal';
-  document.getElementById('fa-modal-sub').textContent = projTxt+' · '+perTxt+' · Pareto dos fiscais, do maior para o menor valor pendente';
+  const K = kind==='hh' ? 'hh' : 'rs';
+  const mesOrd = set => Array.from(set).sort((a,b)=>mesKey(a)-mesKey(b)).join(', ');
+  document.getElementById('fa-modal-title').textContent = scope.title+' — '+projTxt+(scope.mes?' — '+scope.mes:'')+' — extrato por Fiscal';
+  document.getElementById('fa-modal-sub').textContent = projTxt+' · '+perTxt+' · ranking dos fiscais, do maior para o menor '+(K==='hh'?'HH':'valor')+' pendente (valor clicado: '+(K==='hh'?'HH':'R$')+')';
   let body = '';
   if (!rows.length){
     body = '<div class="fiscal-empty">'+(PEND_OS ? 'Nenhum registro da OS <b>'+esc(PEND_OS)+'</b> nesta linha. Limpe o filtro de OS (na barra de filtros) para ver todos os fiscais.' : 'Esta linha não tem Fiscal vinculado na planilha (FIA, RATEIO ou itens sem detalhamento por Fiscal).')+'</div>';
   } else {
     const byF = new Map();
     rows.forEach(r=>{
-      let f = byF.get(r.fiscal); if (!f){ f = { fiscal:r.fiscal, rs:0, hh:0, rdcs:new Set(), os:new Map() }; byF.set(r.fiscal,f); }
-      f.rs += r.rs; f.hh += r.hh; if (r.rdc) f.rdcs.add(r.rdc);
-      let o = f.os.get(r.os); if (!o){ o = { os:r.os, rs:0, hh:0, rdcs:new Set() }; f.os.set(r.os,o); }
-      o.rs += r.rs; o.hh += r.hh; if (r.rdc) o.rdcs.add(r.rdc);
+      let f = byF.get(r.fiscal); if (!f){ f = { fiscal:r.fiscal, rs:0, hh:0, rdcs:new Set(), os:new Map(), mes:new Set() }; byF.set(r.fiscal,f); }
+      f.rs += r.rs; f.hh += r.hh; if (r.rdc) f.rdcs.add(r.rdc); f.mes.add(r.mesano);
+      let o = f.os.get(r.os); if (!o){ o = { os:r.os, rs:0, hh:0, rdcs:new Set(), mes:new Set() }; f.os.set(r.os,o); }
+      o.rs += r.rs; o.hh += r.hh; if (r.rdc) o.rdcs.add(r.rdc); o.mes.add(r.mesano);
     });
-    const fis = Array.from(byF.values()).sort((a,b)=>b.rs-a.rs);
-    const tRS = fis.reduce((s,f)=>s+f.rs,0), tHH = fis.reduce((s,f)=>s+f.hh,0), tRDC = fis.reduce((s,f)=>s+f.rdcs.size,0), maxRS = fis[0].rs || 1;
+    const fis = Array.from(byF.values()).sort((a,b)=>b[K]-a[K]);
+    const tRS = fis.reduce((s,f)=>s+f.rs,0), tHH = fis.reduce((s,f)=>s+f.hh,0), tRDC = fis.reduce((s,f)=>s+f.rdcs.size,0), tK = K==='hh' ? tHH : tRS;
+    const allMes = new Set(); rows.forEach(r=>allMes.add(r.mesano));
     const rdcTxt = set => { const a = Array.from(set).sort((x,y)=>String(x).localeCompare(String(y),'pt-BR',{numeric:true})); return !a.length ? '—' : a.length<=6 ? a.join(', ') : a.slice(0,6).join(', ')+' (+'+(a.length-6)+' mais)'; };
     let acc = 0;
-    const top3 = fis.slice(0,3).reduce((s,f)=>s+f.rs,0);
+    const top3 = fis.slice(0,3).reduce((s,f)=>s+f[K],0);
+    const fv = x => K==='hh' ? fmtInt(x.hh)+' HH' : 'R$ '+fmtBRL(x.rs);
     body = '<div class="pe-sum">'+
-      '<div class="pe-card pe-card-main"><span>TOTAL PENDENTE</span><b>R$ '+fmtBRL(tRS)+'</b></div>'+
-      '<div class="pe-card"><span>HH</span><b>'+fmtInt(tHH)+'</b></div>'+
+      '<div class="pe-card pe-card-main"><span>TOTAL PENDENTE · '+esc(projTxt)+' · '+esc(scope.mes || mesOrd(allMes))+'</span><b>'+(K==='hh' ? fmtInt(tHH)+' HH' : 'R$ '+fmtBRL(tRS))+'</b></div>'+
+      '<div class="pe-card"><span>'+(K==='hh'?'R$':'HH')+'</span><b>'+(K==='hh' ? 'R$ '+fmtBRL(tRS) : fmtInt(tHH))+'</b></div>'+
       '<div class="pe-card"><span>FISCAIS</span><b>'+fis.length+'</b></div>'+
       '<div class="pe-card"><span>RDC</span><b>'+tRDC+'</b></div>'+
-      '<div class="pe-card"><span>MAIOR DEVEDOR</span><b class="pe-card-nm">'+esc(fis[0].fiscal)+'</b><small>R$ '+fmtBRL(fis[0].rs)+' · '+fmtPct(tRS?fis[0].rs/tRS:0)+'</small></div>'+
-      (fis.length>3?'<div class="pe-card"><span>TOP 3 CONCENTRAM</span><b>'+fmtPct(tRS?top3/tRS:0)+'</b></div>':'')+
+      '<div class="pe-card"><span>MAIOR DEVEDOR</span><b class="pe-card-nm">'+esc(fis[0].fiscal)+'</b><small>'+fv(fis[0])+' · '+fmtPct(tK?fis[0][K]/tK:0)+'</small></div>'+
+      (fis.length>3?'<div class="pe-card"><span>TOP 3 CONCENTRAM</span><b>'+fmtPct(tK?top3/tK:0)+'</b></div>':'')+
       '</div>';
-    body += '<table class="pe-tbl"><thead><tr><th class="pe-rkh">Ranking</th><th>Fiscal / OS-Entregável</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th><th class="num">%</th><th class="num">% acum.</th></tr></thead><tbody>';
+    body += '<table class="pe-tbl"><thead><tr><th class="pe-rkh">Ranking</th><th>Fiscal / OS-Entregável</th><th>Mês</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th><th class="num">%</th><th class="num">% acum.</th></tr></thead><tbody>';
     fis.forEach((f,i)=>{
-      acc += f.rs; const pc = tRS ? f.rs/tRS : 0, ac = tRS ? acc/tRS : 0;
-      body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td class="pe-rk"><span class="pe-medal pe-m'+(i<3?i+1:0)+'">'+(i+1)+'º</span></td><td>'+esc(f.fiscal)+'</td><td class="num">'+(f.rdcs.size||'—')+'</td><td title="'+esc(Array.from(f.rdcs).join(', '))+'">'+esc(rdcTxt(f.rdcs))+'</td><td class="num">'+fmtInt(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td></tr>';
-      Array.from(f.os.values()).sort((a,b)=>b.rs-a.rs).forEach(o=>{
-        body += '<tr class="pe-os"><td></td><td class="pe-osn">OS '+esc(o.os)+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+fmtInt(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
+      acc += f[K]; const pc = tK ? f[K]/tK : 0, ac = tK ? acc/tK : 0;
+      body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td class="pe-rk"><span class="pe-medal pe-m'+(i<3?i+1:0)+'">'+(i+1)+'º</span></td><td>'+esc(f.fiscal)+'</td><td>'+esc(mesOrd(f.mes))+'</td><td class="num">'+(f.rdcs.size||'—')+'</td><td title="'+esc(Array.from(f.rdcs).join(', '))+'">'+esc(rdcTxt(f.rdcs))+'</td><td class="num">'+fmtInt(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td></tr>';
+      Array.from(f.os.values()).sort((a,b)=>b[K]-a[K]).forEach(o=>{
+        body += '<tr class="pe-os"><td></td><td class="pe-osn">OS '+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+fmtInt(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
       });
     });
-    body += '<tr class="fa-total"><td></td><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td class="num">'+tRDC+'</td><td></td><td class="num">'+fmtInt(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td></tr></tbody></table>';
+    body += '<tr class="fa-total"><td></td><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td>'+esc(scope.mes || mesOrd(allMes))+'</td><td class="num">'+tRDC+'</td><td></td><td class="num">'+fmtInt(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td></tr></tbody></table>';
     const falta = pendScopeTotal(scope) - tRS;
     const nota = [];
     if (Math.abs(falta) > 1) nota.push('R$ '+fmtBRL(Math.abs(falta))+(falta>0?' do resumo ':' a mais no detalhe ')+'sem detalhamento por Fiscal na planilha (FIA, RATEIO ou itens sem fiscal).');
@@ -2672,7 +2679,7 @@ function openPendExtratoModal(id){
 document.getElementById('content').addEventListener('click', e=>{
   const td = e.target.closest('#pend-tbl td.pn-num'); if (!td) return;
   const tr = td.closest('tr[data-pn-scope]'); if (!tr) return;
-  openPendExtratoModal(tr.dataset.pnScope);
+  openPendExtratoModal(tr.dataset.pnScope, td.dataset.pr, td.classList.contains('pn-hh') ? 'hh' : 'rs');
 });
 function renderPendHTML(forExport){
   return '<div class="fiscal-block pend-block" style="border-top:none;margin-top:0;padding-top:0;">'+(forExport?'':'<div id="pend-filters-wrap">'+pendFiltersHTML()+'</div>'+pendControlsHTML())+'<div id="pend-os-wrap">'+(forExport?'':pendOsPanelHTML())+'</div><div id="pend-wrap">'+pendTableHTML()+'</div></div>';
