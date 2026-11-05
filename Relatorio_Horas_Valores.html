@@ -171,6 +171,11 @@ table.pend-tbl tr.pn-mes td.pn-desc{padding-left:46px;}
 table.pend-tbl td.pn-tot{font-weight:800;}
 table.pend-tbl td.pn-na{color:var(--text-muted);text-align:center;font-style:italic;}
 table.pend-tbl th[rowspan]{vertical-align:middle;}
+.pend-ospanel{background:#fff9cc;border:2px solid #f2c200;border-radius:8px;padding:8px 10px;margin:4px 0 12px;overflow:auto;}
+.pend-ospanel .pop-h{font-size:13px;font-weight:600;margin-bottom:6px;color:#1b2a3a;}
+.pend-ospanel .pop-empty{font-size:12px;color:#5b4b00;padding:6px 0;}
+.pend-ospanel .pop-st td{background:#ffe680;font-weight:700;color:#1b2a3a;}
+.pend-ospanel .pe-tbl{background:#fff;color:#1b2a3a;}
 .pn-mdrop{position:relative;display:inline-block;}
 .pn-mpanel{position:absolute;z-index:50;top:30px;left:0;background:#fff;color:#1b2a3a;border:1px solid #b9c4d0;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.18);padding:8px;width:330px;}
 html.dark-theme .pn-mpanel{background:#1f2937;color:#e5e7eb;border-color:#475569;}
@@ -2424,7 +2429,37 @@ function pendControlsHTML(){
     '<button type="button" class="evol-quick" data-pn-level="4">Expandir tudo</button><button type="button" class="evol-quick" data-pn-level="1">Recolher tudo</button>'+
     '<span class="pend-hint">1 = FADS/FIA/RATEIO · 2 = grupos · 3 = status · 4 = meses de cada status</span></div>';
 }
-function pendRefresh(){ const w = document.getElementById('pend-wrap'); if (w) w.innerHTML = pendTableHTML(); }
+function pendRefresh(){ const w = document.getElementById('pend-wrap'); if (w) w.innerHTML = pendTableHTML(); pendOsRefresh(); }
+function pendOsRefresh(){ const o = document.getElementById('pend-os-wrap'); if (o) o.innerHTML = pendOsPanelHTML(); }
+// Painel "OS" (destacado em amarelo): tudo que as FADS tem referenciado a OS digitada -> Status > Fiscal (mes, RDC, HH, R$)
+function pendOsPanelHTML(){
+  if (!PEND_OS) return '';
+  return pendWithMonths(()=>{
+    const B = pendBuild(), sec0 = B.secs.find(s=>s.idx===0);
+    const items = sec0 ? sec0.groups.reduce((a,g)=>a.concat(g.items.map(it=>({sec:0,label:it.label,resp:it.resp}))),[]) : [];
+    const rows = pendDetailRowsFor({ title:'', items, mes:null });
+    const head = '<div class="pend-ospanel"><div class="pop-h">OS <b>'+esc(PEND_OS)+'</b> — o que as FADS têm referenciado a essa OS · '+(PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+esc(DISPLAY_MONTHS.join(', '))+'</div>';
+    if (!rows.length) return head+'<div class="pop-empty">Nenhuma pendência de FADS encontrada para essa OS nos projetos e meses marcados.</div></div>';
+    const order = []; const byS = new Map();
+    rows.forEach(r=>{ let s = byS.get(r.status); if (!s){ s = { st:r.status, rs:0, hh:0, f:new Map() }; byS.set(r.status,s); order.push(s); }
+      s.rs += r.rs; s.hh += r.hh;
+      let f = s.f.get(r.fiscal); if (!f){ f = { fiscal:r.fiscal, rs:0, hh:0, rdc:new Set(), mes:new Set(), os:new Set() }; s.f.set(r.fiscal,f); }
+      f.rs += r.rs; f.hh += r.hh; if (r.rdc) f.rdc.add(r.rdc); f.mes.add(r.mesano); f.os.add(r.os); });
+    const rdcTxt = set => { const a = Array.from(set).sort((x,y)=>String(x).localeCompare(String(y),'pt-BR',{numeric:true})); return !a.length ? '—' : a.length<=8 ? a.join(', ') : a.slice(0,8).join(', ')+' (+'+(a.length-8)+' mais)'; };
+    let tRS = 0, tHH = 0;
+    let h = head+'<table class="pe-tbl"><thead><tr><th>Status / Fiscal</th><th>OS</th><th>Meses</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th></tr></thead><tbody>';
+    order.forEach(s=>{
+      tRS += s.rs; tHH += s.hh;
+      h += '<tr class="pop-st"><td colspan="5">'+esc(s.st)+'</td><td class="num">'+fmtInt(s.hh)+'</td><td class="num">R$ '+fmtBRL(s.rs)+'</td></tr>';
+      Array.from(s.f.values()).sort((a,b)=>b.rs-a.rs).forEach(f=>{
+        const ms = Array.from(f.mes).sort((a,b)=>mesKey(a)-mesKey(b)).join(', ');
+        h += '<tr class="pe-os"><td class="pe-osn">'+esc(f.fiscal)+'</td><td>'+esc(Array.from(f.os).join(', '))+'</td><td>'+esc(ms)+'</td><td class="num">'+(f.rdc.size||'—')+'</td><td>'+esc(rdcTxt(f.rdc))+'</td><td class="num">'+fmtInt(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td></tr>';
+      });
+    });
+    h += '<tr class="fa-total"><td colspan="5">Total da OS</td><td class="num">'+fmtInt(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td></tr></tbody></table></div>';
+    return h;
+  });
+}
 document.getElementById('content').addEventListener('click', e=>{
   const tg = e.target.closest('[data-pn-k]');
   if (tg){ const k = tg.dataset.pnK; if (PEND_COLLAPSED.has(k)) PEND_COLLAPSED.delete(k); else PEND_COLLAPSED.add(k); pendRefresh(); return; }
@@ -2501,8 +2536,13 @@ document.getElementById('content').addEventListener('click', e=>{
   if (e.target.closest('#pend-os-clr')){ PEND_OS = ''; pendRefreshAll(); }
 });
 document.getElementById('content').addEventListener('input', e=>{
-  if (e.target && e.target.id==='pend-os-in') PEND_OS = e.target.value.trim();
+  if (e.target && e.target.id==='pend-os-in'){
+    PEND_OS = e.target.value.trim();
+    clearTimeout(pendOsTimer); pendOsTimer = setTimeout(pendOsRefresh, 250);
+    const b = document.getElementById('pend-os-clr'); if (b) b.style.display = PEND_OS ? '' : 'none';
+  }
 });
+let pendOsTimer = null;
 document.getElementById('content').addEventListener('click', e=>{
   const pj = e.target.closest('[data-pn-proj]');
   if (pj){
@@ -2574,7 +2614,7 @@ function openPendExtratoModal(id){
   document.getElementById('fa-modal-sub').textContent = projTxt+' · '+perTxt+' · Pareto dos fiscais, do maior para o menor valor pendente';
   let body = '';
   if (!rows.length){
-    body = '<div class="fiscal-empty">Esta linha não tem Fiscal vinculado na planilha (FIA, RATEIO ou itens sem detalhamento por Fiscal).</div>';
+    body = '<div class="fiscal-empty">'+(PEND_OS ? 'Nenhum registro da OS <b>'+esc(PEND_OS)+'</b> nesta linha. Limpe o filtro de OS (na barra de filtros) para ver todos os fiscais.' : 'Esta linha não tem Fiscal vinculado na planilha (FIA, RATEIO ou itens sem detalhamento por Fiscal).')+'</div>';
   } else {
     const byF = new Map();
     rows.forEach(r=>{
@@ -2612,7 +2652,7 @@ document.getElementById('content').addEventListener('click', e=>{
   openPendExtratoModal(tr.dataset.pnScope);
 });
 function renderPendHTML(forExport){
-  return '<div class="fiscal-block pend-block" style="border-top:none;margin-top:0;padding-top:0;">'+(forExport?'':'<div id="pend-filters-wrap">'+pendFiltersHTML()+'</div>'+pendControlsHTML())+'<div id="pend-wrap">'+pendTableHTML()+'</div></div>';
+  return '<div class="fiscal-block pend-block" style="border-top:none;margin-top:0;padding-top:0;">'+(forExport?'':'<div id="pend-filters-wrap">'+pendFiltersHTML()+'</div>'+pendControlsHTML())+'<div id="pend-os-wrap">'+(forExport?'':pendOsPanelHTML())+'</div><div id="pend-wrap">'+pendTableHTML()+'</div></div>';
 }
 function renderPendKpiStrip(){
   const B = pendBuild(), T = '__TOTAL__', g = B.grand(T);
