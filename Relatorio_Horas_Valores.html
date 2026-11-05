@@ -3417,7 +3417,8 @@ async function copyModalAsImage(){
   btn.style.visibility = 'hidden';
   const _oth = ['fa-modal-excel','fa-modal-xlcopy'].map(i=>document.getElementById(i)); _oth.forEach(b=>{ if (b) b.style.visibility = 'hidden'; });
   try {
-    const canvas = await html2canvas(box, { scale: 3, backgroundColor: '#ffffff' });
+    // escala 1 = tamanho real da janela (~980 px): ao colar no Excel/e-mail fica do tamanho que se ve na tela
+    const canvas = await html2canvas(box, { scale: 1, backgroundColor: '#ffffff' });
     const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
