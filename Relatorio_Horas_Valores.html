@@ -220,6 +220,15 @@ table.pe-tbl td.pe-osn{padding-left:30px;}
 table.pe-tbl .pe-rank{display:inline-block;min-width:26px;color:var(--text-muted);}
 table.pe-tbl td.pe-bar{min-width:140px;}
 table.pe-tbl td.pe-bar span{display:block;height:10px;border-radius:3px;background:linear-gradient(90deg,var(--info-blue),var(--navy));}
+.pe-ffilter{display:flex;align-items:center;gap:8px;margin:0 0 10px;}
+.pe-flbl{font-size:12px;font-weight:700;color:#1f3a5f;}
+.pe-ffilter .pn-mdrop{position:relative;}
+.pe-fpanel{position:absolute;z-index:50;top:100%;left:0;min-width:300px;max-height:340px;overflow:auto;background:#fff;color:#1f2d3d;border:1px solid #9bb0cc;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.2);padding:8px;}
+.pe-fpanel .pn-mgrid{display:block;max-height:230px;overflow:auto;margin:6px 0;}
+.pe-fitem{display:block;padding:3px 4px;font-size:12px;cursor:pointer;}
+.pe-fitem:hover{background:#e8f0fb;}
+.pe-fact{display:flex;gap:6px;}
+.pe-fact button,.pe-fclr{font-size:11px;padding:3px 8px;border:1px solid #9bb0cc;border-radius:4px;background:#f3f7fc;cursor:pointer;}
 .pe-sum{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px;}
 .pe-card{flex:1 1 110px;background:var(--navy-100);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;}
 .pe-card span{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--text-muted);}
@@ -2584,7 +2593,7 @@ function pendWithMonths(fn){
 { const _t = pendTableHTML, _k = renderPendKpiStrip, _m = openPendExtratoModal;
   pendTableHTML = function(){ return pendWithMonths(_t); };
   renderPendKpiStrip = function(){ return pendWithMonths(_k); };
-  openPendExtratoModal = function(id, pr, kind){ return pendWithMonths(()=>_m(id, pr, kind)); };
+  openPendExtratoModal = function(id, pr, kind, keep){ return pendWithMonths(()=>_m(id, pr, kind, keep)); };
 }
 let PEND_MES_OPEN = false;
 function pendMesDropHTML(){
@@ -2729,10 +2738,20 @@ function pendScopeTotal(scope){
   });
   return rs;
 }
-function openPendExtratoModal(id, pr, kind){
+let PEND_EXT_FSEL = [], PEND_EXT_FOPEN = false, PEND_EXT_LAST = null;
+function openPendExtratoModal(id, pr, kind, keep){
   const scope = PEND_SCOPES[id]; if (!scope) return;
   PEND_EXT_PR = pr || 'tot';
-  const rows = pendDetailRowsFor(scope);
+  if (!keep){ PEND_EXT_FSEL = []; PEND_EXT_FOPEN = false; }
+  PEND_EXT_LAST = [id, pr, kind];
+  const rowsAll = pendDetailRowsFor(scope);
+  const fiscAll = Array.from(new Set(rowsAll.map(r=>r.fiscal))).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
+  PEND_EXT_FSEL = PEND_EXT_FSEL.filter(f=>fiscAll.includes(f));
+  const rows = PEND_EXT_FSEL.length ? rowsAll.filter(r=>PEND_EXT_FSEL.includes(r.fiscal)) : rowsAll;
+  const fiscFilterHTML = !fiscAll.length ? '' :
+    '<div class="pe-ffilter"><span class="pe-flbl">Fiscal:</span><div class="pn-mdrop"><button type="button" class="pn-mbtn" data-pe-open>'+(PEND_EXT_FSEL.length ? PEND_EXT_FSEL.length+' selecionado'+(PEND_EXT_FSEL.length>1?'s':'') : 'Todos os fiscais ('+fiscAll.length+')')+' ▾</button>'+
+    (PEND_EXT_FOPEN ? '<div class="pn-mpanel pe-fpanel"><input type="text" class="pn-mq" data-pe-q placeholder="Buscar fiscal…"><div class="pn-mgrid">'+fiscAll.map(f=>'<label class="pe-fitem"><input type="checkbox" data-pe-f="'+esc(f)+'"'+(PEND_EXT_FSEL.includes(f)?' checked':'')+'> '+esc(f)+'</label>').join('')+'</div><div class="pe-fact"><button type="button" data-pe-all>Marcar todos</button><button type="button" data-pe-clr>Limpar</button></div></div>' : '')+
+    '</div>'+(PEND_EXT_FSEL.length ? '<button type="button" class="pe-fclr" data-pe-clr>✕ Limpar filtro</button>' : '')+'</div>';
   const projTxt = PEND_EXT_PR==='moa' ? 'MOA' : PEND_EXT_PR==='pci' ? 'PCI' : (PEND_PROJS.length===2 ? 'MOA e PCI' : PEND_PROJS[0]);
   const perTxt = scope.mes ? scope.mes : (DISPLAY_MONTHS.length<=4 ? DISPLAY_MONTHS.join(', ') : DISPLAY_MONTHS[0]+' a '+DISPLAY_MONTHS[DISPLAY_MONTHS.length-1]);
   const K = kind==='hh' ? 'hh' : 'rs';
@@ -2757,7 +2776,7 @@ function openPendExtratoModal(id, pr, kind){
     let acc = 0;
     const top3 = fis.slice(0,3).reduce((s,f)=>s+f[K],0);
     const fv = x => K==='hh' ? fmtInt(x.hh)+' HH' : 'R$ '+fmtBRL(x.rs);
-    body = '<div class="pe-sum">'+
+    body = fiscFilterHTML + '<div class="pe-sum">'+
       '<div class="pe-card pe-card-main"><span>TOTAL PENDENTE · '+esc(projTxt)+' · '+esc(scope.mes || mesOrd(allMes))+'</span><b>'+(K==='hh' ? fmtInt(tHH)+' HH' : 'R$ '+fmtBRL(tRS))+'</b></div>'+
       '<div class="pe-card"><span>'+(K==='hh'?'R$':'HH')+'</span><b>'+(K==='hh' ? 'R$ '+fmtBRL(tRS) : fmtInt(tHH))+'</b></div>'+
       '<div class="pe-card"><span>FISCAIS</span><b>'+fis.length+'</b></div>'+
@@ -2776,13 +2795,32 @@ function openPendExtratoModal(id, pr, kind){
     body += '<tr class="fa-total"><td></td><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td>'+esc(scope.mes || mesOrd(allMes))+'</td><td class="num">'+tRDC+'</td><td></td><td class="num">'+fmtInt(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td></tr></tbody></table>';
     const falta = pendScopeTotal(scope) - tRS;
     const nota = [];
-    if (Math.abs(falta) > 1) nota.push('R$ '+fmtBRL(Math.abs(falta))+(falta>0?' do resumo ':' a mais no detalhe ')+'sem detalhamento por Fiscal na planilha (FIA, RATEIO ou itens sem fiscal).');
+    if (!PEND_EXT_FSEL.length && Math.abs(falta) > 1) nota.push('R$ '+fmtBRL(Math.abs(falta))+(falta>0?' do resumo ':' a mais no detalhe ')+'sem detalhamento por Fiscal na planilha (FIA, RATEIO ou itens sem fiscal).');
     nota.push('Linhas em destaque = fiscais que concentram até 80% do valor (Pareto).');
     body += '<div class="pe-note">'+nota.map(esc).join(' ')+'</div>';
   }
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
+(function(){
+  const body = document.getElementById('fa-modal-body');
+  const redo = () => { if (PEND_EXT_LAST) openPendExtratoModal(PEND_EXT_LAST[0], PEND_EXT_LAST[1], PEND_EXT_LAST[2], true); };
+  body.addEventListener('click', e=>{
+    if (e.target.closest('[data-pe-open]')){ PEND_EXT_FOPEN = !PEND_EXT_FOPEN; redo(); return; }
+    if (e.target.closest('[data-pe-clr]')){ PEND_EXT_FSEL = []; redo(); return; }
+    if (e.target.closest('[data-pe-all]')){ PEND_EXT_FSEL = Array.from(body.querySelectorAll('input[data-pe-f]')).filter(i=>i.parentElement.style.display!=='none').map(i=>i.dataset.peF); redo(); return; }
+    if (PEND_EXT_FOPEN && !e.target.closest('.pe-fpanel') && document.contains(e.target)){ PEND_EXT_FOPEN = false; redo(); }
+  });
+  body.addEventListener('change', e=>{
+    const i = e.target.closest('input[data-pe-f]'); if (!i) return;
+    const v = i.dataset.peF; PEND_EXT_FSEL = i.checked ? PEND_EXT_FSEL.concat(v) : PEND_EXT_FSEL.filter(x=>x!==v); redo();
+  });
+  body.addEventListener('input', e=>{
+    const q = e.target.closest('input[data-pe-q]'); if (!q) return;
+    const t = q.value.toLowerCase();
+    body.querySelectorAll('label.pe-fitem').forEach(l=>{ l.style.display = l.textContent.toLowerCase().includes(t) ? '' : 'none'; });
+  });
+})();
 document.getElementById('content').addEventListener('click', e=>{
   const td = e.target.closest('#pend-tbl td.pn-num'); if (!td) return;
   const tr = td.closest('tr[data-pn-scope]'); if (!tr) return;
