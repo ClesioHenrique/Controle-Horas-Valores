@@ -178,6 +178,7 @@ table.pend-tbl.pend-no-moa col:nth-child(3), table.pend-tbl.pend-no-pci col:nth-
 .pn-tg{cursor:pointer;display:inline-block;width:14px;color:var(--navy);font-weight:800;user-select:none;}
 table.pend-tbl tr.pn-mes-it td{background:var(--surface);}
 table.pend-tbl tr.pn-mes-grp td{background:#f6faf0;}
+table.pend-tbl .pn-note{font-size:10.5px;font-weight:400;color:var(--text-muted);font-style:italic;}
 table.pend-tbl tr.pn-mes-grp td.pn-desc{padding-left:34px;font-style:italic;}
 table.pend-tbl tr.pn-mes-it td.pn-desc{padding-left:64px;}
 html.dark-theme body:not(.printing) table.pend-tbl tr.pn-grand td{background:#33404f;}
@@ -2305,6 +2306,7 @@ function pendTableHTML(){
     rows.push({cls:'pn-sec', item:s.sec, desc:esc(s.title), v:sv, obs:'', pctTxt:pct(sv.tot), k:sk, lvl:1, anc:[]});
     // meses da secao (FAD / FIA / RATEIO): so quando a secao tem mais de um grupo com valor (senao repetiriam os meses do unico grupo)
     const gruposComValor = s.groups.filter(g=>Math.round(B.val(g,T).tot)!==0).length;
+    const eqV = (p,q) => Math.round(p.tot*100)===Math.round(q.tot*100) && Math.round(p.moa*100)===Math.round(q.moa*100) && Math.round(p.pci*100)===Math.round(q.pci*100);   // mesmo valor = nao repete na linha de baixo
     if (gruposComValor > 1) months.forEach(m=>{ const v = B.secTot(s,m); if (Math.round(v.tot)===0) return; add('pn-mes','', m.toLowerCase()+' · total '+esc(s.title.split(' ')[0]), v, '', sv.tot ? fmtPct(v.tot/sv.tot) : '—', sk+'m'+m, 2, [sk]); });
     s.groups.forEach((g,gi)=>{
       const gk = sk+'g'+gi, gv = B.val(g,T); lvlOf[gk] = 2;
@@ -2312,6 +2314,7 @@ function pendTableHTML(){
       // meses do grupo logo abaixo do titulo do grupo (total do grupo), antes dos status
       months.forEach(m=>{
         const v = B.val(g,m); if (Math.round(v.tot)===0) return;
+        if (gruposComValor > 1 && eqV(v, B.secTot(s,m))) return;   // so este grupo tem valor nesse mes: ja aparece no total da modalidade
         add('pn-mes pn-mes-grp','', m.toLowerCase()+' · total do grupo', v, '', gv.tot ? fmtPct(v.tot/gv.tot) : '—', gk+'m'+m, 3, [sk,gk]);
       });
       const itensComValor = g.items.filter(it=>Math.round(B.im(it,T)+B.ip(it,T))!==0).length;
@@ -2319,12 +2322,14 @@ function pendTableHTML(){
         const a = B.im(it,T), b = B.ip(it,T);
         if (Math.round(a+b)===0) return;
         const ik = gk+'i'+ii, iv = {moa:a,pci:b,tot:a+b}; lvlOf[ik] = 3;
-        rows.push({cls:'pn-it', item:'', desc:esc(it.label), v:iv, obs:it.resp, pctTxt:gv.tot ? fmtPct(iv.tot/gv.tot) : '—', k:ik, lvl:3, anc:[sk,gk]});
+        const itemRow = {cls:'pn-it', item:'', desc:esc(it.label), v:iv, obs:it.resp, pctTxt:gv.tot ? fmtPct(iv.tot/gv.tot) : '—', k:ik, lvl:3, anc:[sk,gk]}; rows.push(itemRow); let suprimiu = false;
         // meses do status (so os que tem pendencia; se o grupo tem um unico status eles seriam iguais aos do grupo)
         if (itensComValor > 1) months.forEach(m=>{
           const x = B.im(it,m), y = B.ip(it,m); if (Math.round(x+y)===0) return;
+          if (eqV({moa:x,pci:y,tot:x+y}, B.val(g,m))) { suprimiu = true; return; }   // igual ao total do grupo nesse mes: nao repete
           add('pn-mes pn-mes-it','', m.toLowerCase(), {moa:x,pci:y,tot:x+y}, '', iv.tot ? fmtPct((x+y)/iv.tot) : '—', ik+'m'+m, 4, [sk,gk,ik]);
         });
+        if (suprimiu) itemRow.desc += ' <span class="pn-note">(demais meses = total do grupo)</span>';
       });
     });
   });
