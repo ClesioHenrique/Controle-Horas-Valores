@@ -169,6 +169,8 @@ table.pend-tbl tr.pn-it td.pn-desc{padding-left:26px;}
 table.pend-tbl tr.pn-mes td{font-size:11px;color:var(--text-muted);background:var(--surface);border-top-color:transparent;border-bottom-color:transparent;padding-top:1px;padding-bottom:1px;}
 table.pend-tbl tr.pn-mes td.pn-desc{padding-left:46px;}
 table.pend-tbl td.pn-tot{font-weight:800;}
+table.pend-tbl td.pn-na{color:var(--text-muted);text-align:center;font-style:italic;}
+table.pend-tbl th[rowspan]{vertical-align:middle;}
 .pend-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 10px;}
 .pend-hint{font-size:11px;color:var(--text-muted);margin-left:8px;}
 table.pend-tbl tr.pn-hidden{display:none;}
@@ -2249,17 +2251,17 @@ setTimeout(()=>autosizeFreeNote(), 0);
    "o que esta pendente e com quem": valores em R$ por MOA | PCI | TOTAL, com os meses embaixo de cada grupo. */
 function pendCols(){ return DISPLAY_MONTHS.slice(); }
 function pendResp(label){ return /^RDC não está aprovada$/i.test(String(label).trim()) ? 'Usiminas' : 'Techint'; }
-// grupos de pendencia: cada grupo tem uma funcao get(d, col) -> R$ e, opcionalmente, itens (linhas filhas)
+// grupos de pendencia: cada grupo/item tem get(d,col) -> R$ e, so no FADS, hget(d,col) -> HH (FIA e RATEIO nao tem horas: n/a)
 function pendGroups(dM, dP){
   const d0 = dM;  // so para ler os rotulos (iguais em MOA e PCI)
-  const s1Lbl = d0.s1items.map((l,i)=>({ label:l, get:(d,c)=>d.s1values[c].perItem[i].rs, resp:pendResp(l) }));
-  const s2Lbl = SGE_SEC2.map((s,i)=>({ label:s.label, get:(d,c)=>d.s2values[c].perItem[i].rs, resp:s.obs }));
-  const fadS1 = { key:'fad1', title:'Planilha de Pendências (apresentou pendência)', obs:'TCT enviar suplementação/ajustar · USM realizar/aprovar (RDC)', get:(d,c)=>d.s1values[c].total.rs, items:s1Lbl };
-  const fadS2 = { key:'fad2', title:'Sistema SGE — carregamento (revisão, elaboração e aprovação)', obs:'TCT concluir elaboração · USM aprovar', get:(d,c)=>d.s2values[c].total.rs, items:s2Lbl };
-  const fadS3 = { key:'fad3', title:'Aprovado / medição / pronto para emitir FR', obs:'USM aprovar medição e liberar FR', get:(d,c)=>d.s3values[c].rs, items:[
-    { label:'Aprovado - SGE', get:(d,c)=>d.s3sub1values[c].rs, resp:'Usiminas' },
-    { label:'Medição em Andamento - SGE', get:(d,c)=>d.s3sub2values[c].rs, resp:'Usiminas' },
-    { label:'Medido - Para emitir FR - SAP', get:(d,c)=>d.s3sub3values[c].rs, resp:'Usiminas' } ] };
+  const s1Lbl = d0.s1items.map((l,i)=>({ label:l, get:(d,c)=>d.s1values[c].perItem[i].rs, hget:(d,c)=>d.s1values[c].perItem[i].hh, resp:pendResp(l) }));
+  const s2Lbl = SGE_SEC2.map((s,i)=>({ label:s.label, get:(d,c)=>d.s2values[c].perItem[i].rs, hget:(d,c)=>d.s2values[c].perItem[i].hh, resp:s.obs }));
+  const fadS1 = { key:'fad1', title:'Planilha de Pendências (apresentou pendência)', obs:'TCT enviar suplementação/ajustar · USM realizar/aprovar (RDC)', get:(d,c)=>d.s1values[c].total.rs, hget:(d,c)=>d.s1values[c].total.hh, items:s1Lbl };
+  const fadS2 = { key:'fad2', title:'Sistema SGE — carregamento (revisão, elaboração e aprovação)', obs:'TCT concluir elaboração · USM aprovar', get:(d,c)=>d.s2values[c].total.rs, hget:(d,c)=>d.s2values[c].total.hh, items:s2Lbl };
+  const fadS3 = { key:'fad3', title:'Aprovado / medição / pronto para emitir FR', obs:'USM aprovar medição e liberar FR', get:(d,c)=>d.s3values[c].rs, hget:(d,c)=>d.s3values[c].hh, items:[
+    { label:'Aprovado - SGE', get:(d,c)=>d.s3sub1values[c].rs, hget:(d,c)=>d.s3sub1values[c].hh, resp:'Usiminas' },
+    { label:'Medição em Andamento - SGE', get:(d,c)=>d.s3sub2values[c].rs, hget:(d,c)=>d.s3sub2values[c].hh, resp:'Usiminas' },
+    { label:'Medido - Para emitir FR - SAP', get:(d,c)=>d.s3sub3values[c].rs, hget:(d,c)=>d.s3sub3values[c].hh, resp:'Usiminas' } ] };
   const mk = (arr, sub5, labels) => labels.map((it,i)=>({ label:it.label, get:(d,c)=>arr(d)[i][c].rs, resp:it.obs })).concat([{ label:'Medido - Para emitir FR - SAP', get:(d,c)=>sub5(d)[c].rs, resp:'Usiminas' }]);
   const fia = { key:'fia', title:'FIA — equipamentos auxiliares', obs:'TCT criar a OS/FIA · USM aprovar', get:(d,c)=>d.fiaTotal[c].rs, items: mk(d=>d.fiaSubvalues, d=>d.fiaSub5values, FIA_ITEMS) };
   const rat = { key:'rat', title:'RATEIO — HH de mão de obra indireta', obs:'TCT criar o RATEIO · USM aprovar', get:(d,c)=>d.rateioTotal[c].rs, items: mk(d=>d.rateioSubvalues, d=>d.rateioSub5values, RATEIO_ITEMS) };
@@ -2269,89 +2271,115 @@ function pendGroups(dM, dP){
     { idx:2, sec:'3', title:'RATEIO', groups:[rat] }
   ];
 }
+// valor de uma linha: R$ por projeto + HH por projeto (hh = null => n/a, sem horas vinculadas)
 function pendBuild(){
   const dM = buildTable('MOA'), dP = buildTable('PCI');
   const secs = pendGroups(dM, dP).filter(s=>PEND_MODS.includes(s.idx));
   const useM = PEND_PROJS.includes('MOA'), useP = PEND_PROJS.includes('PCI');
   const im = (it,c) => useM ? (it.get(dM,c)||0) : 0, ip = (it,c) => useP ? (it.get(dP,c)||0) : 0;
-  const val = (g, c) => { const a = useM ? (g.get(dM,c)||0) : 0, b = useP ? (g.get(dP,c)||0) : 0; return { moa:a, pci:b, tot:a+b }; };
-  const secTot = (s, c) => s.groups.reduce((x,g)=>{ const v = val(g,c); return { moa:x.moa+v.moa, pci:x.pci+v.pci, tot:x.tot+v.tot }; }, {moa:0,pci:0,tot:0});
-  const grand = c => secs.reduce((x,s)=>{ const v = secTot(s,c); return { moa:x.moa+v.moa, pci:x.pci+v.pci, tot:x.tot+v.tot }; }, {moa:0,pci:0,tot:0});
+  const hm = (it,c) => (useM && it.hget) ? (it.hget(dM,c)||0) : 0, hp = (it,c) => (useP && it.hget) ? (it.hget(dP,c)||0) : 0;
+  const mkv = (it,c) => ({ moa:im(it,c), pci:ip(it,c), tot:im(it,c)+ip(it,c), hMoa:hm(it,c), hPci:hp(it,c), hTot:hm(it,c)+hp(it,c), hna:!it.hget });
+  const add = (x,v) => ({ moa:x.moa+v.moa, pci:x.pci+v.pci, tot:x.tot+v.tot, hMoa:x.hMoa+v.hMoa, hPci:x.hPci+v.hPci, hTot:x.hTot+v.hTot, hna:x.hna && v.hna });
+  const zero = () => ({moa:0,pci:0,tot:0,hMoa:0,hPci:0,hTot:0,hna:true});
+  const val = (g, c) => mkv(g, c);
+  const secTot = (s, c) => s.groups.reduce((x,g)=>add(x, mkv(g,c)), zero());
+  const grand = c => secs.reduce((x,s)=>add(x, secTot(s,c)), zero());
   // por responsavel (usa a "resp" de cada item)
-  const byResp = { Techint:{moa:0,pci:0,tot:0}, Usiminas:{moa:0,pci:0,tot:0} };
+  const byResp = { Techint:zero(), Usiminas:zero() };
   secs.forEach(s=>s.groups.forEach(g=>g.items.forEach(it=>{
-    const v = { moa:im(it,'__TOTAL__'), pci:ip(it,'__TOTAL__') };
-    const r = byResp[it.resp] || (byResp[it.resp]={moa:0,pci:0,tot:0});
-    r.moa += v.moa; r.pci += v.pci; r.tot += v.moa+v.pci;
+    const r = byResp[it.resp] || (byResp[it.resp]=zero());
+    byResp[it.resp] = add(r, mkv(it,'__TOTAL__'));
   })));
-  return { dM, dP, secs, val, secTot, grand, byResp, im, ip };
+  return { dM, dP, secs, val, secTot, grand, byResp, im, ip, mkv };
 }
 // niveis (como o agrupamento do Excel): 1 = secao | 2 = grupo | 3 = item | 4 = meses do item. Estado de "recolhido" por linha.
 const PEND_COLLAPSED = new Set();
 const PEND_PROJS = ['MOA','PCI'];    // filtro: projetos exibidos
 const PEND_MODS = [0,1,2];           // filtro: modalidades exibidas (0 FADS, 1 FIA, 2 RATEIO)
+const PEND_SHOW = { hh:true, rs:true };   // filtro: colunas exibidas (HH e/ou R$)
 let PEND_PARENTS = [];   // [{k, lvl}] de todas as linhas que tem filhas (usado pelos botoes de nivel)
+function pendVis(){
+  const m = PEND_PROJS.includes('MOA'), p = PEND_PROJS.includes('PCI'), hh = PEND_SHOW.hh, rs = PEND_SHOW.rs;
+  const cols = []; // [{proj:'moa'|'pci'|'tot', kind:'hh'|'rs'}]
+  [['moa',m],['pci',p],['tot',true]].forEach(([pr,on])=>{ if (!on) return; if (hh) cols.push({pr,kind:'hh'}); if (rs) cols.push({pr,kind:'rs'}); });
+  return { cols, n: 2 + cols.length + 2 };
+}
 function pendTableHTML(){
-  const B = pendBuild(), months = pendCols(), T = '__TOTAL__';
+  const B = pendBuild(), months = pendCols(), T = '__TOTAL__', V = pendVis();
   const g0 = B.grand(T), gt = g0.tot || 0;
   const pct = v => gt ? fmtPct(v/gt) : '—';
   const money = v => Math.round(v)===0 ? '—' : 'R$ '+fmtBRL(v);
+  const hhTxt = (v, k) => v.hna ? 'n/a' : (Math.round(v[k])===0 ? '—' : fmtInt(v[k]));
+  const cell = (v, c) => {
+    if (c.kind==='hh') return '<td class="pn-num pn-hh'+(c.pr==='tot'?' pn-tot':'')+(v.hna?' pn-na':'')+'">'+hhTxt(v, c.pr==='moa'?'hMoa':c.pr==='pci'?'hPci':'hTot')+'</td>';
+    return '<td class="pn-num'+(c.pr==='tot'?' pn-tot':'')+'">'+money(v[c.pr])+'</td>';
+  };
   const parents = new Map();   // k -> lvl (so as que realmente tem filhas)
   const rows = [];             // {cls, item, desc, v, obs, pctTxt, k, lvl, anc}
   const add = (cls, item, desc, v, obs, pctTxt, k, lvl, anc) => { rows.push({cls,item,desc,v,obs,pctTxt,k,lvl,anc:anc||[]}); (anc||[]).forEach(a=>{ if (!parents.has(a)) parents.set(a, null); }); };
   const lvlOf = {};            // k -> nivel, para marcar parents
+  const eqV = (p,q) => Math.round(p.tot*100)===Math.round(q.tot*100) && Math.round(p.moa*100)===Math.round(q.moa*100) && Math.round(p.pci*100)===Math.round(q.pci*100) && Math.round(p.hTot*100)===Math.round(q.hTot*100);   // mesmo valor = nao repete na linha de baixo
   B.secs.forEach((s,si)=>{
     const sk = 's'+s.idx, sv = B.secTot(s,T);
     lvlOf[sk] = 1;
     rows.push({cls:'pn-sec', item:s.sec, desc:esc(s.title), v:sv, obs:'', pctTxt:pct(sv.tot), k:sk, lvl:1, anc:[]});
     // meses da secao (FAD / FIA / RATEIO): so quando a secao tem mais de um grupo com valor (senao repetiriam os meses do unico grupo)
-    const gruposComValor = s.groups.filter(g=>Math.round(B.val(g,T).tot)!==0).length;
-    const eqV = (p,q) => Math.round(p.tot*100)===Math.round(q.tot*100) && Math.round(p.moa*100)===Math.round(q.moa*100) && Math.round(p.pci*100)===Math.round(q.pci*100);   // mesmo valor = nao repete na linha de baixo
-    if (gruposComValor > 1) months.forEach(m=>{ const v = B.secTot(s,m); if (Math.round(v.tot)===0) return; add('pn-mes','', m.toLowerCase()+' · total '+esc(s.title.split(' ')[0]), v, '', sv.tot ? fmtPct(v.tot/sv.tot) : '—', sk+'m'+m, 2, [sk]); });
+    const gruposComValor = s.groups.filter(g=>Math.round(B.val(g,T).tot)!==0 || Math.round(B.val(g,T).hTot)!==0).length;
+    if (gruposComValor > 1) months.forEach(m=>{ const v = B.secTot(s,m); if (Math.round(v.tot)===0 && Math.round(v.hTot)===0) return; add('pn-mes','', m.toLowerCase()+' · total '+esc(s.title.split(' ')[0]), v, '', sv.tot ? fmtPct(v.tot/sv.tot) : '—', sk+'m'+m, 2, [sk]); });
     s.groups.forEach((g,gi)=>{
       const gk = sk+'g'+gi, gv = B.val(g,T); lvlOf[gk] = 2;
       rows.push({cls:'pn-grp', item:s.sec+'.'+(gi+1), desc:esc(g.title), v:gv, obs:esc(g.obs), pctTxt:sv.tot ? fmtPct(gv.tot/sv.tot) : '—', k:gk, lvl:2, anc:[sk]});
       // meses do grupo logo abaixo do titulo do grupo (total do grupo), antes dos status
       months.forEach(m=>{
-        const v = B.val(g,m); if (Math.round(v.tot)===0) return;
+        const v = B.val(g,m); if (Math.round(v.tot)===0 && Math.round(v.hTot)===0) return;
         if (gruposComValor > 1 && eqV(v, B.secTot(s,m))) return;   // so este grupo tem valor nesse mes: ja aparece no total da modalidade
         add('pn-mes pn-mes-grp','', m.toLowerCase()+' · total do grupo', v, '', gv.tot ? fmtPct(v.tot/gv.tot) : '—', gk+'m'+m, 3, [sk,gk]);
       });
-      const itensComValor = g.items.filter(it=>Math.round(B.im(it,T)+B.ip(it,T))!==0).length;
+      const itensComValor = g.items.filter(it=>{ const x = B.mkv(it,T); return Math.round(x.tot)!==0 || Math.round(x.hTot)!==0; }).length;
       g.items.forEach((it,ii)=>{
-        const a = B.im(it,T), b = B.ip(it,T);
-        if (Math.round(a+b)===0) return;
-        const ik = gk+'i'+ii, iv = {moa:a,pci:b,tot:a+b}; lvlOf[ik] = 3;
+        const iv = B.mkv(it,T);
+        if (Math.round(iv.tot)===0 && Math.round(iv.hTot)===0) return;
+        const ik = gk+'i'+ii; lvlOf[ik] = 3;
         const itemRow = {cls:'pn-it', item:'', desc:esc(it.label), v:iv, obs:it.resp, pctTxt:gv.tot ? fmtPct(iv.tot/gv.tot) : '—', k:ik, lvl:3, anc:[sk,gk]}; rows.push(itemRow); let suprimiu = false;
         // meses do status (so os que tem pendencia; se o grupo tem um unico status eles seriam iguais aos do grupo)
         if (itensComValor > 1) months.forEach(m=>{
-          const x = B.im(it,m), y = B.ip(it,m); if (Math.round(x+y)===0) return;
-          if (eqV({moa:x,pci:y,tot:x+y}, B.val(g,m))) { suprimiu = true; return; }   // igual ao total do grupo nesse mes: nao repete
-          add('pn-mes pn-mes-it','', m.toLowerCase(), {moa:x,pci:y,tot:x+y}, '', iv.tot ? fmtPct((x+y)/iv.tot) : '—', ik+'m'+m, 4, [sk,gk,ik]);
+          const x = B.mkv(it,m); if (Math.round(x.tot)===0 && Math.round(x.hTot)===0) return;
+          if (eqV(x, B.val(g,m))) { suprimiu = true; return; }   // igual ao total do grupo nesse mes: nao repete
+          add('pn-mes pn-mes-it','', m.toLowerCase(), x, '', iv.tot ? fmtPct(x.tot/iv.tot) : '—', ik+'m'+m, 4, [sk,gk,ik]);
         });
         if (suprimiu) itemRow.desc += ' <span class="pn-note">(demais meses = total do grupo)</span>';
       });
     });
   });
   PEND_PARENTS = Array.from(parents.keys()).filter(k=>lvlOf[k]).map(k=>({k, lvl:lvlOf[k]}));
+  const tail = (r) => '<td class="pn-pct">'+r.pctTxt+'</td><td class="pn-obs">'+(r.obs||'')+'</td>';
   const tr = r => {
     const hidden = r.anc.some(a=>PEND_COLLAPSED.has(a));
     const hasKids = parents.has(r.k);
     const tg = hasKids ? '<span class="pn-tg" data-pn-k="'+esc(r.k)+'" title="Recolher / expandir">'+(PEND_COLLAPSED.has(r.k)?'▸':'▾')+'</span> ' : '';
-    return '<tr class="'+r.cls+(hidden?' pn-hidden':'')+'"><td class="pn-item">'+r.item+'</td><td class="pn-desc">'+tg+r.desc+'</td><td class="pn-num">'+money(r.v.moa)+'</td><td class="pn-num">'+money(r.v.pci)+'</td><td class="pn-num pn-tot">'+money(r.v.tot)+'</td><td class="pn-pct">'+r.pctTxt+'</td><td class="pn-obs">'+(r.obs||'')+'</td></tr>';
+    return '<tr class="'+r.cls+(hidden?' pn-hidden':'')+'"><td class="pn-item">'+r.item+'</td><td class="pn-desc">'+tg+r.desc+'</td>'+V.cols.map(c=>cell(r.v,c)).join('')+tail(r)+'</tr>';
   };
-  const topRow = (cls, desc, v, obs, pctTxt) => '<tr class="'+cls+'"><td class="pn-item"></td><td class="pn-desc">'+desc+'</td><td class="pn-num">'+money(v.moa)+'</td><td class="pn-num">'+money(v.pci)+'</td><td class="pn-num pn-tot">'+money(v.tot)+'</td><td class="pn-pct">'+pctTxt+'</td><td class="pn-obs">'+(obs||'')+'</td></tr>';
-  let h = '<div class="table-wrap"><table class="pend-tbl'+(PEND_PROJS.includes('MOA')?'':' pend-no-moa')+(PEND_PROJS.includes('PCI')?'':' pend-no-pci')+'" id="pend-tbl">';
-  h += '<colgroup><col style="width:46px"><col style="width:360px"><col style="width:120px"><col style="width:120px"><col style="width:130px"><col style="width:70px"><col style="width:360px"></colgroup>';
-  h += '<thead><tr><th colspan="7" class="pn-title">Resumo de Valores Pendentes — Medição (Techint)</th></tr>'+
-       '<tr><th>Item</th><th>Descrição</th><th>MOA</th><th>PCI</th><th>TOTAL</th><th>(%)</th><th>Observações</th></tr></thead><tbody>';
+  const topRow = (cls, desc, v, obs, pctTxt) => '<tr class="'+cls+'"><td class="pn-item"></td><td class="pn-desc">'+desc+'</td>'+V.cols.map(c=>cell(v,c)).join('')+tail({pctTxt, obs})+'</tr>';
+  // cabecalho em dois niveis: MOA / PCI / TOTAL com HH e R$ embaixo
+  const nm = {moa:'MOA', pci:'PCI', tot:'TOTAL'};
+  const groupsHdr = ['moa','pci','tot'].filter(pr=>V.cols.some(c=>c.pr===pr));
+  const subHdr = V.cols.length && V.cols.some(c=>c.kind==='hh') && V.cols.some(c=>c.kind==='rs');
+  let h = '<div class="table-wrap"><table class="pend-tbl" id="pend-tbl"><colgroup><col style="width:46px"><col style="width:360px">'+
+    V.cols.map(c=>'<col style="width:'+(c.kind==='hh'?84:c.pr==='tot'?130:118)+'px">').join('')+'<col style="width:70px"><col style="width:360px"></colgroup>';
+  h += '<thead><tr><th colspan="'+V.n+'" class="pn-title">Resumo de Valores Pendentes — Medição (Techint)</th></tr>';
+  if (subHdr){
+    h += '<tr><th rowspan="2">Item</th><th rowspan="2">Descrição</th>'+groupsHdr.map(pr=>'<th colspan="2">'+nm[pr]+'</th>').join('')+'<th rowspan="2">(%)</th><th rowspan="2">Observações</th></tr>'+
+         '<tr>'+groupsHdr.map(()=>'<th>HH</th><th>R$</th>').join('')+'</tr></thead><tbody>';
+  } else {
+    h += '<tr><th>Item</th><th>Descrição</th>'+V.cols.map(c=>'<th>'+nm[c.pr]+(V.cols.some(x=>x.kind!==c.kind)?'':'')+' '+(c.kind==='hh'?'(HH)':'(R$)')+'</th>').join('')+'<th>(%)</th><th>Observações</th></tr></thead><tbody>';
+  }
   h += topRow('pn-grand','Total Geral pendente', g0, 'Meses: '+months.join(', '), '100,0%');
   h += topRow('pn-sub1','Pendente com a Techint (TCT)', B.byResp.Techint, 'Enviar suplementação / ajustar / concluir elaboração', pct(B.byResp.Techint.tot));
   h += topRow('pn-sub2','Pendente com a Usiminas (USM)', B.byResp.Usiminas, 'Aprovar / realizar RDC / liberar FR', pct(B.byResp.Usiminas.tot));
-  h += '<tr class="pn-band"><td colspan="7">FAD / FIA &amp; RATEIO</td></tr>';
+  h += '<tr class="pn-band"><td colspan="'+V.n+'">FAD / FIA &amp; RATEIO</td></tr>';
   const names = ['FADS — horas','FIA — equipamentos auxiliares','RATEIO'];
   B.secs.forEach((s,i)=>{ const v = B.secTot(s,T); h += topRow('pn-res', names[s.idx], v, s.groups.map(g=>g.obs).filter((x,k,a)=>a.indexOf(x)===k).join(' | '), pct(v.tot)); });
-  h += '<tr class="pn-band"><td colspan="7">Detalhamento por nível (use ▾ ▸ ou os botões de nível acima)</td></tr>';
+  h += '<tr class="pn-band"><td colspan="'+V.n+'">Detalhamento por nível (use ▾ ▸ ou os botões de nível acima)</td></tr>';
   h += rows.map(tr).join('');
   h += '</tbody></table></div>';
   return h;
@@ -2380,7 +2408,9 @@ function pendFiltersHTML(){
     ['MOA','PCI'].map(p=>'<button type="button" class="evol-chip'+(PEND_PROJS.includes(p)?' on':'')+'" data-pn-proj="'+p+'">'+p+'</button>').join('')+
     '<span class="evol-flbl" style="margin-left:14px">Modalidade</span>'+
     mods.map((m,i)=>'<button type="button" class="evol-chip'+(PEND_MODS.includes(i)?' on':'')+'" data-pn-mod="'+i+'">'+m+'</button>').join('')+
-    '<span class="pend-hint">os totais acima (Total Geral, TCT e USM) somam só o que estiver marcado</span></div>';
+    '<span class="evol-flbl" style="margin-left:14px">Colunas</span>'+
+    ['hh','rs'].map(k=>'<button type="button" class="evol-chip'+(PEND_SHOW[k]?' on':'')+'" data-pn-col="'+k+'">'+(k==='hh'?'HH':'R$')+'</button>').join('')+
+    '<span class="pend-hint">os totais somam só o que estiver marcado · HH só existe no FADS (FIA e RATEIO ficam n/a)</span></div>';
 }
 document.getElementById('content').addEventListener('click', e=>{
   const pj = e.target.closest('[data-pn-proj]');
@@ -2395,6 +2425,14 @@ document.getElementById('content').addEventListener('click', e=>{
     if (i===-1) PEND_MODS.push(m); else if (PEND_MODS.length>1) PEND_MODS.splice(i,1);
     pendRefreshAll();
   }
+});
+document.getElementById('content').addEventListener('click', e=>{
+  const cb = e.target.closest('[data-pn-col]');
+  if (!cb) return;
+  const k = cb.dataset.pnCol, other = k==='hh' ? 'rs' : 'hh';
+  if (PEND_SHOW[k] && !PEND_SHOW[other]) return;   // sempre fica pelo menos uma das duas colunas
+  PEND_SHOW[k] = !PEND_SHOW[k];
+  pendRefreshAll();
 });
 function pendRefreshAll(){
   const c = document.getElementById('content'); if (!c) return;
