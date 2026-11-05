@@ -207,6 +207,21 @@ table.pe-tbl td.pe-osn{padding-left:30px;}
 table.pe-tbl .pe-rank{display:inline-block;min-width:26px;color:var(--text-muted);}
 table.pe-tbl td.pe-bar{min-width:140px;}
 table.pe-tbl td.pe-bar span{display:block;height:10px;border-radius:3px;background:linear-gradient(90deg,var(--info-blue),var(--navy));}
+.pe-sum{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px;}
+.pe-card{flex:1 1 110px;background:var(--navy-100);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;}
+.pe-card span{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--text-muted);}
+.pe-card b{font-size:20px;color:var(--navy);font-variant-numeric:tabular-nums;}
+.pe-card b.pe-card-nm{font-size:14px;line-height:1.2;}
+.pe-card small{font-size:11.5px;color:var(--text-muted);}
+.pe-card-main{flex:2 1 220px;background:var(--navy);border-color:var(--navy);}
+.pe-card-main span{color:#cfe0f3;}
+.pe-card-main b{color:#fff;font-size:28px;}
+table.pe-tbl td.pe-rk{text-align:center;width:70px;}
+table.pe-tbl th.pe-rkh{text-align:center;}
+.pe-medal{display:inline-block;min-width:34px;padding:2px 6px;border-radius:12px;font-size:12.5px;font-weight:800;background:#e3eaf2;color:var(--navy);}
+.pe-medal.pe-m1{background:#f2c200;color:#3a2e00;}
+.pe-medal.pe-m2{background:#c5ccd3;color:#26313b;}
+.pe-medal.pe-m3{background:#d99a62;color:#3a2200;}
 .pe-note{font-size:11.5px;color:var(--text-muted);margin-top:8px;}
 table.pend-tbl tr.pn-mes-grp td.pn-desc{padding-left:34px;font-style:italic;}
 table.pend-tbl tr.pn-mes-it td.pn-desc{padding-left:64px;}
@@ -2627,16 +2642,24 @@ function openPendExtratoModal(id){
     const tRS = fis.reduce((s,f)=>s+f.rs,0), tHH = fis.reduce((s,f)=>s+f.hh,0), tRDC = fis.reduce((s,f)=>s+f.rdcs.size,0), maxRS = fis[0].rs || 1;
     const rdcTxt = set => { const a = Array.from(set).sort((x,y)=>String(x).localeCompare(String(y),'pt-BR',{numeric:true})); return !a.length ? '—' : a.length<=6 ? a.join(', ') : a.slice(0,6).join(', ')+' (+'+(a.length-6)+' mais)'; };
     let acc = 0;
-    body = '<table class="pe-tbl"><thead><tr><th>Fiscal / OS-Entregável</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th><th class="num">%</th><th class="num">% acum.</th><th class="pe-barh">Pareto</th></tr></thead><tbody>';
+    const top3 = fis.slice(0,3).reduce((s,f)=>s+f.rs,0);
+    body = '<div class="pe-sum">'+
+      '<div class="pe-card pe-card-main"><span>TOTAL PENDENTE</span><b>R$ '+fmtBRL(tRS)+'</b></div>'+
+      '<div class="pe-card"><span>HH</span><b>'+fmtInt(tHH)+'</b></div>'+
+      '<div class="pe-card"><span>FISCAIS</span><b>'+fis.length+'</b></div>'+
+      '<div class="pe-card"><span>RDC</span><b>'+tRDC+'</b></div>'+
+      '<div class="pe-card"><span>MAIOR DEVEDOR</span><b class="pe-card-nm">'+esc(fis[0].fiscal)+'</b><small>R$ '+fmtBRL(fis[0].rs)+' · '+fmtPct(tRS?fis[0].rs/tRS:0)+'</small></div>'+
+      (fis.length>3?'<div class="pe-card"><span>TOP 3 CONCENTRAM</span><b>'+fmtPct(tRS?top3/tRS:0)+'</b></div>':'')+
+      '</div>';
+    body += '<table class="pe-tbl"><thead><tr><th class="pe-rkh">Ranking</th><th>Fiscal / OS-Entregável</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th><th class="num">%</th><th class="num">% acum.</th></tr></thead><tbody>';
     fis.forEach((f,i)=>{
       acc += f.rs; const pc = tRS ? f.rs/tRS : 0, ac = tRS ? acc/tRS : 0;
-      body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td><span class="pe-rank">'+(i+1)+'º</span> '+esc(f.fiscal)+'</td><td class="num">'+(f.rdcs.size||'—')+'</td><td title="'+esc(Array.from(f.rdcs).join(', '))+'">'+esc(rdcTxt(f.rdcs))+'</td><td class="num">'+fmtInt(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td>'+
-        '<td class="pe-bar"><span style="width:'+Math.max(2, Math.round(f.rs/maxRS*100))+'%"></span></td></tr>';
+      body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td class="pe-rk"><span class="pe-medal pe-m'+(i<3?i+1:0)+'">'+(i+1)+'º</span></td><td>'+esc(f.fiscal)+'</td><td class="num">'+(f.rdcs.size||'—')+'</td><td title="'+esc(Array.from(f.rdcs).join(', '))+'">'+esc(rdcTxt(f.rdcs))+'</td><td class="num">'+fmtInt(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td></tr>';
       Array.from(f.os.values()).sort((a,b)=>b.rs-a.rs).forEach(o=>{
-        body += '<tr class="pe-os"><td class="pe-osn">'+esc(o.os)+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+fmtInt(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td><td></td></tr>';
+        body += '<tr class="pe-os"><td></td><td class="pe-osn">OS '+esc(o.os)+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+fmtInt(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
       });
     });
-    body += '<tr class="fa-total"><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td class="num">'+tRDC+'</td><td></td><td class="num">'+fmtInt(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td><td></td></tr></tbody></table>';
+    body += '<tr class="fa-total"><td></td><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td class="num">'+tRDC+'</td><td></td><td class="num">'+fmtInt(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td></tr></tbody></table>';
     const falta = pendScopeTotal(scope) - tRS;
     const nota = [];
     if (Math.abs(falta) > 1) nota.push('R$ '+fmtBRL(Math.abs(falta))+(falta>0?' do resumo ':' a mais no detalhe ')+'sem detalhamento por Fiscal na planilha (FIA, RATEIO ou itens sem fiscal).');
