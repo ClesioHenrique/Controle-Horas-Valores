@@ -2782,7 +2782,6 @@ function openPendExtratoModal(id, pr, kind, keep){
       '<div class="pe-card"><span>FISCAIS</span><b>'+fis.length+'</b></div>'+
       '<div class="pe-card"><span>RDC</span><b>'+tRDC+'</b></div>'+
       '<div class="pe-card"><span>MAIOR VOLUME '+(K==='hh'?'HH':'R$')+'</span><b class="pe-card-nm">'+esc(fis[0].fiscal)+'</b><small>'+fv(fis[0])+' · '+fmtPct(tK?fis[0][K]/tK:0)+'</small></div>'+
-      (fis.length>3?'<div class="pe-card"><span>TOP 3 CONCENTRAM</span><b>'+fmtPct(tK?top3/tK:0)+'</b></div>':'')+
       '</div>';
     body += '<table class="pe-tbl"><thead><tr><th class="pe-rkh">Ranking</th><th>Fiscal / OS-Entregável</th><th>Mês</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th><th class="num">%</th><th class="num">% acum.</th></tr></thead><tbody>';
     fis.forEach((f,i)=>{
