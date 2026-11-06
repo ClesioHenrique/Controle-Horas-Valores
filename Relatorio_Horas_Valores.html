@@ -3687,20 +3687,23 @@ document.getElementById('fa-modal-xlcopy').addEventListener('click', async funct
     '<tr style="height:1px;mso-height-source:userset">'+widths.map(w=>'<td width="'+w+'" style="width:'+w+'px;font-size:1pt;line-height:1px;padding:0;"></td>').join('')+'</tr>';   // linha-guia: o Excel toma as larguras dela
   h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:14pt;font-weight:bold;color:#12305a;">'+esc(title)+'</td></tr>';
   h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:10pt;color:#5b6b7c;">'+esc(sub)+'</td></tr><tr><td colspan="'+ncol+'"></td></tr>';
-  const cards = Array.prototype.slice.call(document.querySelectorAll('#fa-modal-body .pe-card'));
+  let cards = Array.prototype.slice.call(document.querySelectorAll('#fa-modal-body .pe-card'));
   let tsv = title+'\n'+sub+'\n\n';
   if (cards.length){
-    const spans = cards.map(()=>1); let left = ncol - cards.length;
-    if (cards.length>4 && left>0){ spans[cards.length>5?4:cards.length-1] += 1; left--; }   // card "maior volume" mais largo
-    spans[0] += Math.max(0,left);                                                           // sobra vai pro total (primeiro card)
-    const lab = cards.map((c,i)=>{ const s = c.querySelector('span'); return '<td colspan="'+spans[i]+'" style="'+fx(c,{size:'9pt',bold:true})+'border:'+bd+';border-bottom:none;color:'+getComputedStyle(s).color+';">'+esc(s.textContent)+'</td>'; }).join('');
-    const val = cards.map((c,i)=>{ const b = c.querySelector('b'), sm = c.querySelector('small'); return '<td colspan="'+spans[i]+'" style="'+fx(c,{size:i===0?'18pt':'14pt',bold:true})+'border:'+bd+';border-top:none;color:'+getComputedStyle(b).color+';">'+esc(b.textContent)+(sm?'<br><span style="font-size:9pt;font-weight:normal;">'+esc(sm.textContent)+'</span>':'')+'</td>'; }).join('');
-    h += '<tr>'+lab+'</tr><tr style="height:42px">'+val+'</tr><tr><td colspan="'+ncol+'"></td></tr>';
+    // ordem para o Excel: Total | outra metrica | Maior volume (coluna larga, nome em 1 linha) | Fiscais | RDC | Top 3
+    if (ncol===9 && cards.length>=5){ cards = [0,1,4,2,3,5].filter(i=>cards[i]).map(i=>cards[i]); }
+    const spans = cards.map(()=>1);
+    if (ncol===9 && cards.length>=5){ spans[0] = 3; spans[cards.length-1] = cards.length===6 ? 2 : 3; }
+    else { spans[0] += Math.max(0, ncol - cards.length); }
+    const cb = '3px solid #fff';   // vao branco entre os cards, como na tela
+    const lab = cards.map((c,i)=>{ const s = c.querySelector('span'); return '<td colspan="'+spans[i]+'" style="'+fx(c,{size:'9pt',bold:true})+'border:'+cb+';border-bottom:none;padding-left:8px;vertical-align:bottom;white-space:nowrap;color:'+getComputedStyle(s).color+';">'+esc(s.textContent)+'</td>'; }).join('');
+    const val = cards.map((c,i)=>{ const b = c.querySelector('b'), sm = c.querySelector('small'); return '<td colspan="'+spans[i]+'" style="'+fx(c,{size:i===0?'20pt':'14pt',bold:true})+'border:'+cb+';border-top:none;padding-left:8px;vertical-align:top;white-space:nowrap;color:'+getComputedStyle(b).color+';">'+esc(b.textContent)+(sm?'<br><span style="font-size:9pt;font-weight:normal;">'+esc(sm.textContent)+'</span>':'')+'</td>'; }).join('');
+    h += '<tr style="height:22px">'+lab+'</tr><tr style="height:'+(cards.some(c=>c.querySelector('small'))?'46':'38')+'px">'+val+'</tr><tr><td colspan="'+ncol+'"></td></tr>';
     tsv += cards.map(c=>c.innerText.replace(/\s*\n\s*/g,' ')).join('\t')+'\n\n';
   }
   Array.prototype.forEach.call(table.rows, row=>{
     const cells = Array.prototype.slice.call(row.cells); let ci = 0;
-    h += '<tr style="height:20px">'+cells.map(c=>{
+    h += '<tr style="height:'+(row.parentElement.tagName==='THEAD'?'28':'26')+'px">'+cells.map(c=>{
       const span = c.colSpan||1; let w = 0; for (let k=0;k<span;k++) w += widths[ci+k]||100; ci += span;
       const cs = getComputedStyle(c), medal = c.querySelector('.pe-medal');
       let st = fx(c)+'white-space:nowrap;border:'+bd+';text-align:'+(cs.textAlign==='right'||cs.textAlign==='center'?cs.textAlign:'left')+';vertical-align:middle;';
@@ -3710,6 +3713,8 @@ document.getElementById('fa-modal-xlcopy').addEventListener('click', async funct
     }).join('')+'</tr>';
     tsv += cells.map(c=>c.innerText.trim().replace(/\s+/g,' ')).join('\t')+'\n';
   });
+  const note = document.querySelector('#fa-modal-body .pe-note');
+  if (note) h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:9pt;color:#7a8794;">'+esc(note.innerText.trim())+'</td></tr>';
   h += '</table>';
   const full = '<html><head><meta charset="utf-8"></head><body>'+h+'</body></html>';
   let ok = false;
