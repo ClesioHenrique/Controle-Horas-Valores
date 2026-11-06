@@ -3707,6 +3707,7 @@ document.getElementById('fa-modal-xlcopy').addEventListener('click', async funct
       const span = c.colSpan||1; let w = 0; for (let k=0;k<span;k++) w += widths[ci+k]||100; ci += span;
       const cs = getComputedStyle(c), medal = c.querySelector('.pe-medal');
       let st = fx(c)+'white-space:nowrap;border:'+bd+';text-align:'+(cs.textAlign==='right'||cs.textAlign==='center'?cs.textAlign:'left')+';vertical-align:middle;';
+      if (c.classList.contains('pe-osn')) st += 'padding-left:18px;mso-char-indent-count:2;';   // OS recuada como na tela
       if (c.tagName==='TH') st += 'background:#dfe8f2;color:#12305a;font-weight:bold;';
       if (medal){ const m = getComputedStyle(medal); st += 'background:'+(rgb(m.backgroundColor)||'#e3eaf2')+';color:'+m.color+';font-weight:bold;text-align:center;'; }
       return '<'+c.tagName.toLowerCase()+' colspan="'+span+'" width="'+w+'" style="width:'+w+'px;'+st+'">'+esc(c.innerText.trim())+'</'+c.tagName.toLowerCase()+'>';
