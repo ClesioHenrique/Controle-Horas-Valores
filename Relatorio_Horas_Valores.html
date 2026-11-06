@@ -2756,7 +2756,7 @@ function openPendExtratoModal(id, pr, kind, keep){
   const perTxt = scope.mes ? scope.mes : (DISPLAY_MONTHS.length<=4 ? DISPLAY_MONTHS.join(', ') : DISPLAY_MONTHS[0]+' a '+DISPLAY_MONTHS[DISPLAY_MONTHS.length-1]);
   const K = kind==='hh' ? 'hh' : 'rs';
   const mesOrd = set => Array.from(set).sort((a,b)=>mesKey(a)-mesKey(b)).join(', ');
-  document.getElementById('fa-modal-title').textContent = scope.title+' — '+projTxt+(scope.mes?' — '+scope.mes:'')+' — extrato por Fiscal';
+  document.getElementById('fa-modal-title').textContent = String(scope.title).split(' — ')[0].trim()+'_'+projTxt.replace(/ e /g,'+')+' ('+(K==='hh'?'HH':'R$')+') Mês : '+(scope.mes || perTxt)+' - extrato por Fiscal';
   document.getElementById('fa-modal-sub').textContent = projTxt+' · '+perTxt+' · ranking dos fiscais, do maior para o menor '+(K==='hh'?'HH':'valor')+' pendente (valor clicado: '+(K==='hh'?'HH':'R$')+')';
   let body = '';
   if (!rows.length){
