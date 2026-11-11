@@ -283,6 +283,9 @@ html.dark-theme body:not(.printing) table.evol-tbl tr.evol-other td{background:#
 .kpi-chart-card{background:linear-gradient(180deg,var(--surface),var(--navy-100) 260%);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px 6px;}
 .kpi-chart-card h4{margin:0 0 2px;font-size:13.5px;color:var(--navy);}
 .kpi-chart-card .kpi-chart-sub{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
+/* aneis com cores vivas e brilho; card continua claro */
+body:not(.printing) .donut-dot{border-radius:50%;box-shadow:0 0 7px currentColor;}
+body:not(.printing) .donut-ring svg circle.dseg{filter:drop-shadow(0 0 5px var(--c));}
 .donut-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:4px;flex-wrap:wrap;}
 .donut-legend-side{flex:0 0 104px;}
 .donut-ring{width:170px;height:170px;flex:0 0 170px;}
@@ -1514,6 +1517,7 @@ document.getElementById('kpi-strip').addEventListener('click', e=>{
   openFrsCompositionModal(card.dataset.proj);
 });
 
+const DN_GREEN = '#7ED957', DN_ORANGE = '#F5A64A', DN_BLUE = '#4DA6E8', DN_PURPLE = '#A56BFF', DN_CYAN = '#1F5FD0';   // cores vivas dos aneis
 const CHART_GREEN = '#92D050', CHART_WARN = '#E8A33D', CHART_INFO_BLUE = '#2E7BC4';
 let chartDetailsOpen = false;
 function statusChartHTML(chartId){
@@ -1587,8 +1591,8 @@ function svgDonutHTML(labels, values, colors, size, strokeWidth, centerBig, cent
     cum += frac;
     // <title> = tooltip nativo do navegador: passar o mouse no anel mostra label/valor/%
     const tip = esc(labels[i])+': R$ '+fmtBRL(v)+' ('+fmtPct(frac)+')';
-    out += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+colors[i]+'" stroke-width="'+sw+'" stroke-linecap="round" '+
-      'stroke-dasharray="'+dash.toFixed(2)+' '+gap.toFixed(2)+'" stroke-dashoffset="'+offset.toFixed(2)+'" style="cursor:pointer"><title>'+tip+'</title></circle>';
+    out += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+colors[i]+'" stroke-width="'+sw+'" stroke-linecap="round" class="dseg" '+
+      'stroke-dasharray="'+dash.toFixed(2)+' '+gap.toFixed(2)+'" stroke-dashoffset="'+offset.toFixed(2)+'" style="cursor:pointer;--c:'+colors[i]+'"><title>'+tip+'</title></circle>';
   });
   const bigLen = String(centerBig).length;
   const bigFontSize = bigLen<=6 ? 20 : bigLen<=8 ? 17 : bigLen<=10 ? 14.5 : 12.5;
@@ -1603,7 +1607,7 @@ document.addEventListener('input', e=>{
   const it = ta.closest('.donut-legend-item'); if (it) it.classList.toggle('note-filled', !!ta.value.trim());
 });
 function renderDonutCard(ringId, legendLeftId, legendRightId, labels, values, colors, centerBig, centerSmall, progress, progressLabel){
-  document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 170, 26, centerBig, centerSmall);
+  document.getElementById(ringId).innerHTML = svgDonutHTML(labels, values, colors, 170, 17, centerBig, centerSmall);
   const total = values.reduce((a,b)=>a+b,0);
   const itemHTML = i => {
     const pct = total ? (values[i]/total*100) : 0;
@@ -1614,7 +1618,7 @@ function renderDonutCard(ringId, legendLeftId, legendRightId, labels, values, co
       noteCls = ' has-note'+(saved.trim()?' note-filled':'');
       noteHTML = '<div class="legend-note"><textarea class="legend-note-ta" data-key="'+esc(noteKey)+'" placeholder="Nota livre (salva automaticamente)...">'+esc(saved)+'</textarea></div>';
     }
-    return '<div class="donut-legend-item'+noteCls+'"><span class="donut-dot" style="background:'+colors[i]+'"></span>'+
+    return '<div class="donut-legend-item'+noteCls+'"><span class="donut-dot" style="background:'+colors[i]+';color:'+colors[i]+'"></span>'+
       '<div class="donut-legend-text"><div class="lbl">'+esc(labels[i])+'</div><div class="val">R$ '+fmtBRL(values[i])+' ('+fmtPct(pct/100)+')</div></div>'+noteHTML+'</div>';
   };
   // metade dos itens de cada lado do mostrador (como os mostradores auxiliares dos dois lados
@@ -1632,14 +1636,14 @@ function renderChartsPanel(proj, data, prefix){
   const s3 = SELECTED_SECTIONS.has(3) ? data.s3values['__TOTAL__'].rs : 0;
   renderDonutCard(prefix+'donut-status-ring', prefix+'donut-status-legend-l', prefix+'donut-status-legend-r',
     ['1 - Apresentou pendência','2 - Carregamento no SGE','3 - Aprovado'], [s1,s2,s3],
-    [CHART_WARN, CHART_INFO_BLUE, CHART_GREEN], fmtBRL(t.rs), 'R$ Total FADS', t.rs ? s3/t.rs : 0, 'Aprovado');
+    [DN_ORANGE, DN_BLUE, DN_GREEN], fmtBRL(t.rs), 'R$ Total FADS', t.rs ? s3/t.rs : 0, 'Aprovado');
 
   const fadRS = t.rs;
   const fiaRS = SELECTED_SECTIONS.has(4) ? data.fiaTotal['__TOTAL__'].rs : 0;
   const rateioRS = SELECTED_SECTIONS.has(5) ? data.rateioTotal['__TOTAL__'].rs : 0;
   renderDonutCard(prefix+'donut-category-ring', prefix+'donut-category-legend-l', prefix+'donut-category-legend-r',
     ['FAD','FIA','RATEIO'], [fadRS, fiaRS, rateioRS],
-    [CHART_INFO_BLUE, '#E8A33D', '#8E5FD9'], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global', (fadRS+fiaRS+rateioRS) ? fadRS/(fadRS+fiaRS+rateioRS) : 0, 'FAD');
+    [DN_BLUE, DN_ORANGE, DN_PURPLE], fmtBRL(fadRS+fiaRS+rateioRS), 'R$ Total Global', (fadRS+fiaRS+rateioRS) ? fadRS/(fadRS+fiaRS+rateioRS) : 0, 'FAD');
 
   const emitido = HIDE_FRS_EMITIDAS ? 0 : frsTotalGeralFor(proj);
   const pronto = data.totalMedidoFR['__TOTAL__'].rs;
@@ -1647,7 +1651,7 @@ function renderChartsPanel(proj, data, prefix){
   const restante = Math.max(0, totalG - emitido - pronto);
   renderDonutCard(prefix+'donut-pipeline-ring', prefix+'donut-pipeline-legend-l', prefix+'donut-pipeline-legend-r',
     ['Já Emitido (FR)','Em aprovação SAP_Usiminas','Em Processamento - Fluxo SGE'], [emitido, pronto, restante],
-    ['#0A3B70', CHART_GREEN, CHART_WARN], fmtBRL(totalG), 'R$ Total Global', totalG ? (emitido+pronto)/totalG : 0, 'Emitido+Pronto');
+    [DN_CYAN, DN_GREEN, DN_ORANGE], fmtBRL(totalG), 'R$ Total Global', totalG ? (emitido+pronto)/totalG : 0, 'Emitido+Pronto');
 }
 
 // Cartao "Liberado SAP_USM": soma da coluna R$_PENDENTE da aba "Ariba" (RAW_ARIBA). So aparece quando ha valor.
