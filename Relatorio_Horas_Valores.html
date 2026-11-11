@@ -1533,11 +1533,11 @@ function renderStatusChart(data, chartId){
   const pct2 = months.map(c=>{ const t=data.totalGeral[c]; return (SELECTED_SECTIONS.has(2) && t.rs) ? data.s2values[c].total.rs/t.rs*100 : 0; });
   const pct3 = months.map(c=>{ const t=data.totalGeral[c]; return (SELECTED_SECTIONS.has(3) && t.rs) ? data.s3values[c].rs/t.rs*100 : 0; });
   Plotly.newPlot(chartId, [
-    { type:'bar', name:'1 - Apresentou pendência', x:months, y:pct1, marker:{color:CHART_WARN}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
-    { type:'bar', name:'2 - Carregamento no SGE', x:months, y:pct2, marker:{color:CHART_INFO_BLUE}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
-    { type:'bar', name:'3 - Aprovado', x:months, y:pct3, marker:{color:CHART_GREEN}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' }
+    { type:'bar', name:'1 - Apresentou pendência', x:months, y:pct1, marker:{color:DN_ORANGE, line:{width:0}}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
+    { type:'bar', name:'2 - Carregamento no SGE', x:months, y:pct2, marker:{color:DN_BLUE, line:{width:0}}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' },
+    { type:'bar', name:'3 - Aprovado', x:months, y:pct3, marker:{color:DN_GREEN, line:{width:0}}, hovertemplate:'%{x}: %{y:.1f}%<extra></extra>' }
   ], {
-    barmode:'stack', margin:{t:10,b:40,l:50,r:10},
+    barmode:'stack', bargap:0.35, margin:{t:10,b:40,l:50,r:10},
     yaxis:{title:'% do valor (R$) do mes', ticksuffix:'%', range:[0,100]},
     legend:{orientation:'h', y:1.12}, font:{family:'Segoe UI', size:11.5}
   }, { displaylogo:false, responsive:true });
@@ -1924,16 +1924,16 @@ function renderMobilePendOsLine(rows, g){
 // items: [{label, value, sub}] ja ordenados do maior valor pro menor; fmtValue formata o numero.
 function rankingShareColor(frac){
   const pct = frac*100;
-  if (pct <= 10) return '#6FA834';
-  if (pct <= 40) return '#E8A33D';
-  return '#b3261e';
+  if (pct <= 10) return '#7ED957';
+  if (pct <= 40) return '#F5A64A';
+  return '#FF5C5C';
 }
 function renderRankingCardHTML(title, items, fmtValue){
   const top = items.slice(0, 8);
   const max = top.length ? top[0].value : 0;
   const totalGeral = items.reduce((s,it)=>s+it.value, 0);
   let html = '<div class="mobile-pend-ranking"><h4>'+esc(title)+'</h4>'+
-    '<div class="mpr-legend"><span><i style="background:#6FA834"></i>até 10%</span><span><i style="background:#E8A33D"></i>11% a 40%</span><span><i style="background:#b3261e"></i>41% a 100%</span></div>';
+    '<div class="mpr-legend"><span><i style="background:#7ED957"></i>até 10%</span><span><i style="background:#F5A64A"></i>11% a 40%</span><span><i style="background:#FF5C5C"></i>41% a 100%</span></div>';
   if (!top.length) html += '<div class="fiscal-empty">Sem dados.</div>';
   top.forEach((it,i)=>{
     const frac = totalGeral ? it.value/totalGeral : 0;
@@ -1962,12 +1962,12 @@ function renderMobilePendenteRankingHTML(list, rows){
   // 11% a 40% = laranja, 41% a 100% = vermelho — sobre o % de cada um no total geral
   function shareColor(frac){
     const pct = frac*100;
-    if (pct <= 10) return '#6FA834';
-    if (pct <= 40) return '#E8A33D';
-    return '#b3261e';
+    if (pct <= 10) return '#7ED957';
+    if (pct <= 40) return '#F5A64A';
+    return '#FF5C5C';
   }
   let html = '<div class="mobile-pend-ranking"><h4>Ranking</h4>'+
-    '<div class="mpr-legend"><span><i style="background:#6FA834"></i>até 10%</span><span><i style="background:#E8A33D"></i>11% a 40%</span><span><i style="background:#b3261e"></i>41% a 100%</span></div>';
+    '<div class="mpr-legend"><span><i style="background:#7ED957"></i>até 10%</span><span><i style="background:#F5A64A"></i>11% a 40%</span><span><i style="background:#FF5C5C"></i>41% a 100%</span></div>';
   top.forEach((g,i)=>{
     const frac = totalGeral ? g.rs/totalGeral : 0;
     const barPct = max ? Math.max(4, Math.round(g.rs/max*100)) : 0;
@@ -2167,15 +2167,15 @@ function evolDrawChart(){
   const m = EVOL_STATE.metric;
   const list = Array.from(byU.values()).sort((a,b)=>b[m]-a[m]).slice(0,15);
   if (!list.length){ Plotly.purge(el); el.innerHTML = '<div class="fiscal-empty">Sem dados para os filtros selecionados.</div>'; return; }
-  const col = t => t==='TCT' ? '#6FA834' : t==='USM' ? '#d9534f' : '#E8A33D';
+  const col = t => t==='TCT' ? DN_GREEN : t==='USM' ? '#FF5C5C' : DN_ORANGE;
   const fmt = v => m==='rs' ? 'R$ '+fmtBRL(v) : fmtInt(v)+' HH';
   const txt = getComputedStyle(document.body).color;
   Plotly.newPlot(el, [{
-    type:'bar', x:list.map(g=>g.nome), y:list.map(g=>g[m]), marker:{ color:list.map(g=>col(g.tct)) },
+    type:'bar', x:list.map(g=>g.nome), y:list.map(g=>g[m]), marker:{ color:list.map(g=>col(g.tct)), line:{width:0} },
     text:list.map(g=>fmt(g[m])), textposition:'outside', cliponaxis:false,
     customdata:list.map(g=>g.tct), hovertemplate:'%{x} (%{customdata})<br>%{text}<extra></extra>'
   }], {
-    autosize:true, margin:{t:24,b:90,l:60,r:10}, xaxis:{tickangle:-35, automargin:true, tickfont:{size:10.5}}, yaxis:{title: m==='rs'?'R$':'HH', tickformat:',.0f', gridcolor:'rgba(128,128,128,.25)'},
+    autosize:true, bargap:0.35, margin:{t:24,b:90,l:60,r:10}, xaxis:{tickangle:-35, automargin:true, tickfont:{size:10.5}}, yaxis:{title: m==='rs'?'R$':'HH', tickformat:',.0f', gridcolor:'rgba(128,128,128,.25)'},
     paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)', font:{family:'Segoe UI', size:11.5, color:txt}, showlegend:false
   }, { displaylogo:false, responsive:true, displayModeBar:false });
 }
