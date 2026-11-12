@@ -3035,7 +3035,7 @@ function buildMonthFilterPanel(){
   // lista aparece do mes mais novo pro mais antigo (ALL_MONTHS continua em ordem crescente,
   // usada por "Últimos 4" e outras contas — so a exibicao no dropdown e invertida). Botoes
   // "Últimos 4"/"Todos" ficam no topo, antes da lista, pra nao precisar rolar ate o fim.
-  panel.innerHTML = '<div class="mf-actions mf-actions-top"><button type="button" id="mf-last3">Últimos 4</button><button type="button" id="mf-all">Todos</button></div>' +
+  panel.innerHTML = '<div class="mf-actions mf-actions-top"><button type="button" id="mf-pend" title="Só os meses que ainda têm valor pendente em FAD / FIA / RATEIO">Com pendência</button><button type="button" id="mf-last3">Últimos 4</button><button type="button" id="mf-all">Todos</button></div>' +
     ALL_MONTHS.slice().reverse().map(m =>
       '<label><input type="checkbox" value="'+m+'"'+(selected.has(m)?' checked':'')+'> '+m+'</label>'
     ).join('');
@@ -3048,6 +3048,11 @@ function buildMonthFilterPanel(){
       render();
     });
   });
+  document.getElementById('mf-pend').addEventListener('click', ()=>{
+    DISPLAY_MONTHS = pendingMonthsDefault();
+    buildMonthFilterPanel();
+    render();
+  });
   document.getElementById('mf-last3').addEventListener('click', ()=>{
     DISPLAY_MONTHS = ALL_MONTHS.slice(-4);
     buildMonthFilterPanel();
@@ -3059,6 +3064,20 @@ function buildMonthFilterPanel(){
     render();
   });
 }
+// padrao dos meses: so os que ainda tem valor pendente em FAD / FIA / RATEIO (mes sem nenhum valor sai sozinho;
+// o usuario pode marcar/desmarcar qualquer mes no filtro). Sem nenhum mes com pendencia: ultimos 4.
+function pendingMonthsDefault(){
+  const sv = DISPLAY_MONTHS; let out = [];
+  try {
+    DISPLAY_MONTHS = ALL_MONTHS.slice();
+    const tot = {};
+    ['MOA','PCI'].forEach(p=>{ const d = buildTable(p); ALL_MONTHS.forEach(m=>{ const g = d.totalGlobal[m]; tot[m] = (tot[m]||0) + (g ? Math.abs(g.rs) + Math.abs(g.hh||0) : 0); }); });
+    out = ALL_MONTHS.filter(m=>tot[m] >= 0.5);
+  } catch(e){ out = []; } finally { DISPLAY_MONTHS = sv; }
+  return out.length ? out : ALL_MONTHS.slice(-4);
+}
+DISPLAY_MONTHS = pendingMonthsDefault();
+updateMonthFilterSummary();
 buildMonthFilterPanel();
 document.getElementById('mf-toggle').addEventListener('click', e=>{
   e.stopPropagation();
@@ -4758,7 +4777,7 @@ window.addEventListener('resize', ()=>{
       ...RAW_FIA_EXTRATO.map(r=>r.mesano), ...RAW_RATEIO_EXTRATO.map(r=>r.mesano),
       ...RAW_RDC_NAO_APROVADA.map(r=>r.mesano)
     ])).sort((a,b)=>mesKey(a)-mesKey(b));
-    DISPLAY_MONTHS = ALL_MONTHS.slice(-4);
+    DISPLAY_MONTHS = pendingMonthsDefault();
     buildMonthFilterPanel();
     render();
   }
