@@ -2584,9 +2584,11 @@ function pendFiscList(){
   return Array.from(s).sort((a,b)=>a.localeCompare(b,'pt-BR'));
 }
 function pendMonthsEff(){ return PEND_MESES ? ALL_MONTHS.filter(m=>PEND_MESES.includes(m)) : DISPLAY_MONTHS.slice(); }
+// padrao unico de OS: OS_43984 (aceita 'OS 43984', 'OS OS_43984', 'OS_43984', '43984'); codigos de medicao (MED_85218) ficam como estao
+function osNorm(v){ let s = String(v==null?'':v).trim(); if (!s) return s; let p; do { p = s; s = s.replace(/^OS[\s_\-]*/i,''); } while (s!==p); if (!s) return String(v).trim(); return /^\d+$/.test(s) ? 'OS_'+s : s; }
 function pendOsList(){
   const s = new Set();
-  [RAW_PEND_FISCAL, RAW_FISCAL_PENDENTE_DETAIL, RAW_FISCAL_OUTROS].forEach(a=>(a||[]).forEach(r=>{ const o = String(r.os||r.fad||'').trim(); if (o) s.add(o); }));
+  [RAW_PEND_FISCAL, RAW_FISCAL_PENDENTE_DETAIL, RAW_FISCAL_OUTROS].forEach(a=>(a||[]).forEach(r=>{ const o = osNorm(r.os||r.fad||''); if (o) s.add(o); }));
   return Array.from(s).sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true})).slice(0,3000);
 }
 function pendWithMonths(fn){
@@ -2721,7 +2723,7 @@ function pendDetailRowsFor(scope){
     if (it.sec!==0) return;                       // FIA / RATEIO nao trazem fiscal na planilha
     if (done.has(it.label)) return; done.add(it.label);
     const n = evolNorm(it.label);
-    const std = (r, st) => ({ projeto:r.projeto, mesano:r.mesano, fiscal:r.fiscal||'(sem fiscal)', os:r.os||'(sem OS)', rdc:r.rdc||'', hh:r.hh||0, rs:r.rs||0, status:st });
+    const std = (r, st) => ({ projeto:r.projeto, mesano:r.mesano, fiscal:r.fiscal||'(sem fiscal)', os:osNorm(r.os)||'(sem OS)', rdc:r.rdc||'', hh:r.hh||0, rs:r.rs||0, status:st });
     if (it.label===PEND_OUTRAS_LABEL) pushRows(RAW_PEND_FISCAL.filter(r=>!known.has(r.resumo.trim()) && r.resumo.trim()!==PEND_TAIL), r=>std(r, it.label));
     else if (known.has(it.label) || it.label===PEND_TAIL) pushRows(RAW_PEND_FISCAL.filter(r=>r.resumo.trim()===it.label), r=>std(r, it.label));
     else if (n==='pendente de aprovacao') pushRows(RAW_FISCAL_PENDENTE_DETAIL, r=>std({ projeto:r.projeto, mesano:r.mesano, fiscal:r.fiscal, os:r.os||r.fad, rdc:r.rdc, hh:r.hh, rs:r.rs }, it.label));
@@ -2730,7 +2732,7 @@ function pendDetailRowsFor(scope){
     else if (n.indexOf('medicao em andamento')===0) pushRows(RAW_FISCAL_OUTROS.filter(r=>evolNorm(r.situacao).indexOf('medicao em andamento')===0), r=>std(r, it.label));
     else if (n.indexOf('medido')===0) pushRows(RAW_MEDIDO_FR_DETAIL, r=>({ projeto:r.projeto, mesano:r.mesano, fiscal:'(sem fiscal — FR medida, por FR)', os:r.med, rdc:'FR '+r.sapmed, hh:r.hh||0, rs:r.rs||0, status:it.label }));
   });
-  if (PEND_OS_SEL.length || PEND_FISC_SEL.length) return out.filter(r=>(!PEND_OS_SEL.length || PEND_OS_SEL.includes(String(r.os||'').trim())) && (!PEND_FISC_SEL.length || PEND_FISC_SEL.includes(String(r.fiscal||'').trim())));
+  if (PEND_OS_SEL.length || PEND_FISC_SEL.length) return out.filter(r=>(!PEND_OS_SEL.length || PEND_OS_SEL.map(osNorm).includes(String(r.os||'').trim())) && (!PEND_FISC_SEL.length || PEND_FISC_SEL.includes(String(r.fiscal||'').trim())));
   return out;
 }
 function pendScopeTotal(scope){
@@ -2792,7 +2794,7 @@ function openPendExtratoModal(id, pr, kind, keep){
       acc += f[K]; const pc = tK ? f[K]/tK : 0, ac = tK ? acc/tK : 0;
       body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td class="pe-rk"><span class="pe-medal pe-m'+(i<3?i+1:0)+'">'+(i+1)+'º</span></td><td>'+esc(f.fiscal)+'</td><td>'+esc(mesOrd(f.mes))+'</td><td class="num">'+(f.rdcs.size||'—')+'</td><td title="'+esc(Array.from(f.rdcs).join(', '))+'">'+esc(rdcTxt(f.rdcs))+'</td><td class="num">'+fmtInt(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td></tr>';
       Array.from(f.os.values()).sort((a,b)=>b[K]-a[K]).forEach(o=>{
-        body += '<tr class="pe-os"><td></td><td class="pe-osn">OS '+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+fmtInt(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
+        body += '<tr class="pe-os"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+fmtInt(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
       });
     });
     body += '<tr class="fa-total"><td></td><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td>'+esc(scope.mes || mesOrd(allMes))+'</td><td class="num">'+tRDC+'</td><td></td><td class="num">'+fmtInt(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td></tr></tbody></table>';
