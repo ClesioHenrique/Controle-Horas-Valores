@@ -2522,7 +2522,7 @@ function pendOsPanelHTML(){
     PEND_EXT_PR = 'tot';
     let rows = pendDetailRowsFor({ title:'', items, mes:null });
     if (PEND_ST) rows = rows.filter(r=>PEND_ST.includes(r.status));
-    const head = '<div class="pend-ospanel"><div class="pop-h">'+(PEND_OS?'OS <b>'+esc(PEND_OS)+'</b> ':'')+(PEND_FISC?'Fiscal <b>'+esc(PEND_FISC)+'</b> ':'')+'— o que as FADS têm referenciado '+(PEND_OS&&PEND_FISC?'a essa OS e fiscal':PEND_OS?'a essa OS':'a esse fiscal')+' · '+(PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+esc(DISPLAY_MONTHS.join(', '))+'</div>';
+    const head = '<div class="pend-ospanel"><div class="pop-h">'+(PEND_OS?'<b>'+esc(PEND_OS)+'</b> ':'')+(PEND_FISC?'Fiscal <b>'+esc(PEND_FISC)+'</b> ':'')+'— o que as FADS têm referenciado '+(PEND_OS&&PEND_FISC?'a essa OS e fiscal':PEND_OS?'a essa OS':'a esse fiscal')+' · '+(PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+esc(DISPLAY_MONTHS.join(', '))+'</div>';
     if (!rows.length) return head+'<div class="pop-empty">Nenhuma pendência de FADS encontrada para esse filtro nos projetos e meses marcados.</div></div>';
     const order = []; const byS = new Map();
     rows.forEach(r=>{ let s = byS.get(r.status); if (!s){ s = { st:r.status, rs:0, hh:0, f:new Map() }; byS.set(r.status,s); order.push(s); }
