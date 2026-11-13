@@ -3699,7 +3699,7 @@ function xlsxTableRows(table){
     grid[ri] = grid[ri] || []; let ci = 0;
     Array.prototype.forEach.call(tr.cells, td=>{
       while (grid[ri][ci]) ci++;
-      const txt = (td.innerText||td.textContent||'').replace(/\s+/g,' ').trim();
+      const txt = (td.innerText||td.textContent||'').replace(/\s+/g,' ').trim().replace(/^[▸▾]\s*/,'');
       let cell = { v: txt, t:'s', h: td.tagName==='TH' };
       if (td.classList.contains('num') && txt){
         const m = txt.replace(/\s/g,'');
@@ -3727,14 +3727,14 @@ function xlsxBuild(sheets){
   files.push({name:'xl/styles.xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6EDF4"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs></styleSheet>'});
   sheets.forEach((s,i)=>{
     const widths = [];
-    const rowsXml = s.rows.map((row,ri)=>'<row r="'+(ri+1)+'">'+row.map((c,ci)=>{
+    const rowsXml = s.rows.map((row,ri)=>'<row r="'+(ri+1)+'"'+((s.outline && s.outline[ri]) ? ' outlineLevel="1"' : '')+'>'+row.map((c,ci)=>{
       const ref = xlsxColName(ci)+(ri+1);
       const len = String(c.t==='s' ? c.v : (c.t==='p' ? (c.v*100).toFixed(1)+'%' : c.v)).length; widths[ci] = Math.min(60, Math.max(widths[ci]||8, len+2));
       if (c.t==='s'){ if (c.v==='' && !c.h) return ''; return '<c r="'+ref+'" t="inlineStr"'+(c.h?' s="3"':'')+'><is><t xml:space="preserve">'+xlsxEsc(c.v)+'</t></is></c>'; }
       return '<c r="'+ref+'"'+(c.t==='p'?' s="1"':c.t==='d'?' s="2"':'')+'><v>'+c.v+'</v></c>';
     }).join('')+'</row>').join('');
     const cols = widths.length ? '<cols>'+widths.map((w,ci)=>'<col min="'+(ci+1)+'" max="'+(ci+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols>' : '';
-    files.push({name:'xl/worksheets/sheet'+(i+1)+'.xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+cols+'<sheetData>'+rowsXml+'</sheetData></worksheet>'});
+    files.push({name:'xl/worksheets/sheet'+(i+1)+'.xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+(s.outline ? '<sheetPr><outlinePr summaryBelow="0"/></sheetPr>' : '')+cols+'<sheetData>'+rowsXml+'</sheetData></worksheet>'});
   });
   return xlsxZip(files);
 }
@@ -3753,8 +3753,11 @@ document.getElementById('fa-modal-excel').addEventListener('click', function(){
   const title = document.getElementById('fa-modal-title').textContent, sub = document.getElementById('fa-modal-sub').textContent;
   const sheets = tables.map((t,i)=>{
     const rows = xlsxTableRows(t);
-    if (i===0) rows.unshift([{v:title,t:'s',h:true}], [{v:sub,t:'s',h:false}], []);
-    return { name: tables.length>1 ? title+' '+(i+1) : title, rows };
+    // linhas de detalhe (tr.ar-det) saem agrupadas (+/-) no Excel, com o botao de abrir/fechar na linha do tipo, acima
+    let outline = Array.prototype.map.call(t.rows, r=>r.classList.contains('ar-det') ? 1 : 0);
+    if (outline.length !== rows.length) outline = null;
+    if (i===0){ rows.unshift([{v:title,t:'s',h:true}], [{v:sub,t:'s',h:false}], []); if (outline) outline = [0,0,0].concat(outline); }
+    return { name: tables.length>1 ? title+' '+(i+1) : title, rows, outline: (outline && outline.some(x=>x)) ? outline : null };
   });
   xlsxDownload(sheets, xlsxSafeName(title)+'.xlsx');
 });
@@ -3795,16 +3798,16 @@ document.getElementById('fa-modal-xlcopy').addEventListener('click', async funct
   }
   Array.prototype.forEach.call(table.rows, row=>{
     const cells = Array.prototype.slice.call(row.cells); let ci = 0;
-    h += '<tr style="height:'+(row.parentElement.tagName==='THEAD'?'28':'26')+'px">'+cells.map(c=>{
+    h += '<tr style="height:'+(row.parentElement.tagName==='THEAD'?'28':'26')+'px'+(row.classList.contains('ar-det')?';mso-outline-level:1':'')+'">'+cells.map(c=>{
       const span = c.colSpan||1; let w = 0; for (let k=0;k<span;k++) w += widths[ci+k]||100; ci += span;
       const cs = getComputedStyle(c), medal = c.querySelector('.pe-medal');
       let st = fx(c)+'white-space:nowrap;border:'+bd+';text-align:'+(cs.textAlign==='right'||cs.textAlign==='center'?cs.textAlign:'left')+';vertical-align:middle;';
       if (c.classList.contains('pe-osn')) st += 'padding-left:18px;mso-char-indent-count:2;';   // OS recuada como na tela
       if (c.tagName==='TH') st += 'background:#dfe8f2;color:#12305a;font-weight:bold;';
       if (medal){ const m = getComputedStyle(medal); st += 'background:'+(rgb(m.backgroundColor)||'#e3eaf2')+';color:'+m.color+';font-weight:bold;text-align:center;'; }
-      return '<'+c.tagName.toLowerCase()+' colspan="'+span+'" width="'+w+'" style="width:'+w+'px;'+st+'">'+esc(c.innerText.trim())+'</'+c.tagName.toLowerCase()+'>';
+      return '<'+c.tagName.toLowerCase()+' colspan="'+span+'" width="'+w+'" style="width:'+w+'px;'+st+'">'+esc(c.innerText.trim().replace(/^[▸▾]s*/,''))+'</'+c.tagName.toLowerCase()+'>';
     }).join('')+'</tr>';
-    tsv += cells.map(c=>c.innerText.trim().replace(/\s+/g,' ')).join('\t')+'\n';
+    tsv += cells.map(c=>c.innerText.trim().replace(/^[▸▾]\s*/,'').replace(/\s+/g,' ')).join('\t')+'\n';
   });
   const note = document.querySelector('#fa-modal-body .pe-note');
   if (note) h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:9pt;color:#7a8794;">'+esc(note.innerText.trim())+'</td></tr>';
