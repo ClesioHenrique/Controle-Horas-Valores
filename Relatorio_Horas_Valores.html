@@ -220,6 +220,12 @@ table.pe-tbl td.pe-osn{padding-left:30px;}
 table.pe-tbl .pe-rank{display:inline-block;min-width:26px;color:var(--text-muted);}
 table.pe-tbl td.pe-bar{min-width:140px;}
 table.pe-tbl td.pe-bar span{display:block;height:10px;border-radius:3px;background:linear-gradient(90deg,var(--info-blue),var(--navy));}
+tr.ar-grp td{background:var(--navy-100);color:var(--navy);font-weight:800;cursor:pointer;}
+tr.ar-grp:hover td{filter:brightness(.97);}
+.ar-tg{display:inline-block;width:14px;}
+tr.ar-det.ar-hide{display:none;}
+.ar-bar{display:flex;gap:6px;margin:0 0 8px;}
+.ar-bar button{font-size:11px;padding:3px 10px;border:1px solid #9bb0cc;border-radius:4px;background:#f3f7fc;cursor:pointer;}
 .pe-ffilter{display:flex;align-items:center;gap:8px;margin:0 0 10px;}
 .pe-flbl{font-size:12px;font-weight:700;color:#1f3a5f;}
 .pe-ffilter .pn-mdrop{position:relative;}
@@ -1667,15 +1673,32 @@ function openAribaModal(proj){
   document.getElementById('fa-modal-sub').textContent = (proj==='GERAL'?'MOA & PCI':proj)+' — valores em R$_PENDENTE da aba Ariba';
   let body = '<table><tr><th>Contrato</th><th>Fornecedor</th><th>FAD / FIA / RAT</th><th>Mês/Ano liberação da FR</th><th>Período (mês)</th><th class="num">R$</th></tr>';
   let tot = 0;
-  rows.forEach(r=>{
-    tot += r.rs;
-    const p = ARIBA_CONTRATO_PROJ[r.contrato];
-    body += '<tr title="FR '+esc(r.fr)+'"><td>'+esc(p||r.contrato)+'</td><td>'+esc(r.forn||'—')+'</td><td>'+esc(r.tipo||'—')+'</td><td>'+esc(r.mesFR||'—')+'</td><td>'+esc(r.periodo||'—')+'</td><td class="num">'+fmtBRL2(r.rs)+'</td></tr>';
+  // agrupado por FAD / FIA / RAT: a linha do grupo mostra qtd de FR e subtotal; clique (▸) abre o detalhe
+  const order = ['FAD','FIA','RAT'], groups = new Map();
+  rows.forEach(r=>{ const k = String(r.tipo||'—').trim().toUpperCase() || '—'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); tot += r.rs; });
+  const keys = Array.from(groups.keys()).sort((a,b)=>{ const ia = order.indexOf(a), ib = order.indexOf(b); return (ia<0?9:ia)-(ib<0?9:ib) || a.localeCompare(b); });
+  const gName = { FAD:'FAD — horas', FIA:'FIA — equipamentos auxiliares', RAT:'RATEIO' };
+  keys.forEach(k=>{
+    const list = groups.get(k).slice().sort((a,b)=>b.rs-a.rs), sub = list.reduce((s,r)=>s+r.rs,0);
+    const meses = Array.from(new Set(list.map(r=>r.mesFR).filter(Boolean))).join('; ');
+    body += '<tr class="ar-grp" data-ar="'+esc(k)+'" title="Clique para abrir / fechar o detalhe"><td colspan="3"><span class="ar-tg">▸</span> '+esc(gName[k]||k)+'</td><td>'+esc(meses||'—')+'</td><td>'+list.length+' FR'+(list.length>1?"'s":'')+' · '+(tot?fmtPct(sub/tot):'—')+'</td><td class="num">'+fmtBRL2(sub)+'</td></tr>';
+    list.forEach(r=>{
+      const p = ARIBA_CONTRATO_PROJ[r.contrato];
+      body += '<tr class="ar-det ar-hide" data-ar="'+esc(k)+'" title="FR '+esc(r.fr)+'"><td>'+esc(p||r.contrato)+'</td><td>'+esc(r.forn||'—')+'</td><td>'+esc(r.tipo||'—')+'</td><td>'+esc(r.mesFR||'—')+'</td><td>'+esc(r.periodo||'—')+'</td><td class="num">'+fmtBRL2(r.rs)+'</td></tr>';
+    });
   });
-  body += '<tr class="fa-total"><td>Total</td><td></td><td></td><td></td><td></td><td class="num">'+fmtBRL2(tot)+'</td></tr></table>';
+  body += '<tr class="fa-total"><td>Total</td><td></td><td></td><td></td><td>'+rows.length+" FR's</td>"+'<td class="num">'+fmtBRL2(tot)+'</td></tr></table>';
+  body = '<div class="ar-bar"><button type="button" data-ar-all="1">Abrir todos</button><button type="button" data-ar-all="0">Fechar todos</button></div>'+body;
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
+document.getElementById('fa-modal-body').addEventListener('click', e=>{
+  const all = e.target.closest('[data-ar-all]');
+  const setTg = (k, open)=>{ document.querySelectorAll('#fa-modal-body tr.ar-det[data-ar="'+k+'"]').forEach(r=>r.classList.toggle('ar-hide', !open)); const g = document.querySelector('#fa-modal-body tr.ar-grp[data-ar="'+k+'"] .ar-tg'); if (g) g.textContent = open ? '▾' : '▸'; };
+  if (all){ const open = all.dataset.arAll==='1'; document.querySelectorAll('#fa-modal-body tr.ar-grp').forEach(g=>setTg(g.dataset.ar, open)); return; }
+  const g = e.target.closest('tr.ar-grp'); if (!g) return;
+  setTg(g.dataset.ar, !!document.querySelector('#fa-modal-body tr.ar-det.ar-hide[data-ar="'+g.dataset.ar+'"]'));
+});
 document.getElementById('kpi-strip').addEventListener('click', e=>{
   const card = e.target.closest('[data-ariba-kpi]');
   if (card) openAribaModal(card.dataset.proj);
@@ -3681,6 +3704,7 @@ function xlsxDownload(sheets, filename){
 function xlsxSafeName(s){ return String(s||'Resumo').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().slice(0,80) || 'Resumo'; }
 // botao ao lado da camera no resumo em janela
 document.getElementById('fa-modal-excel').addEventListener('click', function(){
+  document.querySelectorAll('#fa-modal-body tr.ar-hide').forEach(function(r){ r.classList.remove('ar-hide'); });   // exporta tudo aberto
   const tables = Array.prototype.slice.call(document.querySelectorAll('#fa-modal-body table'));
   if (!tables.length){ return; }
   const title = document.getElementById('fa-modal-title').textContent, sub = document.getElementById('fa-modal-sub').textContent;
@@ -3693,6 +3717,7 @@ document.getElementById('fa-modal-excel').addEventListener('click', function(){
 });
 // 📋 copia o resumo da janela como tabela HTML formatada (cores, negrito, bordas) + texto TSV: ao colar no Excel mantem o visual
 document.getElementById('fa-modal-xlcopy').addEventListener('click', async function(){
+  document.querySelectorAll('#fa-modal-body tr.ar-hide').forEach(function(r){ r.classList.remove('ar-hide'); });   // copia tudo aberto
   const table = document.querySelector('#fa-modal-body table'); if (!table) return;
   const title = document.getElementById('fa-modal-title').textContent, sub = document.getElementById('fa-modal-sub').textContent;
   const ncol = Math.max.apply(null, Array.prototype.map.call(table.rows, r=>Array.prototype.reduce.call(r.cells,(s,c)=>s+(c.colSpan||1),0)));
