@@ -1731,11 +1731,21 @@ function openAprovModal(proj){
   if (!rows.length) body = '<div class="fiscal-empty">Nenhuma FR em aprovação no período selecionado.</div>';
   else {
     body = '<table><tr><th>Contrato</th><th>Fornecedor</th><th>FAD / FIA / RAT</th><th>Nº FR</th><th>Mês/Ano liberação da FR</th><th>Período (mês)</th><th class="num">R$</th></tr>';
-    rows.forEach(r=>{
-      tot += r.rs;
-      body += '<tr title="'+esc(r.fa||'')+'"><td>'+esc(CONTRATO_TXT[r.projeto]||r.projeto)+'</td><td>'+esc(r.forn||'—')+'</td><td>'+esc(r.tipo)+'</td><td>'+esc(r.fr||'—')+'</td><td>'+esc(lib.get(String(r.fr))||'—')+'</td><td>'+esc(r.mesano)+'</td><td class="num">'+fmtBRL2(r.rs)+'</td></tr>';
+    // agrupado por FAD / FIA / RAT (clique na linha do grupo abre o detalhe; mesmo tratamento do "FR liberada")
+    rows.forEach(r=>{ tot += r.rs; });
+    const order = ['FAD','FIA','RAT'], groups = new Map();
+    rows.forEach(r=>{ const k = String(r.tipo||'—').toUpperCase(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+    const gName = { FAD:'FAD — horas', FIA:'FIA — equipamentos auxiliares', RAT:'RATEIO' };
+    const mesOrd = a => Array.from(new Set(a.filter(Boolean))).sort((x,y)=>mesKey(x)-mesKey(y)).join('; ');
+    Array.from(groups.keys()).sort((a,b)=>{ const ia = order.indexOf(a), ib = order.indexOf(b); return (ia<0?9:ia)-(ib<0?9:ib); }).forEach(k=>{
+      const list = groups.get(k), sub = list.reduce((s,r)=>s+r.rs,0);
+      body += '<tr class="ar-grp" data-ar="'+esc(k)+'" title="Clique para abrir / fechar o detalhe"><td colspan="3"><span class="ar-tg">▸</span> '+esc(gName[k]||k)+'</td><td>'+list.length+' FR'+(list.length>1?"'s":'')+'</td><td>'+esc(mesOrd(list.map(r=>lib.get(String(r.fr)))) || '—')+'</td><td>'+esc(mesOrd(list.map(r=>r.mesano)))+' · '+(tot?fmtPct(sub/tot):'—')+'</td><td class="num">'+fmtBRL2(sub)+'</td></tr>';
+      list.forEach(r=>{
+        body += '<tr class="ar-det ar-hide" data-ar="'+esc(k)+'" title="'+esc(r.fa||'')+'"><td>'+esc(CONTRATO_TXT[r.projeto]||r.projeto)+'</td><td>'+esc(r.forn||'—')+'</td><td>'+esc(r.tipo)+'</td><td>'+esc(r.fr||'—')+'</td><td>'+esc(lib.get(String(r.fr))||'—')+'</td><td>'+esc(r.mesano)+'</td><td class="num">'+fmtBRL2(r.rs)+'</td></tr>';
+      });
     });
     body += '<tr class="fa-total"><td>Total ('+rows.length+')</td><td></td><td></td><td></td><td></td><td></td><td class="num">'+fmtBRL2(tot)+'</td></tr></table>';
+    body = '<div class="ar-bar"><button type="button" data-ar-all="1">Abrir todos</button><button type="button" data-ar-all="0">Fechar todos</button></div>'+body;
   }
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
