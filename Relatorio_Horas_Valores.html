@@ -1761,7 +1761,7 @@ function renderKpiStrip(proj, data){
   }
   const aribaTot = aribaTotalFor(proj);
   if (Math.round(aribaTot*100)!==0){
-    cards.splice(3, 0, { icon:'🔷', cls:'kpi-ariba kpi-frs-clickable', label:'FR LIBERADA SAP_USM', value:'R$ '+fmtBRL2(aribaTot), sub:(medidoFR.rs ? (aribaTot/medidoFR.rs*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% da FR em aprovação' : aribaRowsFor(proj).length+" FR's"), aribaProj:proj });
+    cards.splice(3, 0, { icon:'🔷', cls:'kpi-ariba kpi-frs-clickable', label:'FR LIBERADA SAP_USM', value:'R$ '+fmtBRL(aribaTot), sub:(medidoFR.rs ? (aribaTot/medidoFR.rs*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% da FR em aprovação' : aribaRowsFor(proj).length+" FR's"), aribaProj:proj });
   }
   const cardHTML = c=>
     '<div class="kpi-card '+c.cls+'"'+(c.clickProj?' data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?' data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?' data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo da FR liberada SAP_USM"':'')+'><div class="kpi-icon">'+c.icon+'</div><div>'+(c.hideLabel?'':'<div class="kpi-label">'+esc(c.label)+'</div>')+'<div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
