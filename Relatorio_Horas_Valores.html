@@ -2764,7 +2764,7 @@ function pendDetailRowsFor(scope){
         // tipo HH (pessoas): item (esquerda) = FUNCAO (col J) e descricao (direita) = nome da pessoa (col AD); se a col J so repete o nome, fica so o nome
         const gente = r.aa==='HH' && r.nome && !/^n\/?a$/i.test(r.nome);
         const funcao = gente && r.item && r.item.trim().toUpperCase()!==r.nome.trim().toUpperCase() ? r.item : '';
-        if (okProj(r) && okMes(r)) out.push({ projeto:r.projeto, mesano:r.mesano, fiscal:'Usiminas', os:gente ? (funcao || r.nome) : (r.item||'(sem item)'), rdc:gente ? (funcao ? r.nome : '') : ((r.nome && !/^n\/?a$/i.test(r.nome)) ? r.nome : (r.fa||'')), hh:r.hh||0, rs:r.rs||0, status:it.label, fr:true, tipo:r.aa||'(sem tipo)', pessoa:(r.hh>0 && r.nome && !/^n\/?a$/i.test(r.nome)) ? r.nome : '' });
+        if (okProj(r) && okMes(r)) out.push({ projeto:r.projeto, mesano:r.mesano, fiscal:'Usiminas', os:gente ? (funcao || r.nome) : (r.item||'(sem item)'), rdc:gente ? (funcao ? r.nome : '') : (r.nome && !/^n\/?a$/i.test(r.nome) ? (r.nome.trim().toUpperCase()===String(r.item||'').trim().toUpperCase() ? '' : r.nome) : (r.fa||'')),   // descricao igual ao item nao repete hh:r.hh||0, rs:r.rs||0, status:it.label, fr:true, tipo:r.aa||'(sem tipo)', pessoa:(r.hh>0 && r.nome && !/^n\/?a$/i.test(r.nome)) ? r.nome : '' });
       });
       return;
     }
