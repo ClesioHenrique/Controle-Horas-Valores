@@ -274,10 +274,11 @@ html.dark-theme body:not(.printing) table.evol-tbl tr.evol-other td{background:#
 .kpi-grp-col .kpi-card{flex:none;width:166px;height:82px;}
 .kpi-eq{align-self:center;margin-bottom:4px;width:28px;height:28px;border-radius:8px;background:var(--navy);color:var(--green);font-size:20px;font-weight:800;line-height:26px;text-align:center;}
 .kpi-strip{align-items:flex-end;}
-.kpi-card .kpi-icon{font-size:20px;line-height:1;}
+.kpi-card{position:relative;}
+.kpi-card .kpi-icon{font-size:20px;line-height:1;width:26px;flex:0 0 26px;text-align:center;}
 .kpi-card .kpi-label{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;line-height:1.2;}
 .kpi-card .kpi-value{font-size:16px;font-weight:800;color:var(--navy);white-space:nowrap;}
-.kpi-card .kpi-sub{font-size:10.5px;font-weight:700;margin-top:1px;}
+.kpi-card .kpi-sub{font-size:10.5px;font-weight:700;position:absolute;left:50px;right:6px;bottom:7px;margin:0;line-height:1.15;white-space:nowrap;}
 .kpi-card.kpi-green{border-left:4px solid var(--green-dark);}
 .kpi-card.kpi-blue{border-left:4px solid var(--info-blue);}
 .kpi-card.kpi-navy{border-left:4px solid var(--navy);}
@@ -1773,7 +1774,7 @@ function renderKpiStrip(proj, data){
   }
   const aribaTot = aribaTotalFor(proj);
   if (Math.round(aribaTot*100)!==0){
-    cards.splice(3, 0, { icon:'🔷', cls:'kpi-ariba kpi-frs-clickable', label:'FR LIBERADA SAP_USM', value:'R$ '+fmtBRL(aribaTot), sub:(medidoFR.rs ? (aribaTot/medidoFR.rs*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% da FR em aprovação' : aribaRowsFor(proj).length+" FR's"), aribaProj:proj });
+    cards.splice(3, 0, { icon:'💰', cls:'kpi-ariba kpi-frs-clickable', label:'FR LIBERADA SAP_USM', value:'R$ '+fmtBRL(aribaTot), sub:(medidoFR.rs ? (aribaTot/medidoFR.rs*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% da FR em aprov.' : aribaRowsFor(proj).length+" FR's"), aribaProj:proj });
   }
   const cardHTML = c=>
     '<div class="kpi-card '+c.cls+'"'+(c.clickProj?' data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?' data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?' data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo da FR liberada SAP_USM"':'')+'><div class="kpi-icon">'+c.icon+'</div><div>'+(c.hideLabel?'':'<div class="kpi-label">'+esc(c.label)+'</div>')+'<div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
