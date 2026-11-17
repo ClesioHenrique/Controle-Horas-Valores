@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="UTF-8">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&amp;family=JetBrains+Mono:wght@600;700&amp;display=swap" rel="stylesheet">
@@ -175,6 +175,8 @@ table.pend-tbl th[rowspan]{vertical-align:middle;}
 tr.pn-mes-hdr td{background:#eef6dd;font-size:11.5px;font-style:italic;color:#4a5a2a;padding:2px 8px;}
 tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pend-ospanel{background:#fff9cc;border:2px solid #f2c200;border-radius:8px;padding:8px 10px;margin:4px 0 12px;overflow:auto;}
+.pend-xlbtn{border:none;background:none;font-size:20px;cursor:pointer;padding:2px 6px;border-radius:6px;}
+.pend-xlbtn:hover{background:rgba(0,43,92,.1);}
 .pend-ospanel .pop-h{font-size:13px;font-weight:600;margin-bottom:6px;color:#1b2a3a;}
 .pend-ospanel .pop-total{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 26px;background:#ffd633;border:2px solid #e0b000;border-radius:8px;padding:8px 14px;margin:0 0 8px;color:#1b2a3a;}
 .pend-ospanel .pop-tl{font-size:12px;font-weight:800;letter-spacing:.06em;}
@@ -2554,48 +2556,26 @@ function pendOsRefresh(){ const o = document.getElementById('pend-os-wrap'); if 
 function pendOsPanelHTML(){
   if (!PEND_OS && !PEND_FISC) return '';
   return pendWithMonths(()=>{
+    // mesmo modelo "bonito" do extrato por Fiscal (cards + ranking + OS), aplicado ao filtro de OS / Fiscal
     const B = pendBuild(), sec0 = B.secs.find(s=>s.idx===0);
-    const items = sec0 ? sec0.groups.reduce((a,g)=>a.concat(g.items.map(it=>({sec:0,label:it.label,resp:it.resp}))),[]) : [];
-    PEND_EXT_PR = 'tot';
-    let rows = pendDetailRowsFor({ title:'', items, mes:null });
-    if (PEND_ST) rows = rows.filter(r=>PEND_ST.includes(r.status));
-    const head = '<div class="pend-ospanel"><div class="pop-h">'+(PEND_OS?'<b>'+esc(PEND_OS)+'</b> ':'')+(PEND_FISC?'Fiscal <b>'+esc(PEND_FISC)+'</b> ':'')+'— o que as FADS têm referenciado '+(PEND_OS&&PEND_FISC?'a essa OS e fiscal':PEND_OS?'a essa OS':'a esse fiscal')+' · '+(PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+esc(DISPLAY_MONTHS.join(', '))+(rows.length?' <button type="button" class="evol-quick" data-pn-xl="1" style="float:right;margin:-2px 0 0 10px" title="Baixar este resumo em Excel (.xlsx)">📊 Exportar Excel</button>':'')+'</div>';
-    if (!rows.length) return head+'<div class="pop-empty">Nenhuma pendência de FADS encontrada para esse filtro nos projetos e meses marcados.</div></div>';
-    const order = []; const byS = new Map();
-    rows.forEach(r=>{ let s = byS.get(r.status); if (!s){ s = { st:r.status, rs:0, hh:0, f:new Map() }; byS.set(r.status,s); order.push(s); }
-      s.rs += r.rs; s.hh += r.hh;
-      const fk = r.fiscal+'|'+r.os; let f = s.f.get(fk); if (!f){ f = { fiscal:r.fiscal, rs:0, hh:0, rdc:new Set(), mes:new Set(), os:new Set() }; s.f.set(fk,f); }
-      f.rs += r.rs; f.hh += r.hh; if (r.rdc) f.rdc.add(r.rdc); f.mes.add(r.mesano); f.os.add(r.os); });
-    const rdcTxt = set => { const a = Array.from(set).sort((x,y)=>String(x).localeCompare(String(y),'pt-BR',{numeric:true})); return !a.length ? '—' : a.length<=8 ? a.join(', ') : a.slice(0,8).join(', ')+' (+'+(a.length-8)+' mais)'; };
-    let tRS = 0, tHH = 0;
-    const allRdc = new Set(); rows.forEach(r=>{ if (r.rdc) allRdc.add(r.rdc); });
-    const totRS = rows.reduce((s,r)=>s+r.rs,0), totHH = rows.reduce((s,r)=>s+r.hh,0);
-    const topBar = '<div class="pop-total"><span class="pop-tl">TOTAL'+(PEND_OS||PEND_FISC?' DO FILTRO':'')+'</span><span class="pop-tv"><small>HH</small> '+fmtInt(totHH)+'</span><span class="pop-tv"><small>R$</small> '+fmtBRL(totRS)+'</span><span class="pop-ts">'+order.length+' status · '+allRdc.size+' RDC</span></div>';
-    let h = head+topBar+'<table class="pe-tbl"><thead><tr><th>Status / Fiscal</th><th>OS</th><th>Meses</th><th class="num">Qtd RDC</th><th>Nº RDC</th><th class="num">HH</th><th class="num">R$</th></tr></thead><tbody>';
-    order.forEach(s=>{
-      tRS += s.rs; tHH += s.hh;
-      h += '<tr class="pop-st"><td colspan="5">'+esc(s.st)+'</td><td class="num">'+fmtInt(s.hh)+'</td><td class="num">R$ '+fmtBRL(s.rs)+'</td></tr>';
-      Array.from(s.f.values()).sort((a,b)=>b.rs-a.rs).forEach(f=>{
-        const ms = Array.from(f.mes).sort((a,b)=>mesKey(a)-mesKey(b)).join(', ');
-        h += '<tr class="pe-os"><td class="pe-osn">'+esc(f.fiscal)+'</td><td>'+esc(Array.from(f.os).join(', '))+'</td><td>'+esc(ms)+'</td><td class="num">'+(f.rdc.size||'—')+'</td><td>'+esc(rdcTxt(f.rdc))+'</td><td class="num">'+fmtInt(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td></tr>';
-      });
-    });
-    h += '<tr class="fa-total"><td colspan="5">Total da OS</td><td class="num">'+fmtInt(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td></tr></tbody></table></div>';
-    return h;
+    let items = sec0 ? sec0.groups.reduce((a,g)=>a.concat(g.items.map(it=>({sec:0,label:it.label,resp:it.resp}))),[]) : [];
+    if (PEND_ST) items = items.filter(it=>PEND_ST.includes(it.label));
+    PEND_SCOPES['__panel'] = { title:'FADS', items:items, mes:null };
+    const r = openPendExtratoModal('__panel', 'tot', 'rs', true, true);
+    if (!r) return '';
+    const filt = (PEND_OS?'<b>'+esc(PEND_OS)+'</b> ':'')+(PEND_FISC?'Fiscal <b>'+esc(PEND_FISC)+'</b>':'');
+    return '<div class="pend-ospanel pend-xlpanel" data-xl-title="'+esc(r.title)+'" data-xl-sub="'+esc(r.sub)+'">'+
+      '<div class="pop-h" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="flex:1 1 auto"><span style="font-size:15px;font-weight:700;color:var(--navy)">'+esc(r.title)+'</span><br><span style="font-weight:400;font-size:12px">Filtro: '+filt+' — o que as FADS têm referenciado</span></span>'+
+      '<button type="button" class="pend-xlbtn" data-pn-xlc="1" title="Copiar para colar no Excel (mantém o visual)">📋</button>'+
+      '<button type="button" class="pend-xlbtn" data-pn-xl="1" title="Baixar em Excel (.xlsx), com as OS agrupadas">📊</button></div>'+r.body+'</div>';
   });
 }
-// exporta o resumo amarelo (OS / Fiscal) para Excel
+// 📋 / 📊 do painel amarelo (OS / Fiscal): usam as mesmas rotinas do extrato em janela
 document.getElementById('content').addEventListener('click', e=>{
-  if (!e.target.closest('[data-pn-xl]')) return;
-  const box = e.target.closest('.pend-ospanel'), t = box && box.querySelector('table'); if (!t) return;
-  const txt = box.querySelector('.pop-h').innerText.replace(/📊 Exportar Excel/,'').replace(/\s+/g,' ').trim();
-  const tot = box.querySelector('.pop-total'); const totTxt = tot ? tot.innerText.replace(/\s+/g,' ').trim() : '';
-  const rows = xlsxTableRows(t);
-  rows.forEach(r=>r.forEach((c,i)=>{ if (c.t==='s' && !c.h && /^R\$\s*-?[\d.]+(,\d+)?$/.test(c.v)){ r[i] = { v:parseFloat(c.v.replace(/^R\$\s*/,'').replace(/\./g,'').replace(',','.')), t:'n', h:false }; } }));
-  rows.unshift([{v:txt,t:'s',h:true}], [{v:totTxt,t:'s',h:false}], []);
-  const name = 'Resumo '+(PEND_FISC||'')+' '+(PEND_OS||'');
-  const widths = [34,14,28,10,70,10,16];
-  xlsxDownload([{ name:name.trim()||'Resumo', rows, widths }], xlsxSafeName(name.trim()||'Resumo pendencias')+'.xlsx');
+  const c = e.target.closest('[data-pn-xlc]'), x = e.target.closest('[data-pn-xl]'); if (!c && !x) return;
+  const box = e.target.closest('.pend-xlpanel'); if (!box) return;
+  const ctx = { root:box, title:box.dataset.xlTitle, sub:box.dataset.xlSub };
+  if (c) xlCopyExtrato(ctx); else xlExcelExtrato(ctx);
 });
 document.getElementById('content').addEventListener('click', e=>{
   const tg = e.target.closest('[data-pn-k]');
@@ -2650,7 +2630,7 @@ function pendWithMonths(fn){
 { const _t = pendTableHTML, _k = renderPendKpiStrip, _m = openPendExtratoModal;
   pendTableHTML = function(){ return pendWithMonths(_t); };
   renderPendKpiStrip = function(){ return pendWithMonths(_k); };
-  openPendExtratoModal = function(id, pr, kind, keep){ return pendWithMonths(()=>_m(id, pr, kind, keep)); };
+  openPendExtratoModal = function(id, pr, kind, keep, inline){ return pendWithMonths(()=>_m(id, pr, kind, keep, inline)); };
 }
 let PEND_MES_OPEN = false;
 function pendMesDropHTML(){
@@ -2807,16 +2787,17 @@ function pendScopeTotal(scope){
   return rs;
 }
 let PEND_EXT_FSEL = [], PEND_EXT_FOPEN = false, PEND_EXT_LAST = null;
-function openPendExtratoModal(id, pr, kind, keep){
+function openPendExtratoModal(id, pr, kind, keep, inline){
+  // inline=true: nao abre a janela nem mexe no filtro de fiscal dela; devolve {title,sub,body} para o painel amarelo
   const scope = PEND_SCOPES[id]; if (!scope) return;
   PEND_EXT_PR = pr || 'tot';
-  if (!keep){ PEND_EXT_FSEL = []; PEND_EXT_FOPEN = false; }
-  PEND_EXT_LAST = [id, pr, kind];
+  if (!keep && !inline){ PEND_EXT_FSEL = []; PEND_EXT_FOPEN = false; }
+  if (!inline) PEND_EXT_LAST = [id, pr, kind];
   const rowsAll = pendDetailRowsFor(scope);
   const fiscAll = Array.from(new Set(rowsAll.map(r=>r.fiscal))).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
-  PEND_EXT_FSEL = PEND_EXT_FSEL.filter(f=>fiscAll.includes(f));
-  const rows = PEND_EXT_FSEL.length ? rowsAll.filter(r=>PEND_EXT_FSEL.includes(r.fiscal)) : rowsAll;
-  const fiscFilterHTML = !fiscAll.length ? '' :
+  if (!inline) PEND_EXT_FSEL = PEND_EXT_FSEL.filter(f=>fiscAll.includes(f));
+  const rows = (PEND_EXT_FSEL.length && !inline) ? rowsAll.filter(r=>PEND_EXT_FSEL.includes(r.fiscal)) : rowsAll;
+  const fiscFilterHTML = (!fiscAll.length || inline) ? '' :
     '<div class="pe-ffilter"><span class="pe-flbl">Fiscal:</span><div class="pn-mdrop"><button type="button" class="pn-mbtn" data-pe-open>'+(PEND_EXT_FSEL.length ? PEND_EXT_FSEL.length+' selecionado'+(PEND_EXT_FSEL.length>1?'s':'') : 'Todos os fiscais ('+fiscAll.length+')')+' ▾</button>'+
     (PEND_EXT_FOPEN ? '<div class="pn-mpanel pe-fpanel"><input type="text" class="pn-mq" data-pe-q placeholder="Buscar fiscal…"><div class="pn-mgrid">'+fiscAll.map(f=>'<label class="pe-fitem"><input type="checkbox" data-pe-f="'+esc(f)+'"'+(PEND_EXT_FSEL.includes(f)?' checked':'')+'> '+esc(f)+'</label>').join('')+'</div><div class="pe-fact"><button type="button" data-pe-all>Marcar todos</button><button type="button" data-pe-clr>Limpar</button></div></div>' : '')+
     '</div>'+(PEND_EXT_FSEL.length ? '<button type="button" class="pe-fclr" data-pe-clr>✕ Limpar filtro</button>' : '')+'</div>';
@@ -2827,8 +2808,9 @@ function openPendExtratoModal(id, pr, kind, keep){
   const hhT = x => (allFR && !(x>0)) ? '—' : fmtInt(x);
   const K = (kind==='hh' && (!allFR || anyHH)) ? 'hh' : 'rs';
   const mesOrd = set => Array.from(set).sort((a,b)=>mesKey(a)-mesKey(b)).join(', ');
-  document.getElementById('fa-modal-title').textContent = String(scope.title).split(' — ')[0].trim()+'_'+projTxt.replace(/ e /g,'+')+' ('+(K==='hh'?'HH':'R$')+') Mês : '+(scope.mes || perTxt)+' - extrato por Fiscal';
-  document.getElementById('fa-modal-sub').textContent = projTxt+' · '+perTxt+' · ranking dos fiscais, do maior para o menor '+(K==='hh'?'HH':'valor')+' pendente (valor clicado: '+(K==='hh'?'HH':'R$')+')';
+  const ttl = String(scope.title).split(' — ')[0].trim()+'_'+projTxt.replace(/ e /g,'+')+' ('+(K==='hh'?'HH':'R$')+') Mês : '+(scope.mes || perTxt)+' - extrato por Fiscal';
+  const sbt = projTxt+' · '+perTxt+' · ranking dos fiscais, do maior para o menor '+(K==='hh'?'HH':'valor')+' pendente (valor clicado: '+(K==='hh'?'HH':'R$')+')';
+  if (!inline){ document.getElementById('fa-modal-title').textContent = ttl; document.getElementById('fa-modal-sub').textContent = sbt; }
   let body = '';
   if (!rows.length){
     body = '<div class="fiscal-empty">'+(PEND_OS ? 'Nenhum registro da OS <b>'+esc(PEND_OS)+'</b> nesta linha. Limpe o filtro de OS (na barra de filtros) para ver todos os fiscais.' : 'Esta linha não tem Fiscal vinculado na planilha (FIA, RATEIO ou itens sem detalhamento por Fiscal).')+'</div>';
@@ -2887,10 +2869,11 @@ function openPendExtratoModal(id, pr, kind, keep){
     body += '<tr class="fa-total"><td></td><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td>'+esc(scope.mes || mesOrd(allMes))+'</td><td class="num">'+tRDC+'</td><td></td>'+(allFR?'<td></td>':'')+'<td class="num">'+hhT(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td></tr></tbody></table>';
     const falta = pendScopeTotal(scope) - tRS;
     const nota = [];
-    if (!PEND_EXT_FSEL.length && Math.abs(falta) > 1) nota.push('R$ '+fmtBRL(Math.abs(falta))+(falta>0?' do resumo ':' a mais no detalhe ')+'sem detalhamento por Fiscal na planilha (FIA, RATEIO ou itens sem fiscal).');
+    if (!inline && !PEND_EXT_FSEL.length && Math.abs(falta) > 1) nota.push('R$ '+fmtBRL(Math.abs(falta))+(falta>0?' do resumo ':' a mais no detalhe ')+'sem detalhamento por Fiscal na planilha (FIA, RATEIO ou itens sem fiscal).');
     nota.push('Linhas em destaque = fiscais que concentram até 80% do valor (Pareto).');
     body += '<div class="pe-note">'+nota.map(esc).join(' ')+'</div>';
   }
+  if (inline) return { title:ttl, sub:sbt, body:body };
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
@@ -3797,7 +3780,8 @@ function xlsxDownload(sheets, filename){
 function xlsxSafeName(s){ return String(s||'Resumo').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().slice(0,80) || 'Resumo'; }
 // extrato por Fiscal (tabela .pe-tbl): planilha com o mesmo visual da tela (cores, bordas, formatos), larguras fixas e
 // linhas de detalhe agrupadas (+/-) — o agrupamento so existe de verdade no arquivo .xlsx (colar HTML no Excel nao traz)
-function xlsxExtratoSheet(t, title, sub){
+function xlsxExtratoSheet(t, title, sub, root){
+  root = root || document.getElementById('fa-modal-body');
   const txt = el => (el.innerText||el.textContent||'').replace(/\s+/g,' ').trim().replace(/^[▸▾]\s*/,'');
   const heads = Array.prototype.map.call(t.tHead.rows[0].cells, txt);
   const kindOf = h => /^R\$$/.test(h) ? 'rs' : /^%/.test(h) ? 'pct' : /^(Qtd|Qtd RDC|HH)$/.test(h) ? 'int' : 'text';
@@ -3813,7 +3797,7 @@ function xlsxExtratoSheet(t, title, sub){
   const rows = [], outline = [];
   rows.push([{v:title,t:'s',h:true}]); outline.push(0);
   rows.push([{v:sub,t:'s',h:false}]); outline.push(0);
-  const cards = Array.prototype.map.call(document.querySelectorAll('#fa-modal-body .pe-card'), c=>txt(c)).join('   |   ');
+  const cards = Array.prototype.map.call(root.querySelectorAll('.pe-card'), c=>txt(c)).join('   |   ');
   if (cards){ rows.push([{v:cards,t:'s',h:true}]); outline.push(0); }
   rows.push([]); outline.push(0);
   rows.push(heads.map(h=>({v:h,t:'s',s:4}))); outline.push(0);
@@ -3830,13 +3814,14 @@ function xlsxExtratoSheet(t, title, sub){
   return { name: title, rows, outline: outline.some(x=>x) ? outline : null, widths };
 }
 // botao ao lado da camera no resumo em janela
-document.getElementById('fa-modal-excel').addEventListener('click', function(){
-  document.querySelectorAll('#fa-modal-body tr.ar-hide').forEach(function(r){ r.classList.remove('ar-hide'); });   // exporta tudo aberto
-  const tables = Array.prototype.slice.call(document.querySelectorAll('#fa-modal-body table'));
+function xlExcelExtrato(ctx){
+  const root = (ctx && ctx.root) || document.getElementById('fa-modal-body');
+  root.querySelectorAll('tr.ar-hide').forEach(function(r){ r.classList.remove('ar-hide'); });   // exporta tudo aberto
+  const tables = Array.prototype.slice.call(root.querySelectorAll('table'));
   if (!tables.length){ return; }
-  const title = document.getElementById('fa-modal-title').textContent, sub = document.getElementById('fa-modal-sub').textContent;
+  const title = ctx ? ctx.title : document.getElementById('fa-modal-title').textContent, sub = ctx ? ctx.sub : document.getElementById('fa-modal-sub').textContent;
   const sheets = tables.map((t,i)=>{
-    if (t.classList.contains('pe-tbl') && t.tHead && t.tBodies.length) return xlsxExtratoSheet(t, title, sub);
+    if (t.classList.contains('pe-tbl') && t.tHead && t.tBodies.length) return xlsxExtratoSheet(t, title, sub, root);
     const rows = xlsxTableRows(t);
     // linhas de detalhe (tr.ar-det) saem agrupadas (+/-) no Excel, com o botao de abrir/fechar na linha do tipo, acima
     let outline = Array.prototype.map.call(t.rows, r=>r.classList.contains('ar-det') ? 1 : 0);
@@ -3845,12 +3830,14 @@ document.getElementById('fa-modal-excel').addEventListener('click', function(){
     return { name: tables.length>1 ? title+' '+(i+1) : title, rows, outline: (outline && outline.some(x=>x)) ? outline : null };
   });
   xlsxDownload(sheets, xlsxSafeName(title)+'.xlsx');
-});
+}
+document.getElementById('fa-modal-excel').addEventListener('click', function(){ xlExcelExtrato(); });
 // 📋 copia o resumo da janela como tabela HTML formatada (cores, negrito, bordas) + texto TSV: ao colar no Excel mantem o visual
-document.getElementById('fa-modal-xlcopy').addEventListener('click', async function(){
-  document.querySelectorAll('#fa-modal-body tr.ar-hide').forEach(function(r){ r.classList.remove('ar-hide'); });   // copia tudo aberto
-  const table = document.querySelector('#fa-modal-body table'); if (!table) return;
-  const title = document.getElementById('fa-modal-title').textContent, sub = document.getElementById('fa-modal-sub').textContent;
+async function xlCopyExtrato(ctx){
+  const root = (ctx && ctx.root) || document.getElementById('fa-modal-body');
+  root.querySelectorAll('tr.ar-hide').forEach(function(r){ r.classList.remove('ar-hide'); });   // copia tudo aberto
+  const table = root.querySelector('table'); if (!table) return;
+  const title = ctx ? ctx.title : document.getElementById('fa-modal-title').textContent, sub = ctx ? ctx.sub : document.getElementById('fa-modal-sub').textContent;
   const ncol = Math.max.apply(null, Array.prototype.map.call(table.rows, r=>Array.prototype.reduce.call(r.cells,(s,c)=>s+(c.colSpan||1),0)));
   const rgb = c => (!c || c==='transparent' || /rgba\(.*,\s*0\)$/.test(c)) ? '' : c;
   const fx = (el, extra) => {
@@ -3867,7 +3854,7 @@ document.getElementById('fa-modal-xlcopy').addEventListener('click', async funct
     '<tr style="height:1px;mso-height-source:userset">'+widths.map(w=>'<td width="'+w+'" style="width:'+w+'px;font-size:1pt;line-height:1px;padding:0;"></td>').join('')+'</tr>';   // linha-guia: o Excel toma as larguras dela
   h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:14pt;font-weight:bold;color:#12305a;">'+esc(title)+'</td></tr>';
   h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:10pt;color:#5b6b7c;">'+esc(sub)+'</td></tr><tr><td colspan="'+ncol+'"></td></tr>';
-  let cards = Array.prototype.slice.call(document.querySelectorAll('#fa-modal-body .pe-card'));
+  let cards = Array.prototype.slice.call(root.querySelectorAll('.pe-card'));
   let tsv = title+'\n'+sub+'\n\n';
   if (cards.length){
     // ordem para o Excel: Total | outra metrica | Maior volume (coluna larga, nome em 1 linha) | Fiscais | RDC | Top 3
@@ -3894,7 +3881,7 @@ document.getElementById('fa-modal-xlcopy').addEventListener('click', async funct
     }).join('')+'</tr>';
     tsv += cells.map(c=>c.innerText.trim().replace(/^[▸▾]\s*/,'').replace(/\s+/g,' ')).join('\t')+'\n';
   });
-  const note = document.querySelector('#fa-modal-body .pe-note');
+  const note = root.querySelector('.pe-note');
   if (note) h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:9pt;color:#7a8794;">'+esc(note.innerText.trim())+'</td></tr>';
   h += '</table>';
   const full = '<html><head><meta charset="utf-8"></head><body>'+h+'</body></html>';
@@ -3909,7 +3896,8 @@ document.getElementById('fa-modal-xlcopy').addEventListener('click', async funct
     } catch(e2){ ok = false; }
   }
   if (typeof showUpdateToast === 'function') showUpdateToast(ok ? 'Copiado! Abra o Excel e cole (Ctrl+V) — o visual vai junto.' : 'Não foi possível copiar. Use o botão 📊 para baixar o Excel.', !ok);
-});
+}
+document.getElementById('fa-modal-xlcopy').addEventListener('click', function(){ xlCopyExtrato(); });
 // botao ao lado de "Copiar imagem (aba atual)": exporta as tabelas da aba atual (uma planilha por tabela)
 document.getElementById('btn-export-excel').addEventListener('click', function(){
   const tab = document.querySelector('.tab-btn.active');
