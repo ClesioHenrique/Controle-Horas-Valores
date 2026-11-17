@@ -2559,7 +2559,7 @@ function pendOsPanelHTML(){
     PEND_EXT_PR = 'tot';
     let rows = pendDetailRowsFor({ title:'', items, mes:null });
     if (PEND_ST) rows = rows.filter(r=>PEND_ST.includes(r.status));
-    const head = '<div class="pend-ospanel"><div class="pop-h">'+(PEND_OS?'<b>'+esc(PEND_OS)+'</b> ':'')+(PEND_FISC?'Fiscal <b>'+esc(PEND_FISC)+'</b> ':'')+'— o que as FADS têm referenciado '+(PEND_OS&&PEND_FISC?'a essa OS e fiscal':PEND_OS?'a essa OS':'a esse fiscal')+' · '+(PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+esc(DISPLAY_MONTHS.join(', '))+'</div>';
+    const head = '<div class="pend-ospanel"><div class="pop-h">'+(PEND_OS?'<b>'+esc(PEND_OS)+'</b> ':'')+(PEND_FISC?'Fiscal <b>'+esc(PEND_FISC)+'</b> ':'')+'— o que as FADS têm referenciado '+(PEND_OS&&PEND_FISC?'a essa OS e fiscal':PEND_OS?'a essa OS':'a esse fiscal')+' · '+(PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+esc(DISPLAY_MONTHS.join(', '))+(rows.length?' <button type="button" class="evol-quick" data-pn-xl="1" style="float:right;margin:-2px 0 0 10px" title="Baixar este resumo em Excel (.xlsx)">📊 Exportar Excel</button>':'')+'</div>';
     if (!rows.length) return head+'<div class="pop-empty">Nenhuma pendência de FADS encontrada para esse filtro nos projetos e meses marcados.</div></div>';
     const order = []; const byS = new Map();
     rows.forEach(r=>{ let s = byS.get(r.status); if (!s){ s = { st:r.status, rs:0, hh:0, f:new Map() }; byS.set(r.status,s); order.push(s); }
@@ -2584,6 +2584,19 @@ function pendOsPanelHTML(){
     return h;
   });
 }
+// exporta o resumo amarelo (OS / Fiscal) para Excel
+document.getElementById('content').addEventListener('click', e=>{
+  if (!e.target.closest('[data-pn-xl]')) return;
+  const box = e.target.closest('.pend-ospanel'), t = box && box.querySelector('table'); if (!t) return;
+  const txt = box.querySelector('.pop-h').innerText.replace(/📊 Exportar Excel/,'').replace(/\s+/g,' ').trim();
+  const tot = box.querySelector('.pop-total'); const totTxt = tot ? tot.innerText.replace(/\s+/g,' ').trim() : '';
+  const rows = xlsxTableRows(t);
+  rows.forEach(r=>r.forEach((c,i)=>{ if (c.t==='s' && !c.h && /^R\$\s*-?[\d.]+(,\d+)?$/.test(c.v)){ r[i] = { v:parseFloat(c.v.replace(/^R\$\s*/,'').replace(/\./g,'').replace(',','.')), t:'n', h:false }; } }));
+  rows.unshift([{v:txt,t:'s',h:true}], [{v:totTxt,t:'s',h:false}], []);
+  const name = 'Resumo '+(PEND_FISC||'')+' '+(PEND_OS||'');
+  const widths = [34,14,28,10,70,10,16];
+  xlsxDownload([{ name:name.trim()||'Resumo', rows, widths }], xlsxSafeName(name.trim()||'Resumo pendencias')+'.xlsx');
+});
 document.getElementById('content').addEventListener('click', e=>{
   const tg = e.target.closest('[data-pn-k]');
   if (tg){ const k = tg.dataset.pnK; if (PEND_COLLAPSED.has(k)) PEND_COLLAPSED.delete(k); else PEND_COLLAPSED.add(k); pendRefresh(); return; }
