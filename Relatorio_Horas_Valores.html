@@ -1884,9 +1884,10 @@ function renderKpiStrip(proj, data){
 function projLabelPk(proj){ return proj==='GERAL' ? 'MOA + PCI' : proj; }
 // Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
 // linhas = Projeto / Lider / Fiscal, colunas = cada mes selecionado (HH e R$) + total.
+function rdcVisibleMonths(){ const rs = rdcRowsSelected(); return DISPLAY_MONTHS.filter(m=>rs.some(r=>r.mesano===m && (r.hh||r.rs))); }
 function rdcRowsSelected(){ return RAW_RDC_NAO_APROVADA.filter(r=>DISPLAY_MONTHS.includes(r.mesano) && RDC_PROJ_SELECTED.includes(r.projeto)); }
 function renderRdcHTML(){
-  const months = DISPLAY_MONTHS;
+  const months = rdcVisibleMonths();   // so os meses com valor (mes zerado nao ganha colunas)
   const rows = rdcRowsSelected();
   let html = '<div class="fiscal-block rdc-block" style="border-top:none;margin-top:0;padding-top:0;">';
   html += '<h3>Pendências &mdash; RDC não está aprovada, por Líder e Fiscal</h3>';
@@ -1961,7 +1962,7 @@ function renderRdcKpiStrip(){
   const rows = rdcRowsSelected();
   const hh = rows.reduce((a,r)=>a+r.hh,0), rs = rows.reduce((a,r)=>a+r.rs,0);
   const fiscais = new Set(rows.map(r=>r.projeto+'|'+r.fiscal)).size;
-  return pkPanel('RDC NÃO APROVADA', DISPLAY_MONTHS.join(' · '), [
+  return pkPanel('RDC NÃO APROVADA', rdcVisibleMonths().join(' · '), [
     pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(rs), 100, 'pendência de RDC não aprovada', 'data-pkl="rdc" title="Clique para ver o resumo por fiscal"'),
     pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(hh)+' HH', 0, 'horas apontadas', 'data-pkl="rdc" title="Clique para ver o resumo por fiscal"'),
     pkTile('pk-usm','FISCAIS COM PENDÊNCIA', String(fiscais), 0, 'qtd de fiscais', 'data-pkl="rdc" title="Clique para ver o resumo por fiscal"')
@@ -1981,9 +1982,10 @@ function mobileMonths(){
   const sel = all.filter(m=>MOBILE_MES_SELECTED.includes(m));
   return sel.length ? sel : all;
 }
+function mobileVisibleMonths(){ const rs = mobilePendRowsSelected(); return mobileMonths().filter(m=>rs.some(r=>r.mesano===m && (r.hh||r.rs))); }
 function mobilePendRowsSelected(){ const ms = mobileMonths(); return RAW_RDC_MOBILE_PENDENTE.filter(r=>ms.includes(r.mesano) && RDC_PROJ_SELECTED.includes(r.projeto) && MOBILE_PAPEL_SELECTED.includes(r.papel)); }
 function renderMobilePendenteHTML(){
-  const months = mobileMonths();
+  const months = mobileVisibleMonths();   // so os meses com valor
   const rows = mobilePendRowsSelected();
   let html = '<div class="fiscal-block rdc-block" style="border-top:none;margin-top:0;padding-top:0;">';
   html += '<h3>Pendente Aprovação Fiscalização &mdash; RDC_Mobile</h3>';
@@ -2129,7 +2131,7 @@ function renderMobilePendenteKpiStrip(){
   const rsTotal = rows.reduce((a,r)=>a+(r.rs||0),0);
   const rdcsDistintas = new Set(rows.map(r=>r.projeto+'|'+r.rdc)).size;
   const aprovadores = new Set(rows.map(r=>r.projeto+'|'+r.aprovador)).size;
-  return pkPanel('PENDENTE APROVAÇÃO FISCALIZAÇÃO', mobileMonths().join(' · '), [
+  return pkPanel('PENDENTE APROVAÇÃO FISCALIZAÇÃO', mobileVisibleMonths().join(' · '), [
     pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(rsTotal), 100, 'aprovações pendentes', 'data-pkl="mob" title="Clique para ver o resumo por aprovador"'),
     pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(hhTotal)+' HH', 0, 'horas pendentes', 'data-pkl="mob" title="Clique para ver o resumo por aprovador"'),
     pkTile('pk-usm','RDCS PENDENTES', String(rdcsDistintas), 0, 'qtd de RDCs', 'data-pkl="mob" title="Clique para ver o resumo por aprovador"'),
@@ -3317,7 +3319,7 @@ function render(){
     const rdcTbl = document.getElementById('rdc-tbl');
     if (rdcTbl){
       const rdcRoles = ['projeto','lider','fiscal'];
-      DISPLAY_MONTHS.forEach(()=>{ rdcRoles.push('monthHH','monthRS'); });
+      rdcVisibleMonths().forEach(()=>{ rdcRoles.push('monthHH','monthRS'); });
       rdcRoles.push('totalHH','totalRS');
       enableColResize(rdcTbl, 'rdc-tbl', rdcRoles);
     }
@@ -3333,7 +3335,7 @@ function render(){
     const mobTbl = document.getElementById('mobile-pend-tbl');
     if (mobTbl){
       const mpRoles = ['projeto','papel','aprovador'];
-      mobileMonths().forEach(()=>{ mpRoles.push('monthHH','monthRS'); });
+      mobileVisibleMonths().forEach(()=>{ mpRoles.push('monthHH','monthRS'); });
       mpRoles.push('totalHH','totalRS');
       enableColResize(mobTbl, 'mobile-pend-tbl', mpRoles);
     }
