@@ -183,6 +183,10 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pk-per{margin-left:auto;font-weight:600;letter-spacing:.04em;color:#7fa6d8;}
 .pk-row{display:grid;grid-template-columns:repeat(3,minmax(190px,1fr)) 180px;gap:10px;align-items:stretch;}
 .pk-row.pk-3{grid-template-columns:repeat(3,minmax(190px,1fr));}
+.pk-row.pk-auto{grid-template-columns:repeat(var(--pkn,4),minmax(170px,1fr));}
+.pk-ari .pk-val{color:#6a3fb5;text-shadow:none;}
+.pk-ari .pk-bar i{background:linear-gradient(90deg,#7b4fc9,#b28df0);}
+.pk-panel .pk-tile{min-width:0;}
 .pk-bar-off{background:transparent !important;}
 .pk-click{cursor:pointer;transition:transform .12s,box-shadow .12s;}
 .pk-click:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.35),0 0 0 1px rgba(160,210,255,.5);}
@@ -223,7 +227,7 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pk-tile small{color:#5a6f88;}
 .pk-gtxt{fill:#12305a;}
 .pk-gsub{fill:#5a7391;}
-@media (max-width:900px){.pk-panel{display:block;}.pk-row{grid-template-columns:repeat(2,minmax(0,1fr));}.pk-tile{min-width:0;}.pk-val{font-size:18px;}}
+@media (max-width:900px){.pk-panel{display:block;}.pk-row,.pk-row.pk-3,.pk-row.pk-auto{grid-template-columns:repeat(2,minmax(0,1fr));}.pk-tile{min-width:0;}.pk-val{font-size:18px;}}
 .bi-scroll{overflow-x:auto;max-width:100%;}
 @media (max-width:700px){
   .bi-tbl{font-size:12px;width:100%;}
@@ -1863,15 +1867,21 @@ function renderKpiStrip(proj, data){
   if (Math.round(aribaTot*100)!==0){
     cards.splice(3, 0, { icon:'💰', cls:'kpi-ariba kpi-frs-clickable', label:'FR LIBERADA SAP_USM', value:'R$ '+fmtBRL(aribaTot), sub:(medidoFR.rs ? (aribaTot/medidoFR.rs*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% da FR em aprov.' : aribaRowsFor(proj).length+" FR's"), aribaProj:proj });
   }
-  const cardHTML = c=>
-    '<div class="kpi-card '+c.cls+'"'+(c.clickProj?' data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?' data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?' data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo da FR liberada SAP_USM"':'')+'><div class="kpi-icon">'+c.icon+'</div><div>'+(c.hideLabel?'':'<div class="kpi-label">'+esc(c.label)+'</div>')+'<div class="kpi-value">'+c.value+'</div>'+(c.sub?'<div class="kpi-sub">'+esc(c.sub)+'</div>':'')+'</div></div>'
-  ;
-  // "TOTAL GERAL": HH = R$ (HH primeiro, R$ depois), em grupo com titulo e legendas sobre cada cartao
-  const grpCard = (cap, c) => '<div class="kpi-grp-col"><div class="kpi-grp-cap">'+cap+'</div>'+cardHTML(Object.assign({}, c, {label:cap, hideLabel:true}))+'</div>';
-  const group = '<div class="kpi-group"><div class="kpi-group-title">Total Geral</div><div class="kpi-group-row">'+
-    grpCard('HH', cards[1])+'<div class="kpi-eq">=</div>'+grpCard('R$', cards[0])+'</div></div>';
-  return group + cards.slice(2).map(c=> (c.aprovProj||c.aribaProj||c.clickProj) ? '<div class="kpi-group"><div class="kpi-group-title sm">'+esc(c.label)+'</div><div class="kpi-group-row">'+grpCard('R$', c)+'</div></div>' : cardHTML(c)).join('');
+  // painel executivo (mesmo visual do Resumo de Pendências); os cartões clicáveis mantêm os atributos data-* usados pelos handlers
+  const attrsOf = c => (c.clickProj?'data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?'data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?'data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo da FR liberada SAP_USM"':'');
+  const pcPronto = totalGlobalRS ? Math.max(0, Math.min(100, pctPronto*100)) : 0;
+  const tiles = [
+    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(totalGlobalRS), 100, projLabelPk(proj)),
+    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(totalHH)+' HH', 0, 'horas apontadas')
+  ];
+  cards.slice(2).forEach(c=>{
+    const k = c.aprovProj ? 'pk-usm' : c.aribaProj ? 'pk-ari' : 'pk-tct';
+    const pc = c.aprovProj ? pcPronto : (c.aribaProj && medidoFR.rs ? Math.min(100, aribaTot/medidoFR.rs*100) : 0);
+    tiles.push(pkTile(k, c.label.toUpperCase(), c.value, pc, c.sub ? c.sub : 'clique para detalhar', attrsOf(c) || ''));
+  });
+  return pkPanel('PAINEL · '+projLabelPk(proj).toUpperCase(), '', tiles, pkGauge('FR EM APROVAÇÃO', pcPronto, 'DEMAIS', 'FR APROV.'), 'auto');
 }
+function projLabelPk(proj){ return proj==='GERAL' ? 'MOA + PCI' : proj; }
 // Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
 // linhas = Projeto / Lider / Fiscal, colunas = cada mes selecionado (HH e R$) + total.
 function rdcRowsSelected(){ return RAW_RDC_NAO_APROVADA.filter(r=>DISPLAY_MONTHS.includes(r.mesano) && RDC_PROJ_SELECTED.includes(r.projeto)); }
@@ -1951,9 +1961,11 @@ function renderRdcKpiStrip(){
   const rows = rdcRowsSelected();
   const hh = rows.reduce((a,r)=>a+r.hh,0), rs = rows.reduce((a,r)=>a+r.rs,0);
   const fiscais = new Set(rows.map(r=>r.projeto+'|'+r.fiscal)).size;
-  return kpiTotalGroupHTML(fmtInt(hh), 'R$ '+fmtBRL(rs)) + [
-    ['👷','kpi-green','Fiscais com pendência',String(fiscais)]
-  ].map(c=>kpiCountGroupHTML(c[0], c[1], c[2], c[3])).join('');
+  return pkPanel('RDC NÃO APROVADA', DISPLAY_MONTHS.join(' · '), [
+    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(rs), 100, 'pendência de RDC não aprovada'),
+    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(hh)+' HH', 0, 'horas apontadas'),
+    pkTile('pk-usm','FISCAIS COM PENDÊNCIA', String(fiscais), 0, 'qtd de fiscais')
+  ], '', 3);
 }
 
 // "Sistema SGE Mobile" -> "Pendente Aprovação Fiscalização": consulta da aba "RDC_Mobile aprov.pendente"
@@ -2117,10 +2129,12 @@ function renderMobilePendenteKpiStrip(){
   const rsTotal = rows.reduce((a,r)=>a+(r.rs||0),0);
   const rdcsDistintas = new Set(rows.map(r=>r.projeto+'|'+r.rdc)).size;
   const aprovadores = new Set(rows.map(r=>r.projeto+'|'+r.aprovador)).size;
-  return kpiTotalGroupHTML(fmtInt(hhTotal), 'R$ '+fmtBRL(rsTotal)) + [
-    ['📋','kpi-green','RDCs pendentes',String(rdcsDistintas)],
-    ['👷','kpi-green','Aprovadores com pendência',String(aprovadores)]
-  ].map(c=>kpiCountGroupHTML(c[0], c[1], c[2], c[3])).join('');
+  return pkPanel('PENDENTE APROVAÇÃO FISCALIZAÇÃO', mobileMonths().join(' · '), [
+    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(rsTotal), 100, 'aprovações pendentes'),
+    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(hhTotal)+' HH', 0, 'horas pendentes'),
+    pkTile('pk-usm','RDCS PENDENTES', String(rdcsDistintas), 0, 'qtd de RDCs'),
+    pkTile('pk-ari','APROVADORES COM PENDÊNCIA', String(aprovadores), 0, 'qtd de aprovadores')
+  ], '', 'auto');
 }
 function openMobilePendenteModal(proj, papel, aprovador){
   const rows = RAW_RDC_MOBILE_PENDENTE.filter(r=>r.projeto===proj && r.papel===papel && r.aprovador===aprovador && mobileMonths().includes(r.mesano))
@@ -3111,8 +3125,8 @@ function renderBiKpiStrip(){
   ], pkGauge('COMPOSIÇÃO DAS HORAS', pI, 'ATIV.', 'INTERF.'), 4);
 }
 // painel executivo (mesmo visual do Resumo de Pendências) para as outras abas: cartões + medidor opcional
-function pkTile(cls, lbl, val, pc, sub){
-  return '<div class="pk-tile '+cls+'"><span class="pk-lbl">'+lbl+'</span><b class="pk-val">'+val+'</b>'+
+function pkTile(cls, lbl, val, pc, sub, attrs){
+  return '<div class="pk-tile '+cls+(attrs?' pk-click':'')+'"'+(attrs?' '+attrs:'')+'><span class="pk-lbl">'+lbl+'</span><b class="pk-val">'+val+'</b>'+
     (pc ? '<div class="pk-bar"><i style="width:'+Math.min(100,pc).toFixed(1)+'%"></i></div>' : '<div class="pk-bar pk-bar-off"></div>')+'<small>'+sub+'</small></div>';
 }
 function pkGauge(lbl, pctB, nameA, nameB){
@@ -3125,7 +3139,7 @@ function pkGauge(lbl, pctB, nameA, nameB){
 }
 function pkPanel(title, per, tiles, extra, cols){
   return '<div class="pk-panel"><div class="pk-head"><span class="pk-live"></span>'+title+(per?'<span class="pk-per">'+per+'</span>':'')+'</div>'+
-    '<div class="pk-row'+(cols===3?' pk-3':'')+'">'+tiles.join('')+(extra||'')+'</div></div>';
+    '<div class="pk-row'+(cols===3?' pk-3':cols==='auto'?' pk-auto':'')+'" style="--pkn:'+(tiles.length+(extra?1:0))+'">'+tiles.join('')+(extra||'')+'</div></div>';
 }
 function biOpen(key){
   const C = biBuild(), g = C.list.find(x=>x.key===key); if (!g) return;
