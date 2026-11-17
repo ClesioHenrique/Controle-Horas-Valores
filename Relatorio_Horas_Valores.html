@@ -1871,8 +1871,8 @@ function renderKpiStrip(proj, data){
   const attrsOf = c => (c.clickProj?'data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?'data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?'data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo da FR liberada SAP_USM"':'');
   const pcPronto = totalGlobalRS ? Math.max(0, Math.min(100, pctPronto*100)) : 0;
   const tiles = [
-    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(totalGlobalRS), 100, projLabelPk(proj)),
-    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(totalHH)+' HH', 0, 'horas apontadas')
+    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(totalGlobalRS), 100, projLabelPk(proj), 'data-pksum="rs" data-proj="'+esc(proj)+'" title="Clique para ver o resumo do detalhamento"'),
+    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(totalHH)+' HH', 0, 'horas apontadas', 'data-pksum="hh" data-proj="'+esc(proj)+'" title="Clique para ver o resumo do detalhamento em horas"')
   ];
   cards.slice(2).forEach(c=>{
     const k = c.aprovProj ? 'pk-usm' : c.aribaProj ? 'pk-ari' : 'pk-tct';
@@ -1962,9 +1962,9 @@ function renderRdcKpiStrip(){
   const hh = rows.reduce((a,r)=>a+r.hh,0), rs = rows.reduce((a,r)=>a+r.rs,0);
   const fiscais = new Set(rows.map(r=>r.projeto+'|'+r.fiscal)).size;
   return pkPanel('RDC NÃO APROVADA', DISPLAY_MONTHS.join(' · '), [
-    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(rs), 100, 'pendência de RDC não aprovada'),
-    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(hh)+' HH', 0, 'horas apontadas'),
-    pkTile('pk-usm','FISCAIS COM PENDÊNCIA', String(fiscais), 0, 'qtd de fiscais')
+    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(rs), 100, 'pendência de RDC não aprovada', 'data-pkl="rdc" title="Clique para ver o resumo por fiscal"'),
+    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(hh)+' HH', 0, 'horas apontadas', 'data-pkl="rdc" title="Clique para ver o resumo por fiscal"'),
+    pkTile('pk-usm','FISCAIS COM PENDÊNCIA', String(fiscais), 0, 'qtd de fiscais', 'data-pkl="rdc" title="Clique para ver o resumo por fiscal"')
   ], '', 3);
 }
 
@@ -2130,10 +2130,10 @@ function renderMobilePendenteKpiStrip(){
   const rdcsDistintas = new Set(rows.map(r=>r.projeto+'|'+r.rdc)).size;
   const aprovadores = new Set(rows.map(r=>r.projeto+'|'+r.aprovador)).size;
   return pkPanel('PENDENTE APROVAÇÃO FISCALIZAÇÃO', mobileMonths().join(' · '), [
-    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(rsTotal), 100, 'aprovações pendentes'),
-    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(hhTotal)+' HH', 0, 'horas pendentes'),
-    pkTile('pk-usm','RDCS PENDENTES', String(rdcsDistintas), 0, 'qtd de RDCs'),
-    pkTile('pk-ari','APROVADORES COM PENDÊNCIA', String(aprovadores), 0, 'qtd de aprovadores')
+    pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(rsTotal), 100, 'aprovações pendentes', 'data-pkl="mob" title="Clique para ver o resumo por aprovador"'),
+    pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(hhTotal)+' HH', 0, 'horas pendentes', 'data-pkl="mob" title="Clique para ver o resumo por aprovador"'),
+    pkTile('pk-usm','RDCS PENDENTES', String(rdcsDistintas), 0, 'qtd de RDCs', 'data-pkl="mob" title="Clique para ver o resumo por aprovador"'),
+    pkTile('pk-ari','APROVADORES COM PENDÊNCIA', String(aprovadores), 0, 'qtd de aprovadores', 'data-pkl="mob" title="Clique para ver o resumo por aprovador"')
   ], '', 'auto');
 }
 function openMobilePendenteModal(proj, papel, aprovador){
@@ -3208,6 +3208,60 @@ document.getElementById('kpi-strip').addEventListener('click', e=>{
   document.getElementById('fa-modal-title').textContent = ttl+' — resumo do que está pendente';
   document.getElementById('fa-modal-sub').textContent = (PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+pendMonthsEff().join(', ')+' · na mesma ordem do relatório';
   document.getElementById('fa-modal-body').innerHTML = html;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+});
+// clique em "Total Geral" (R$ ou HH) das abas Geral / MOA / PCI: resumo do detalhamento por modalidade e status (meses e filtros da própria aba)
+document.getElementById('kpi-strip').addEventListener('click', e=>{
+  const t = e.target.closest('[data-pksum]'); if (!t) return;
+  const kind = t.dataset.pksum, proj = t.dataset.proj, hhFirst = kind==='hh';
+  const sp = PEND_PROJS.slice(), sm = PEND_MODS.slice();
+  PEND_PROJS.length = 0; (proj==='GERAL' ? ['MOA','PCI'] : [proj]).forEach(p=>PEND_PROJS.push(p));
+  PEND_MODS.length = 0; [0,1,2].forEach(m=>PEND_MODS.push(m));
+  let html = '';
+  try {
+    const B = pendBuild(), T = '__TOTAL__', secs = []; let totRS = 0, totHH = 0;
+    B.secs.forEach(s=>{
+      const its = []; s.groups.forEach(g=>g.items.forEach(it=>{ const v = B.mkv(it,T); if (Math.abs(v.tot)>0.5 || v.hTot>0) its.push({ label:it.label, resp:it.resp==='Techint'?'TCT':'USM', rs:v.tot, hh:v.hTot, hna:v.hna }); }));
+      if (!its.length) return;
+      const rs = its.reduce((x,i)=>x+i.rs,0), hh = its.reduce((x,i)=>x+i.hh,0); totRS += rs; totHH += hh;
+      secs.push({ title:s.title, its, rs, hh, hna:its.every(i=>i.hna) });
+    });
+    const base = hhFirst ? totHH : totRS, val = o => hhFirst ? o.hh : o.rs;
+    const cH = o => '<td class="num">'+(o.hna?'n/a':fmtInt(o.hh))+'</td>', cR = o => '<td class="num">R$ '+fmtBRL(o.rs)+'</td>', cP = o => '<td class="num">'+fmtPct(base ? val(o)/base : 0)+'</td>';
+    const two = o => hhFirst ? cH(o)+cR(o) : cR(o)+cH(o);
+    html = '<table class="pe-tbl"><thead><tr><th>Modalidade / Status</th><th>Resp.</th>'+(hhFirst?'<th class="num">HH</th><th class="num">R$</th>':'<th class="num">R$</th><th class="num">HH</th>')+'<th class="num">%</th></tr></thead><tbody>';
+    secs.forEach(s=>{
+      html += '<tr class="pe-fis"><td>'+esc(s.title)+'</td><td></td>'+two(s)+cP(s)+'</tr>';
+      s.its.forEach(i=>{ html += '<tr class="pe-os"><td class="pe-osn">'+esc(i.label)+'</td><td>'+i.resp+'</td>'+two(i)+cP(i)+'</tr>'; });
+    });
+    html += '<tr class="fa-total"><td>Total</td><td></td>'+(hhFirst ? '<td class="num">'+fmtInt(totHH)+'</td><td class="num">R$ '+fmtBRL(totRS)+'</td>' : '<td class="num">R$ '+fmtBRL(totRS)+'</td><td class="num">'+fmtInt(totHH)+'</td>')+'<td class="num">100,0%</td></tr></tbody></table>';
+    if (!secs.length) html = '<div class="fiscal-empty">Nada neste recorte.</div>';
+  } finally {
+    PEND_PROJS.length = 0; sp.forEach(p=>PEND_PROJS.push(p)); PEND_MODS.length = 0; sm.forEach(m=>PEND_MODS.push(m));
+  }
+  document.getElementById('fa-modal-title').textContent = 'Total geral '+(hhFirst?'(HH)':'(R$)')+' — resumo do detalhamento';
+  document.getElementById('fa-modal-sub').textContent = (proj==='GERAL'?'MOA e PCI':proj)+' · '+DISPLAY_MONTHS.join(', ')+' · na mesma ordem do relatório';
+  document.getElementById('fa-modal-body').innerHTML = html;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+});
+// clique nos cartões das abas "RDC não aprovada" (resumo por fiscal) e "Pendente Aprovação Fiscalização" (resumo por aprovador)
+document.getElementById('kpi-strip').addEventListener('click', e=>{
+  const t = e.target.closest('[data-pkl]'); if (!t) return;
+  const mob = t.dataset.pkl==='mob';
+  const rows = mob ? mobilePendRowsSelected() : rdcRowsSelected();
+  const m = new Map();
+  rows.forEach(r=>{
+    const k = mob ? r.aprovador+'|'+r.papel : r.fiscal;
+    let g = m.get(k); if (!g){ g = { nome: mob ? r.aprovador : r.fiscal, papel: mob ? r.papel : (r.lider||''), projs:new Set(), rdcs:new Set(), hh:0, rs:0 }; m.set(k,g); }
+    g.projs.add(r.projeto); if (mob) g.rdcs.add(r.projeto+'|'+r.rdc); g.hh += r.hh||0; g.rs += r.rs||0;
+  });
+  const list = Array.from(m.values()).sort((a,b)=>b.rs-a.rs), tR = list.reduce((s,g)=>s+g.rs,0), tH = list.reduce((s,g)=>s+g.hh,0);
+  let h = '<table class="pe-tbl"><thead><tr><th>'+(mob?'Aprovador pendente':'Fiscal')+'</th><th>'+(mob?'Papel':'Líder')+'</th><th>Projeto</th>'+(mob?'<th class="num">RDCs</th>':'')+'<th class="num">HH</th><th class="num">R$</th><th class="num">%</th></tr></thead><tbody>';
+  list.forEach(g=>{ h += '<tr class="pe-os"><td><b>'+esc(g.nome)+'</b></td><td>'+esc(g.papel)+'</td><td>'+esc(Array.from(g.projs).join(' + '))+'</td>'+(mob?'<td class="num">'+g.rdcs.size+'</td>':'')+'<td class="num">'+fmtInt(g.hh)+'</td><td class="num">R$ '+fmtBRL(g.rs)+'</td><td class="num">'+fmtPct(tR?g.rs/tR:0)+'</td></tr>'; });
+  h += '<tr class="fa-total"><td>Total ('+list.length+')</td><td></td><td></td>'+(mob?'<td class="num">'+new Set(rows.map(r=>r.projeto+'|'+r.rdc)).size+'</td>':'')+'<td class="num">'+fmtInt(tH)+'</td><td class="num">R$ '+fmtBRL(tR)+'</td><td class="num">100,0%</td></tr></tbody></table>';
+  document.getElementById('fa-modal-title').textContent = (mob?'Pendente Aprovação Fiscalização':'RDC não aprovada')+' — resumo por '+(mob?'aprovador':'fiscal');
+  document.getElementById('fa-modal-sub').textContent = (mob?mobileMonths():DISPLAY_MONTHS).join(', ')+' · do maior para o menor valor';
+  document.getElementById('fa-modal-body').innerHTML = list.length ? h : '<div class="fiscal-empty">Nada neste recorte.</div>';
   document.getElementById('fa-modal-backdrop').classList.add('open');
 });
 let lastChartData = null;
