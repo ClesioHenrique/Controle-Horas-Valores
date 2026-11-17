@@ -181,12 +181,17 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pk-live{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 8px #3ddc84;animation:pkpulse 1.8s infinite;}
 @keyframes pkpulse{50%{opacity:.35;}}
 .pk-per{margin-left:auto;font-weight:600;letter-spacing:.04em;color:#7fa6d8;}
-.pk-row{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;}
+.pk-row{display:grid;grid-template-columns:repeat(3,minmax(190px,1fr)) 180px;gap:10px;align-items:stretch;}
+.pk-click{cursor:pointer;transition:transform .12s,box-shadow .12s;}
+.pk-click:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.35),0 0 0 1px rgba(160,210,255,.5);}
+.pk-main .pk-bar i{background:linear-gradient(90deg,#e0902a,#ffe08a);box-shadow:0 0 8px #ffc83d;}
+.pk-tile{justify-content:flex-start !important;}
+.pk-gauge{justify-content:center !important;}
 .pk-tile{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:150px;padding:9px 14px;border-radius:12px;background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.03));border:1px solid rgba(140,190,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
 .pk-lbl{font-size:10px;font-weight:800;letter-spacing:.14em;color:#8db5ea;}
 .pk-val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:#fff;text-shadow:0 0 14px rgba(120,190,255,.55);}
-.pk-main .pk-val{font-size:30px;color:#ffe08a;text-shadow:0 0 18px rgba(255,200,60,.6);}
-.pk-main{min-width:210px;border-color:rgba(255,200,60,.45);background:linear-gradient(160deg,rgba(255,200,60,.16),rgba(255,255,255,.03));}
+.pk-main .pk-val{color:#ffe08a;text-shadow:0 0 18px rgba(255,200,60,.6);}
+.pk-main{border-color:rgba(255,200,60,.45);background:linear-gradient(160deg,rgba(255,200,60,.16),rgba(255,255,255,.03));}
 .pk-tct .pk-val{color:#7fe3ff;text-shadow:0 0 14px rgba(53,208,255,.65);}
 .pk-usm .pk-val{color:#ffd36b;text-shadow:0 0 14px rgba(255,200,61,.6);}
 .pk-bar{height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin:2px 0;}
@@ -198,7 +203,7 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pk-gtxt{font-size:15px;font-weight:800;fill:#fff;}
 .pk-gsub{font-size:5.5px;font-weight:700;fill:#9cc4f5;letter-spacing:.1em;}
 .pk-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;}
-@media (max-width:700px){.pk-panel{display:block;}.pk-tile{flex:1 1 140px;}.pk-val{font-size:18px;}.pk-main .pk-val{font-size:24px;}}
+@media (max-width:900px){.pk-panel{display:block;}.pk-row{grid-template-columns:repeat(2,minmax(0,1fr));}.pk-tile{min-width:0;}.pk-val{font-size:18px;}}
 .pend-xlbtn{border:none;background:none;font-size:20px;cursor:pointer;padding:2px 6px;border-radius:6px;}
 .pend-xlbtn:hover{background:rgba(0,43,92,.1);}
 .pend-ospanel .pop-h{font-size:13px;font-weight:600;margin-bottom:6px;color:#1b2a3a;}
@@ -2949,17 +2954,46 @@ function renderPendKpiStrip(){
   const tct = B.byResp.Techint, usm = B.byResp.Usiminas, tot = g.tot || 0;
   const pT = tot ? tct.tot/tot*100 : 0, pU = tot ? usm.tot/tot*100 : 0;
   const hh = v => v.hna ? '' : fmtInt(v.hTot)+' HH';
-  const tile = (cls, lbl, v, pc, bar) => '<div class="pk-tile '+cls+'"><span class="pk-lbl">'+lbl+'</span><b class="pk-val">R$ '+fmtBRL(v.tot)+'</b>'+
-    (bar ? '<div class="pk-bar"><i style="width:'+Math.min(100,pc).toFixed(1)+'%"></i></div>' : '')+
-    '<small>'+(bar ? fmtPct(pc/100)+' do total' : 'MOA + PCI')+(hh(v) ? ' · '+hh(v) : '')+'</small></div>';
-  const gauge = '<div class="pk-tile pk-gauge"><span class="pk-lbl">QUEM TEM A BOLA</span>'+
+  const projTxt = PEND_PROJS.length===2 ? 'MOA + PCI' : PEND_PROJS[0];
+  const tile = (cls, key, lbl, v, pc) => '<div class="pk-tile pk-click '+cls+'" data-pk="'+key+'" title="Clique para ver o que está pendente (resumo)"><span class="pk-lbl">'+lbl+'</span><b class="pk-val">R$ '+fmtBRL(v.tot)+'</b>'+
+    '<div class="pk-bar"><i style="width:'+Math.min(100,pc).toFixed(1)+'%"></i></div>'+
+    '<small>'+(key==='tot' ? projTxt : fmtPct(pc/100)+' do total')+(hh(v) ? ' · '+hh(v) : '')+'</small></div>';
+  const gauge = '<div class="pk-tile pk-gauge"><span class="pk-lbl">RESPONSABILIDADE</span>'+
     '<svg viewBox="0 0 100 58" width="150" height="87"><path d="M10 50 A40 40 0 0 1 90 50" pathLength="100" fill="none" stroke="#35d0ff" stroke-width="9" stroke-linecap="butt"/>'+
     '<path d="M10 50 A40 40 0 0 1 90 50" pathLength="100" fill="none" stroke="#ffc83d" stroke-width="9" stroke-dasharray="'+pU.toFixed(2)+' 100" stroke-linecap="butt"/>'+
     '<text x="50" y="45" text-anchor="middle" class="pk-gtxt">'+Math.round(pU)+'%</text><text x="50" y="55" text-anchor="middle" class="pk-gsub">USM</text></svg>'+
     '<small><span class="pk-dot" style="background:#35d0ff"></span>TCT '+Math.round(pT)+'% <span class="pk-dot" style="background:#ffc83d;margin-left:8px"></span>USM '+Math.round(pU)+'%</small></div>';
   return '<div class="pk-panel"><div class="pk-head"><span class="pk-live"></span>PENDÊNCIAS · RESUMO DA REUNIÃO<span class="pk-per">'+esc(pendMonthsEff().join(' · '))+'</span></div>'+
-    '<div class="pk-row">'+tile('pk-main','TOTAL PENDENTE', g, 100, false)+tile('pk-tct','PENDENTE TCT', tct, pT, true)+tile('pk-usm','PENDENTE USM', usm, pU, true)+gauge+'</div></div>';
+    '<div class="pk-row">'+tile('pk-main','tot','TOTAL PENDENTE', g, 100)+tile('pk-tct','tct','PENDENTE TCT', tct, pT)+tile('pk-usm','usm','PENDENTE USM', usm, pU)+gauge+'</div></div>';
 }
+// clique nos números do painel executivo: resumo do que está pendente (por modalidade e status), com HH, R$ e %
+document.getElementById('kpi-strip').addEventListener('click', e=>{
+  const t = e.target.closest('[data-pk]'); if (!t) return;
+  const key = t.dataset.pk, ttl = key==='tct' ? 'Pendente TCT (Techint)' : key==='usm' ? 'Pendente USM (Usiminas)' : 'Total pendente';
+  const html = pendWithMonths(()=>{
+    const B = pendBuild(), T = '__TOTAL__';
+    const okR = it => key==='tot' || (key==='tct' ? it.resp==='Techint' : it.resp==='Usiminas');
+    const secs = []; let totRS = 0, totHH = 0;
+    B.secs.forEach(s=>{
+      const its = []; s.groups.forEach(g=>g.items.forEach(it=>{ if (!okR(it)) return; const v = B.mkv(it,T); if (Math.abs(v.tot)>0.5 || v.hTot>0) its.push({ label:it.label, resp:it.resp==='Techint'?'TCT':'USM', rs:v.tot, hh:v.hTot, hna:v.hna }); }));
+      if (!its.length) return;
+      its.sort((a,b)=>b.rs-a.rs);
+      const rs = its.reduce((x,i)=>x+i.rs,0), hh = its.reduce((x,i)=>x+i.hh,0); totRS += rs; totHH += hh;
+      secs.push({ title:s.title, its, rs, hh, hna:its.every(i=>i.hna) });
+    });
+    let h = '<table class="pe-tbl"><thead><tr><th>Modalidade / Status pendente</th><th>Resp.</th><th class="num">HH</th><th class="num">R$</th><th class="num">%</th></tr></thead><tbody>';
+    secs.forEach(s=>{
+      h += '<tr class="pe-fis"><td>'+esc(s.title)+'</td><td></td><td class="num">'+(s.hna?'n/a':fmtInt(s.hh))+'</td><td class="num">R$ '+fmtBRL(s.rs)+'</td><td class="num">'+fmtPct(totRS?s.rs/totRS:0)+'</td></tr>';
+      s.its.forEach(i=>{ h += '<tr class="pe-os"><td class="pe-osn">'+esc(i.label)+'</td><td>'+i.resp+'</td><td class="num">'+(i.hna?'n/a':fmtInt(i.hh))+'</td><td class="num">R$ '+fmtBRL(i.rs)+'</td><td class="num">'+fmtPct(totRS?i.rs/totRS:0)+'</td></tr>'; });
+    });
+    h += '<tr class="fa-total"><td>Total</td><td></td><td class="num">'+fmtInt(totHH)+'</td><td class="num">R$ '+fmtBRL(totRS)+'</td><td class="num">100,0%</td></tr></tbody></table>';
+    return secs.length ? h : '<div class="fiscal-empty">Nada pendente neste recorte.</div>';
+  });
+  document.getElementById('fa-modal-title').textContent = ttl+' — resumo do que está pendente';
+  document.getElementById('fa-modal-sub').textContent = (PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+pendMonthsEff().join(', ')+' · do maior para o menor valor';
+  document.getElementById('fa-modal-body').innerHTML = html;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+});
 let lastChartData = null;
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
