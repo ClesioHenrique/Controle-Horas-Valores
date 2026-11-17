@@ -3143,21 +3143,30 @@ function pkPanel(title, per, tiles, extra, cols){
 }
 function biOpen(key){
   const C = biBuild(), g = C.list.find(x=>x.key===key); if (!g) return;
-  const rows = g.idx.map(i=>RAW_BI_ROWS[i]).sort((a,b)=>(a[6]-b[6]) || (a[7]-b[7]) || ((a[12]||0)-(b[12]||0)));
+  // apontamentos identicos de pessoas diferentes (mesma atividade/interferencia, mesmos horarios) viram UMA linha com a quantidade de pessoas
   const T = i => RAW_BI_TXT[i] || '';
-  const hd = ['RDC','OS','Pessoa','Atividade','Grupo Interferência','Interferência','Data Inicial','Hora Inicial','Data Final','Hora Final','Duração Horas','Observação'];
+  const grp = new Map();
+  g.idx.map(i=>RAW_BI_ROWS[i]).forEach(r=>{
+    const k = [r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10]].join('|');
+    let o = grp.get(k); if (!o){ o = { r:r, n:0, h:0 }; grp.set(k,o); }
+    o.n++; o.h += (r[11]||0);
+  });
+  const rows = Array.from(grp.values()).sort((a,b)=>(a.r[6]-b.r[6]) || (a.r[7]-b.r[7]) || (a.r[2]-b.r[2]));
+  const nApont = g.idx.length;
+  const hd = ['RDC','OS','Atividade','Grupo Interferência','Interferência','Data Inicial','Hora Inicial','Data Final','Hora Final','Pessoas','Duração por pessoa (h)','Total de horas','Observação'];
   const tot = g.hA + g.hI;
   let h = '<div class="pe-sum">'+
     '<div class="pe-card pe-card-main"><span>TOTAL DE HORAS · '+esc(g.name)+'</span><b>'+biH2(tot)+' h</b></div>'+
     '<div class="pe-card"><span>ATIVIDADES</span><b>'+g.at+'</b><small>'+biH2(g.hA)+' h</small></div>'+
     '<div class="pe-card"><span>INTERFERÊNCIAS</span><b>'+g.it+'</b><small>'+biH2(g.hI)+' h</small></div>'+
     '<div class="pe-card"><span>FISCAL RESPONSÁVEL</span><b class="pe-card-nm">'+esc(g.fiscal||'Não localizado')+'</b><small>'+esc(g.os||'—')+(g.sit?' · '+esc(g.sit):'')+(g.mes?' · '+esc(g.mes):'')+'</small></div></div>';
-  h += '<table class="bi-det"><thead><tr>'+hd.map((x,i)=>'<th'+(i===10?' class="num"':'')+'>'+x+'</th>').join('')+'</tr></thead><tbody>';
-  rows.forEach(r=>{
-    const c = (i, v, cls) => '<td data-l="'+hd[i]+'"'+(cls?' class="'+cls+'"':'')+'>'+v+'</td>';   // data-l: rótulo usado no layout em cartões (celular)
-    h += '<tr>'+c(0,esc(T(r[0])))+c(1,esc(T(r[1])))+c(2,r[12]?'Pessoa '+r[12]:'')+c(3,esc(T(r[3])),'bi-wrap')+c(4,esc(T(r[4])))+c(5,esc(T(r[5])))+c(6,biDt(r[6]))+c(7,biHr(r[7]))+c(8,biDt(r[8]))+c(9,biHr(r[9]))+c(10,biH2(r[11]),'num')+c(11,esc(T(r[10])),'bi-wrap')+'</tr>';
+  h += '<table class="bi-det"><thead><tr>'+hd.map((x,i)=>'<th'+(i>=9&&i<=11?' class="num"':'')+'>'+x+'</th>').join('')+'</tr></thead><tbody>';
+  rows.forEach(o=>{
+    const r = o.r;
+    const c = (i, v, cls) => '<td data-l="'+hd[i]+'"'+(cls?' class="'+cls+'"':'')+'>'+v+'</td>';   // data-l: rÃ³tulo usado no layout em cartÃµes (celular)
+    h += '<tr>'+c(0,esc(T(r[0])))+c(1,esc(T(r[1])))+c(2,esc(T(r[3])),'bi-wrap')+c(3,esc(T(r[4])))+c(4,esc(T(r[5])))+c(5,biDt(r[6]))+c(6,biHr(r[7]))+c(7,biDt(r[8]))+c(8,biHr(r[9]))+c(9,String(o.n),'num')+c(10,biH2(o.n ? o.h/o.n : 0),'num')+c(11,biH2(o.h),'num')+c(12,esc(T(r[10])),'bi-wrap')+'</tr>';
   });
-  h += '<tr class="fa-total"><td colspan="10">Total ('+rows.length+' apontamento'+(rows.length>1?'s':'')+')</td><td class="num">'+biH2(tot)+'</td><td></td></tr></tbody></table>';
+  h += '<tr class="fa-total"><td colspan="11">Total ('+rows.length+' linha'+(rows.length>1?'s':'')+' · '+nApont+' apontamento'+(nApont>1?'s':'')+')</td><td class="num">'+biH2(tot)+'</td><td></td></tr></tbody></table>';
   document.getElementById('fa-modal-title').textContent = g.name+' — consulta BI';
   document.getElementById('fa-modal-sub').textContent = 'Fiscal: '+(g.fiscal||'não localizado no Extrato SGE')+' · OS: '+(g.os||'—')+' · '+(g.p?g.p+' pessoa(s) · ':'')+g.at+' atividade(s) e '+g.it+' interferência(s) · horas somadas da coluna "Duração Horas"';
   document.getElementById('fa-modal-body').innerHTML = h;
