@@ -3059,7 +3059,7 @@ async function biUnpack(b64){
 }
 let BI_LOADING = !!RAW_BI_Z;
 if (RAW_BI_Z) biUnpack(RAW_BI_Z).catch(e=>console.warn('BI: falha ao descompactar', e)).then(()=>{ BI_LOADING = false; const a = document.querySelector('.tab-btn.active'); if (a && a.dataset.proj==='BIRDC') render(); });
-const BI_ST = { q:'', os:'', fisc:'', sit:'', mes:'', at:'', grp:'', it:'', lim:200 };
+const BI_ST = { q:'', os:[], fisc:[], sit:[], mes:[], grp:[], it:[], lim:200 };   // os/fisc/sit/mes/grp/it: listas de itens marcados (vazio = todos)
 function biBuild(){
   if (BI_CACHE) return BI_CACHE;
   const info = new Map(); RAW_BI_RDC.forEach(o=>info.set(String(o.r), o));
@@ -3091,10 +3091,10 @@ const biDt = n => { if (!n) return ''; const d = new Date(Date.UTC(1899,11,30) +
 const biHr = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
 const biH2 = v => (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 function biFiltered(){
-  const C = biBuild(), q = BI_ST.q.trim().toLowerCase();
-  return C.list.filter(g=>(!q || g.name.toLowerCase().includes(q) || g.key.includes(q)) && (!BI_ST.os || g.os===BI_ST.os) && (!BI_ST.fisc || (g.fiscal||'(sem fiscal)')===BI_ST.fisc)
-    && (!BI_ST.sit || g.sit===BI_ST.sit) && (!BI_ST.mes || g.mes===BI_ST.mes)
-    && (!BI_ST.at || g.actTxt.includes(BI_ST.at.trim().toLowerCase())) && (!BI_ST.grp || g.grps.has(BI_ST.grp)) && (!BI_ST.it || g.ints.has(BI_ST.it)));
+  const C = biBuild(), q = BI_ST.q.trim().toLowerCase(), has = (arr, v) => !arr.length || arr.includes(v);
+  const hasAny = (arr, set) => !arr.length || arr.some(x=>set.has(x));
+  return C.list.filter(g=>(!q || g.name.toLowerCase().includes(q) || g.key.includes(q)) && has(BI_ST.os, g.os) && has(BI_ST.fisc, g.fiscal||'(sem fiscal)')
+    && has(BI_ST.sit, g.sit) && has(BI_ST.mes, g.mes) && hasAny(BI_ST.grp, g.grps) && hasAny(BI_ST.it, g.ints));
 }
 function biListHTML(){
   const all = biFiltered(), rows = all.slice(0, BI_ST.lim);
@@ -3109,22 +3109,34 @@ function biListHTML(){
   if (all.length > rows.length) h += '<button type="button" class="evol-quick" data-bi-more="1" style="margin-top:8px">Mostrar mais '+Math.min(200, all.length-rows.length)+'</button>';
   return h;
 }
+let BI_OPEN = null;   // filtro (lista de caixas de seleção) aberto no momento
+// opções de cada filtro: [valor, rótulo]; a Interferência mostra só as dos grupos marcados (ou todas, sem grupo marcado)
+function biOptions(key){
+  const C = biBuild(), pt = (a,b)=>String(a).localeCompare(String(b),'pt-BR');
+  if (key==='os') return C.oss; if (key==='fisc') return C.fiscs; if (key==='sit') return C.sits; if (key==='mes') return C.mess; if (key==='grp') return C.grps;
+  const s = new Set(); (BI_ST.grp.length ? BI_ST.grp : C.grps).forEach(gp=>{ (C.intByGrp.get(gp)||[]).forEach(i=>s.add(i)); });
+  return Array.from(s).sort(pt);
+}
+const BI_LBL = { os:['OS','Todas'], fisc:['Fiscal','Todos'], sit:['Situação','Todas'], mes:['Mês','Todos'], grp:['Grupo de interferência','Todos'], it:['Interferência','Todas'] };
+function biMsHTML(key){
+  const sel = BI_ST[key], opts = biOptions(key), lbl = BI_LBL[key];
+  const txt = !sel.length ? lbl[1] : sel.length===1 ? sel[0] : sel.length+' selecionados';
+  return '<span class="evol-flbl" style="margin-left:12px">'+lbl[0]+'</span><div class="pn-mdrop"><button type="button" class="pn-mbtn" data-bi-mb="'+key+'">'+esc(txt)+' ▾</button>'+
+    (BI_OPEN===key ? '<div class="pn-mpanel bi-mpanel"'+(key==='grp'||key==='it'||key==='mes' ? ' style="right:0;left:auto"' : '')+'><div class="pn-mgrid">'+opts.map(o=>'<label class="pe-fitem"><input type="checkbox" data-bi-mc="'+key+'" value="'+esc(o)+'"'+(sel.includes(o)?' checked':'')+'> '+esc(o)+'</label>').join('')+'</div><div class="pe-fact"><button type="button" data-bi-mclr="'+key+'">Limpar</button></div></div>' : '')+'</div>';
+}
+function biFiltersHTML(){
+  return '<span class="evol-flbl">Consultar RDC</span><input type="text" id="bi-q" data-bi-q="1" autocomplete="off" placeholder="Digite o nº do RDC (ex.: 339265)" value="'+esc(BI_ST.q)+'" class="bi-sel" style="min-width:230px">'+
+    ['os','fisc','sit','mes','grp','it'].map(biMsHTML).join('')+'<button type="button" class="evol-quick" data-bi-clr="1">Limpar</button>';
+}
 function renderBiHTML(){
-  if (!RAW_BI_ROWS.length && BI_LOADING) return '<div class="fiscal-block"><div class="fiscal-empty">Carregando a BIâ€¦</div></div>';
+  if (!RAW_BI_ROWS.length && BI_LOADING) return '<div class="fiscal-block"><div class="fiscal-empty">Carregando a BI…</div></div>';
   if (!RAW_BI_ROWS.length) return '<div class="fiscal-block"><div class="fiscal-empty">Nenhum dado da aba <b>BI</b> carregado. Use o botão ⚙ (Atualizar dados) com a planilha que contém a aba “BI”.</div></div>';
-  const C = biBuild();
-  const sel = (id, attr, lbl, cur, opts, first) => '<span class="evol-flbl" style="margin-left:12px">'+lbl+'</span><select id="'+id+'" '+attr+'="1" class="bi-sel"><option value="">'+first+'</option>'+opts.map(o=>'<option value="'+esc(o[0])+'"'+(cur===o[0]?' selected':'')+'>'+esc(o[1])+'</option>').join('')+'</select>';
-  const yn = [['com','Com'],['sem','Sem']];
-  return '<div class="fiscal-block bi-block"><div class="pend-controls pend-filters">'+
-    '<span class="evol-flbl">Consultar RDC</span><input type="text" id="bi-q" data-bi-q="1" autocomplete="off" placeholder="Digite o nº do RDC (ex.: 339265)" value="'+esc(BI_ST.q)+'" class="bi-sel" style="min-width:230px">'+
-    sel('bi-os','data-bi-os','OS',BI_ST.os,C.oss.map(o=>[o,o]),'Todas')+
-    sel('bi-fisc','data-bi-fisc','Fiscal',BI_ST.fisc,C.fiscs.map(o=>[o,o]),'Todos')+
-    sel('bi-sit','data-bi-sit','Situação',BI_ST.sit,C.sits.map(o=>[o,o]),'Todas')+
-    sel('bi-mes','data-bi-mes','Mês',BI_ST.mes,C.mess.map(o=>[o,o]),'Todos')+
-    '<span class="evol-flbl" style="margin-left:12px">Atividade</span><input type="text" id="bi-at" data-bi-at="1" list="bi-at-list" autocomplete="off" placeholder="Digite ou escolha a descrição" value="'+esc(BI_ST.at)+'" class="bi-sel" style="min-width:230px"><datalist id="bi-at-list">'+C.acts.map(a=>'<option value="'+esc(a)+'"></option>').join('')+'</datalist>'+
-    sel('bi-grp','data-bi-grp','Grupo de interferência',BI_ST.grp,C.grps.map(o=>[o,o]),'Todos')+
-    sel('bi-it','data-bi-it','Interferência',BI_ST.it,(BI_ST.grp ? Array.from(C.intByGrp.get(BI_ST.grp)||[]) : Array.from(new Set(Array.from(C.intByGrp.values()).reduce((a,s)=>a.concat(Array.from(s)),[])))).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR')).map(o=>[o,o]),'Todas')+
-    '<button type="button" class="evol-quick" data-bi-clr="1">Limpar</button></div><div id="bi-list">'+biListHTML()+'</div></div>';
+  biBuild();
+  return '<div class="fiscal-block bi-block"><div class="pend-controls pend-filters" id="bi-filters">'+biFiltersHTML()+'</div><div id="bi-list">'+biListHTML()+'</div></div>';
+}
+function biRefresh(keepFocus){
+  const f = document.getElementById('bi-filters'); if (f){ const q = document.getElementById('bi-q'), pos = q ? q.selectionStart : 0, had = document.activeElement===q; f.innerHTML = biFiltersHTML(); if (keepFocus && had){ const n = document.getElementById('bi-q'); n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} } }
+  const l = document.getElementById('bi-list'); if (l) l.innerHTML = biListHTML();
 }
 function renderBiKpiStrip(){
   if (!RAW_BI_ROWS.length) return '';
@@ -3186,21 +3198,23 @@ function biOpen(key){
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
 document.addEventListener('input', e=>{
-  const q = e.target.closest && e.target.closest('[data-bi-q]'), a = e.target.closest && e.target.closest('[data-bi-at]');
-  if (!q && !a) return; if (q) BI_ST.q = q.value; if (a) BI_ST.at = a.value; BI_ST.lim = 200; document.getElementById('bi-list').innerHTML = biListHTML();
+  const q = e.target.closest && e.target.closest('[data-bi-q]'); if (!q) return;
+  BI_ST.q = q.value; BI_ST.lim = 200; document.getElementById('bi-list').innerHTML = biListHTML();
 });
 document.addEventListener('change', e=>{
-  const m = { 'data-bi-os':'os', 'data-bi-fisc':'fisc', 'data-bi-sit':'sit', 'data-bi-mes':'mes', 'data-bi-it':'it' };
-  if (e.target.hasAttribute && e.target.hasAttribute('data-bi-grp')){   // trocar o grupo refaz a lista de interferências (só as do grupo)
-    BI_ST.grp = e.target.value; BI_ST.it = ''; BI_ST.lim = 200; render(); return;
-  }
-  const k = Object.keys(m).find(a=>e.target.hasAttribute && e.target.hasAttribute(a)); if (!k) return;
-  BI_ST[m[k]] = e.target.value; BI_ST.lim = 200; document.getElementById('bi-list').innerHTML = biListHTML();
+  const c = e.target.closest && e.target.closest('input[data-bi-mc]'); if (!c) return;
+  const k = c.dataset.biMc, arr = BI_ST[k], v = c.value;
+  if (c.checked){ if (!arr.includes(v)) arr.push(v); } else { const i = arr.indexOf(v); if (i>=0) arr.splice(i,1); }
+  if (k==='grp'){ const ok = new Set(biOptions('it')); BI_ST.it = BI_ST.it.filter(x=>ok.has(x)); }   // trocar os grupos tira as interferências que não são deles
+  BI_ST.lim = 200; biRefresh(false);
 });
 document.addEventListener('click', e=>{
   const r = e.target.closest('[data-bi]'); if (r){ biOpen(r.dataset.bi); return; }
   if (e.target.closest('[data-bi-more]')){ BI_ST.lim += 200; document.getElementById('bi-list').innerHTML = biListHTML(); return; }
-  if (e.target.closest('[data-bi-clr]')){ BI_ST.q = ''; BI_ST.os = ''; BI_ST.fisc = ''; BI_ST.sit = ''; BI_ST.mes = ''; BI_ST.at = ''; BI_ST.grp = ''; BI_ST.it = ''; BI_ST.lim = 200; render(); }
+  if (e.target.closest('[data-bi-clr]')){ BI_ST.q = ''; ['os','fisc','sit','mes','grp','it'].forEach(k=>{ BI_ST[k] = []; }); BI_ST.lim = 200; BI_OPEN = null; render(); return; }
+  const b = e.target.closest('[data-bi-mb]'); if (b){ BI_OPEN = BI_OPEN===b.dataset.biMb ? null : b.dataset.biMb; biRefresh(false); return; }
+  const cl = e.target.closest('[data-bi-mclr]'); if (cl){ const k = cl.dataset.biMclr; BI_ST[k] = []; if (k==='grp') BI_ST.it = BI_ST.it.filter(x=>new Set(biOptions('it')).has(x)); BI_ST.lim = 200; biRefresh(false); return; }
+  if (BI_OPEN && !e.target.closest('.bi-mpanel') && document.getElementById('bi-filters')){ BI_OPEN = null; biRefresh(false); }
 });
 // clique nos números do painel executivo: resumo do que está pendente (por modalidade e status), com HH, R$ e %
 document.getElementById('kpi-strip').addEventListener('click', e=>{
