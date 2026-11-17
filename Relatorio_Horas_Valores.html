@@ -222,6 +222,23 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pk-gtxt{fill:#12305a;}
 .pk-gsub{fill:#5a7391;}
 @media (max-width:900px){.pk-panel{display:block;}.pk-row{grid-template-columns:repeat(2,minmax(0,1fr));}.pk-tile{min-width:0;}.pk-val{font-size:18px;}}
+.bi-scroll{overflow-x:auto;max-width:100%;}
+@media (max-width:700px){
+  .bi-tbl{font-size:12px;width:100%;}
+  .bi-tbl th,.bi-tbl td{padding:5px 6px;white-space:normal;}
+  .bi-tbl th:nth-child(4),.bi-tbl td:nth-child(4),.bi-tbl th:nth-child(5),.bi-tbl td:nth-child(5),.bi-tbl th:nth-child(6),.bi-tbl td:nth-child(6),.bi-tbl th:nth-child(7),.bi-tbl td:nth-child(7){display:none;}
+  .bi-block .pend-filters{gap:6px;}
+  /* detalhe do RDC no celular: cada apontamento vira um cartão (rótulo: valor) */
+  .fa-modal table.bi-det,.fa-modal table.bi-det tbody{display:block;width:100%;}
+  .fa-modal table.bi-det thead{display:none;}
+  .fa-modal table.bi-det tr{display:block;border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin:0 0 8px;background:#fff;}
+  .fa-modal table.bi-det td{display:block;border:none;padding:1px 0;white-space:normal;overflow-wrap:anywhere;min-width:0;max-width:none;}
+  .fa-modal table.bi-det td:empty{display:none;}
+  .fa-modal table.bi-det td::before{content:attr(data-l)': ';font-weight:700;color:var(--navy);}
+  .fa-modal table.bi-det td:first-child::before{content:'';}
+  .fa-modal table.bi-det td:first-child{font-weight:800;color:var(--navy);}
+  #bi-q{min-width:0 !important;width:100%;box-sizing:border-box;}
+}
 td.bi-rdc{cursor:pointer;color:var(--info-blue);font-weight:800;text-decoration:underline dotted;}
 td.bi-rdc:hover{background:#eaf3fb;}
 .fa-modal table.bi-det th.bi-y{background:#ffee00;color:#12305a;border-color:#d9c800;}
@@ -3023,11 +3040,11 @@ function biFiltered(){
 function biListHTML(){
   const all = biFiltered(), rows = all.slice(0, BI_ST.lim);
   if (!all.length) return '<div class="fiscal-empty">Nenhum RDC encontrado com esse filtro.</div>';
-  let h = '<div class="pe-note" style="margin:0 0 6px">'+all.length+' RDC'+(all.length>1?'s':'')+' · clique no número do RDC para ver os apontamentos</div><table class="pe-tbl bi-tbl"><thead><tr><th>RDC</th><th>OS</th><th>Fiscal responsável</th><th>Situação (Extrato SGE)</th><th>Mês</th><th class="num">HH</th><th class="num">R$</th><th class="num">Atividades</th><th class="num">Interferências</th></tr></thead><tbody>';
+  let h = '<div class="pe-note" style="margin:0 0 6px">'+all.length+' RDC'+(all.length>1?'s':'')+' · clique no número do RDC para ver os apontamentos</div><div class="bi-scroll"><table class="pe-tbl bi-tbl"><thead><tr><th>RDC</th><th>OS</th><th>Fiscal responsável</th><th>Situação (Extrato SGE)</th><th>Mês</th><th class="num">HH</th><th class="num">R$</th><th class="num">Atividades</th><th class="num">Interferências</th></tr></thead><tbody>';
   rows.forEach(g=>{
     h += '<tr><td class="bi-rdc" data-bi="'+esc(g.key)+'" title="Ver apontamentos do RDC">'+esc(g.name)+'</td><td>'+esc(g.os||'—')+'</td><td>'+esc(g.fiscal||'— (RDC fora do Extrato SGE)')+'</td><td>'+esc(g.sit||'—')+'</td><td>'+esc(g.mes||'—')+'</td><td class="num">'+(g.hh?fmtInt(g.hh):'—')+'</td><td class="num">'+(g.rs?'R$ '+fmtBRL(g.rs):'—')+'</td><td class="num">'+g.at+'</td><td class="num">'+g.it+'</td></tr>';
   });
-  h += '</tbody></table>';
+  h += '</tbody></table></div>';
   if (all.length > rows.length) h += '<button type="button" class="evol-quick" data-bi-more="1" style="margin-top:8px">Mostrar mais '+Math.min(200, all.length-rows.length)+'</button>';
   return h;
 }
@@ -3053,7 +3070,8 @@ function biOpen(key){
   const hd = ['RDC','OS','Atividade','Grupo Interferência','Interferência','Data Inicial','Hora Inicial','Data Final','Hora Final','Observação'];
   let h = '<table class="bi-det"><thead><tr>'+hd.map(x=>'<th class="bi-y">'+x+'</th>').join('')+'</tr></thead><tbody>';
   rows.forEach(r=>{
-    h += '<tr><td>'+esc(T(r[0]))+'</td><td>'+esc(T(r[1]))+'</td><td class="bi-wrap">'+esc(T(r[3]))+'</td><td>'+esc(T(r[4]))+'</td><td>'+esc(T(r[5]))+'</td><td>'+biDt(r[6])+'</td><td>'+biHr(r[7])+'</td><td>'+biDt(r[8])+'</td><td>'+biHr(r[9])+'</td><td class="bi-wrap">'+esc(T(r[10]))+'</td></tr>';
+    const c = (i, v, cls) => '<td data-l="'+hd[i]+'"'+(cls?' class="'+cls+'"':'')+'>'+v+'</td>';   // data-l: rótulo usado no layout em cartões (celular)
+    h += '<tr>'+c(0,esc(T(r[0])))+c(1,esc(T(r[1])))+c(2,esc(T(r[3])),'bi-wrap')+c(3,esc(T(r[4])))+c(4,esc(T(r[5])))+c(5,biDt(r[6]))+c(6,biHr(r[7]))+c(7,biDt(r[8]))+c(8,biHr(r[9]))+c(9,esc(T(r[10])),'bi-wrap')+'</tr>';
   });
   h += '</tbody></table>';
   document.getElementById('fa-modal-title').textContent = g.name+' — consulta BI';
