@@ -2977,7 +2977,6 @@ document.getElementById('kpi-strip').addEventListener('click', e=>{
     B.secs.forEach(s=>{
       const its = []; s.groups.forEach(g=>g.items.forEach(it=>{ if (!okR(it)) return; const v = B.mkv(it,T); if (Math.abs(v.tot)>0.5 || v.hTot>0) its.push({ label:it.label, resp:it.resp==='Techint'?'TCT':'USM', rs:v.tot, hh:v.hTot, hna:v.hna }); }));
       if (!its.length) return;
-      its.sort((a,b)=>b.rs-a.rs);
       const rs = its.reduce((x,i)=>x+i.rs,0), hh = its.reduce((x,i)=>x+i.hh,0); totRS += rs; totHH += hh;
       secs.push({ title:s.title, its, rs, hh, hna:its.every(i=>i.hna) });
     });
@@ -2990,7 +2989,7 @@ document.getElementById('kpi-strip').addEventListener('click', e=>{
     return secs.length ? h : '<div class="fiscal-empty">Nada pendente neste recorte.</div>';
   });
   document.getElementById('fa-modal-title').textContent = ttl+' — resumo do que está pendente';
-  document.getElementById('fa-modal-sub').textContent = (PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+pendMonthsEff().join(', ')+' · do maior para o menor valor';
+  document.getElementById('fa-modal-sub').textContent = (PEND_PROJS.length===2?'MOA e PCI':PEND_PROJS[0])+' · '+pendMonthsEff().join(', ')+' · na mesma ordem do relatório';
   document.getElementById('fa-modal-body').innerHTML = html;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 });
