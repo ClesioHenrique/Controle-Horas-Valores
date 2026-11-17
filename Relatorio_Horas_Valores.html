@@ -1698,12 +1698,13 @@ function openAribaModal(proj){
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
-document.getElementById('fa-modal-body').addEventListener('click', e=>{
+document.addEventListener('click', e=>{   // janela (#fa-modal-body) e painel amarelo (.pend-xlpanel)
+  const root = e.target.closest('#fa-modal-body, .pend-xlpanel'); if (!root) return;
   const all = e.target.closest('[data-ar-all]');
-  const setTg = (k, open)=>{ document.querySelectorAll('#fa-modal-body tr.ar-det[data-ar="'+k+'"]').forEach(r=>r.classList.toggle('ar-hide', !open)); const g = document.querySelector('#fa-modal-body tr.ar-grp[data-ar="'+k+'"] .ar-tg'); if (g) g.textContent = open ? '▾' : '▸'; };
-  if (all){ const open = all.dataset.arAll==='1'; document.querySelectorAll('#fa-modal-body tr.ar-grp').forEach(g=>setTg(g.dataset.ar, open)); return; }
+  const setTg = (k, open)=>{ root.querySelectorAll('tr.ar-det').forEach(r=>{ if (r.dataset.ar===k) r.classList.toggle('ar-hide', !open); }); root.querySelectorAll('tr.ar-grp').forEach(g=>{ if (g.dataset.ar===k){ const t = g.querySelector('.ar-tg'); if (t) t.textContent = open ? '▾' : '▸'; } }); };
+  if (all){ const open = all.dataset.arAll==='1'; root.querySelectorAll('tr.ar-grp').forEach(g=>setTg(g.dataset.ar, open)); return; }
   const g = e.target.closest('tr.ar-grp'); if (!g) return;
-  setTg(g.dataset.ar, !!document.querySelector('#fa-modal-body tr.ar-det.ar-hide[data-ar="'+g.dataset.ar+'"]'));
+  const k = g.dataset.ar; setTg(k, Array.prototype.some.call(root.querySelectorAll('tr.ar-det.ar-hide'), r=>r.dataset.ar===k));
 });
 document.getElementById('kpi-strip').addEventListener('click', e=>{
   const card = e.target.closest('[data-ariba-kpi]');
@@ -2817,7 +2818,13 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
   } else {
     const byF = new Map();
     rows.forEach(r=>{
-      let f = byF.get(r.fiscal); if (!f){ f = { fiscal:r.fiscal, rs:0, hh:0, rdcs:new Set(), os:new Map(), mes:new Set(), ppl:new Set(), tp:new Map() }; byF.set(r.fiscal,f); }
+      let f = byF.get(r.fiscal); if (!f){ f = { fiscal:r.fiscal, rs:0, hh:0, rdcs:new Set(), os:new Map(), mes:new Set(), ppl:new Set(), tp:new Map(), st:new Map() }; byF.set(r.fiscal,f); }
+      if (inline && !allFR){   // painel amarelo: agrupa por status (Pendência de Saldo, de Função...) e dentro por OS
+        let sg = f.st.get(r.status); if (!sg){ sg = { status:r.status, rs:0, hh:0, rdcs:new Set(), mes:new Set(), os:new Map() }; f.st.set(r.status,sg); }
+        sg.rs += r.rs; sg.hh += r.hh; if (r.rdc) sg.rdcs.add(r.rdc); sg.mes.add(r.mesano);
+        let so = sg.os.get(r.os); if (!so){ so = { os:r.os, rs:0, hh:0, rdcs:new Set(), mes:new Set() }; sg.os.set(r.os,so); }
+        so.rs += r.rs; so.hh += r.hh; if (r.rdc) so.rdcs.add(r.rdc); so.mes.add(r.mesano);
+      }
       f.rs += r.rs; f.hh += r.hh; if (r.rdc) f.rdcs.add(r.rdc); f.mes.add(r.mesano); if (r.pessoa) f.ppl.add(r.pessoa);
       const ok = allFR ? r.os+'|'+(r.pessoa||'') : r.os;   // FIA/RATEIO: uma linha por funcao+pessoa
       let o = f.os.get(ok); if (!o){ o = { os:r.os, rs:0, hh:0, rdcs:new Set(), mes:new Set(), ppl:new Set(), fas:new Set() }; f.os.set(ok,o); }
@@ -2838,7 +2845,7 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
     let acc = 0;
     const top3 = fis.slice(0,3).reduce((s,f)=>s+f[K],0);
     const fv = x => K==='hh' ? fmtInt(x.hh)+' HH' : 'R$ '+fmtBRL(x.rs);
-    body = fiscFilterHTML + (allFR ? '<div class="ar-bar"><button type="button" data-ar-all="1">Abrir todos os tipos</button><button type="button" data-ar-all="0">Fechar todos</button></div>' : '') + '<div class="pe-sum">'+
+    body = fiscFilterHTML + (inline && !allFR ? '<div class="ar-bar"><button type="button" data-ar-all="1">Abrir todos os status</button><button type="button" data-ar-all="0">Fechar todos</button></div>' : '') + (allFR ? '<div class="ar-bar"><button type="button" data-ar-all="1">Abrir todos os tipos</button><button type="button" data-ar-all="0">Fechar todos</button></div>' : '') + '<div class="pe-sum">'+
       '<div class="pe-card pe-card-main"><span>TOTAL PENDENTE · '+esc(projTxt)+' · '+esc(scope.mes || mesOrd(allMes))+'</span><b>'+(K==='hh' ? fmtInt(tHH)+' HH' : 'R$ '+fmtBRL(tRS))+'</b></div>'+
       '<div class="pe-card"><span>'+(K==='hh'?'R$':'HH')+'</span><b>'+(K==='hh' ? 'R$ '+fmtBRL(tRS) : (allFR && !(tHH>0) ? 'n/a' : fmtInt(tHH)))+'</b></div>'+
       '<div class="pe-card"><span>FISCAIS</span><b>'+fis.length+'</b></div>'+
@@ -2858,6 +2865,14 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
           body += '<tr class="ar-grp pe-tipo" data-ar="'+esc(key)+'" title="Clique para abrir / fechar o detalhamento"><td></td><td><span class="ar-tg">▸</span> '+esc(tp.tipo==='HH' ? 'HH — pessoas (homem-hora)' : tp.tipo)+'</td><td>'+esc(mesOrd(tp.mes))+'</td><td class="num">'+(tp.ppl.size||'—')+'</td><td>'+(tp.ppl.size ? tp.ppl.size+' pessoa(s)' : tp.os.size+' item(ns)')+'</td><td></td><td class="num">'+hhT(tp.hh)+'</td><td class="num">R$ '+fmtBRL(tp.rs)+'</td><td class="num">'+fmtPct(f.rs?tp.rs/f.rs:0)+'</td><td></td></tr>';
           Array.from(tp.os.values()).sort((a,b)=>b.rs-a.rs).forEach(o=>{
             body += '<tr class="pe-os ar-det ar-hide" data-ar="'+esc(key)+'"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.ppl.size||'—')+'</td><td'+dsc()+' title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="pe-fa">'+esc(rdcTxt(o.fas))+'</td><td class="num">'+hhT(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
+          });
+        });
+      } else if (inline){
+        Array.from(f.st.values()).sort((a,b)=>b.rs-a.rs).forEach(sg=>{
+          const key = 'S:'+sg.status;
+          body += '<tr class="ar-grp pe-tipo" data-ar="'+esc(key)+'" title="Clique para abrir / fechar o detalhamento por OS"><td></td><td><span class="ar-tg">▸</span> '+esc(sg.status)+'</td><td>'+esc(mesOrd(sg.mes))+'</td><td class="num">'+(sg.rdcs.size||'—')+'</td><td>'+esc(sg.os.size+' OS')+'</td><td class="num">'+hhT(sg.hh)+'</td><td class="num">R$ '+fmtBRL(sg.rs)+'</td><td class="num">'+fmtPct(f.rs?sg.rs/f.rs:0)+'</td><td></td></tr>';
+          Array.from(sg.os.values()).sort((a,b)=>b.rs-a.rs).forEach(o=>{
+            body += '<tr class="pe-os ar-det ar-hide" data-ar="'+esc(key)+'"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+hhT(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
           });
         });
       } else {
