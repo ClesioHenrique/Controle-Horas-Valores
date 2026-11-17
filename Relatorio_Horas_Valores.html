@@ -2512,15 +2512,17 @@ const PEND_PROJS = ['MOA','PCI'];    // filtro: projetos exibidos
 const PEND_MODS = [0,1,2];           // filtro: modalidades exibidas (0 FADS, 1 FIA, 2 RATEIO)
 const PEND_SHOW = { hh:true, rs:true };   // filtro: colunas exibidas (HH e/ou R$)
 let PEND_PARENTS = [];   // [{k, lvl}] de todas as linhas que tem filhas (usado pelos botoes de nivel)
-function pendVis(){
-  const m = PEND_PROJS.includes('MOA'), p = PEND_PROJS.includes('PCI'), hh = PEND_SHOW.hh, rs = PEND_SHOW.rs;
+function pendVis(B){
+  // colunas sem nenhum valor (projeto sem pendência, ou HH quando só há FIA/RATEIO) não aparecem
+  const g = B ? B.grand('__TOTAL__') : null, z = x => !x || Math.round(x*100)===0;
+  const m =PEND_PROJS.includes('MOA') && !(g && z(g.moa) && z(g.hMoa)), p = PEND_PROJS.includes('PCI') && !(g && z(g.pci) && z(g.hPci)), hh = PEND_SHOW.hh && !(g && z(g.hTot)), rs = PEND_SHOW.rs;
   const cols = []; // [{pr:'moa'|'pci'|'tot', kind:'hh'|'rs'}]
   [['moa',m],['pci',p],['tot',true]].forEach(([pr,on])=>{ if (!on) return; if (hh) cols.push({pr,kind:'hh'}); if (rs) cols.push({pr,kind:'rs'}); });
   return { cols, n: 2 + cols.length + 2 };
 }
 let PEND_SCOPES = {};   // id -> {title, items:[{sec,label,resp}], mes}: o que cada linha representa (usado no extrato por fiscal)
 function pendTableHTML(){
-  const B = pendBuild(), months = pendCols(), T = '__TOTAL__', V = pendVis();
+  const B = pendBuild(), months = pendCols(), T = '__TOTAL__', V = pendVis(B);
   const g0 = B.grand(T), gt = g0.tot || 0;
   const pct = v => gt ? fmtPct(v/gt) : '—';
   const money = v => Math.round(v)===0 ? '—' : 'R$ '+fmtBRL(v);
