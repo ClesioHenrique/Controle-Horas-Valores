@@ -3059,14 +3059,15 @@ async function biUnpack(b64){
 }
 let BI_LOADING = !!RAW_BI_Z;
 if (RAW_BI_Z) biUnpack(RAW_BI_Z).catch(e=>console.warn('BI: falha ao descompactar', e)).then(()=>{ BI_LOADING = false; const a = document.querySelector('.tab-btn.active'); if (a && a.dataset.proj==='BIRDC') render(); });
-const BI_ST = { q:'', os:'', fisc:'', sit:'', mes:'', at:'', it:'', lim:200 };
+const BI_ST = { q:'', os:'', fisc:'', sit:'', mes:'', at:'', grp:'', it:'', lim:200 };
 function biBuild(){
   if (BI_CACHE) return BI_CACHE;
   const info = new Map(); RAW_BI_RDC.forEach(o=>info.set(String(o.r), o));
   const by = new Map();
   RAW_BI_ROWS.forEach((r,i)=>{
     const k = RAW_BI_TXT[r[0]]; let g = by.get(k);
-    if (!g){ g = { name:k, key:String(k).replace(/^RDC_/i,''), idx:[], at:0, it:0, hA:0, hI:0, os:RAW_BI_TXT[r[1]] }; by.set(k,g); }
+    if (!g){ g = { name:k, key:String(k).replace(/^RDC_/i,''), idx:[], at:0, it:0, hA:0, hI:0, os:RAW_BI_TXT[r[1]], acts:new Set(), grps:new Set(), ints:new Set() }; by.set(k,g); }
+    if (r[3]) g.acts.add(RAW_BI_TXT[r[3]]); if (r[4]) g.grps.add(RAW_BI_TXT[r[4]]); if (r[5]) g.ints.add(RAW_BI_TXT[r[5]]);
     g.idx.push(i); const d = r[11] || 0;
     if (r[2]){ g.it++; g.hI += d; } else { g.at++; g.hA += d; }
   });
@@ -3075,7 +3076,14 @@ function biBuild(){
   list.sort((a,b)=>(parseFloat(b.key)||0)-(parseFloat(a.key)||0));
   const pt = (a,b)=>String(a).localeCompare(String(b),'pt-BR');
   const uniq = f => Array.from(new Set(list.map(f))).filter(Boolean);
-  BI_CACHE = { list, oss:uniq(g=>g.os).sort(pt), fiscs:Array.from(new Set(list.map(g=>g.fiscal||'(sem fiscal)'))).sort(pt), sits:uniq(g=>g.sit).sort(pt),
+  list.forEach(g=>{ g.actTxt = Array.from(g.acts).join('\n').toLowerCase(); });
+  // descrições existentes: atividades, grupos de interferência e, para cada grupo, suas interferências
+  const actSet = new Set(), intByGrp = new Map(), grpSet = new Set();
+  RAW_BI_ROWS.forEach(r=>{
+    if (r[3]) actSet.add(RAW_BI_TXT[r[3]]);
+    if (r[4]){ const gp = RAW_BI_TXT[r[4]]; grpSet.add(gp); let s = intByGrp.get(gp); if (!s){ s = new Set(); intByGrp.set(gp,s); } if (r[5]) s.add(RAW_BI_TXT[r[5]]); }
+  });
+  BI_CACHE = { acts:Array.from(actSet).sort(pt), grps:Array.from(grpSet).sort(pt), intByGrp, list, oss:uniq(g=>g.os).sort(pt), fiscs:Array.from(new Set(list.map(g=>g.fiscal||'(sem fiscal)'))).sort(pt), sits:uniq(g=>g.sit).sort(pt),
     mess:uniq(g=>g.mes).sort((a,b)=>mesKey(a)-mesKey(b)) };
   return BI_CACHE;
 }
@@ -3086,7 +3094,7 @@ function biFiltered(){
   const C = biBuild(), q = BI_ST.q.trim().toLowerCase();
   return C.list.filter(g=>(!q || g.name.toLowerCase().includes(q) || g.key.includes(q)) && (!BI_ST.os || g.os===BI_ST.os) && (!BI_ST.fisc || (g.fiscal||'(sem fiscal)')===BI_ST.fisc)
     && (!BI_ST.sit || g.sit===BI_ST.sit) && (!BI_ST.mes || g.mes===BI_ST.mes)
-    && (!BI_ST.at || (BI_ST.at==='com' ? g.at>0 : g.at===0)) && (!BI_ST.it || (BI_ST.it==='com' ? g.it>0 : g.it===0)));
+    && (!BI_ST.at || g.actTxt.includes(BI_ST.at.trim().toLowerCase())) && (!BI_ST.grp || g.grps.has(BI_ST.grp)) && (!BI_ST.it || g.ints.has(BI_ST.it)));
 }
 function biListHTML(){
   const all = biFiltered(), rows = all.slice(0, BI_ST.lim);
@@ -3113,8 +3121,9 @@ function renderBiHTML(){
     sel('bi-fisc','data-bi-fisc','Fiscal',BI_ST.fisc,C.fiscs.map(o=>[o,o]),'Todos')+
     sel('bi-sit','data-bi-sit','Situação',BI_ST.sit,C.sits.map(o=>[o,o]),'Todas')+
     sel('bi-mes','data-bi-mes','Mês',BI_ST.mes,C.mess.map(o=>[o,o]),'Todos')+
-    sel('bi-at','data-bi-at','Atividades',BI_ST.at,yn,'Todas')+
-    sel('bi-it','data-bi-it','Interferências',BI_ST.it,yn,'Todas')+
+    '<span class="evol-flbl" style="margin-left:12px">Atividade</span><input type="text" id="bi-at" data-bi-at="1" list="bi-at-list" autocomplete="off" placeholder="Digite ou escolha a descrição" value="'+esc(BI_ST.at)+'" class="bi-sel" style="min-width:230px"><datalist id="bi-at-list">'+C.acts.map(a=>'<option value="'+esc(a)+'"></option>').join('')+'</datalist>'+
+    sel('bi-grp','data-bi-grp','Grupo de interferência',BI_ST.grp,C.grps.map(o=>[o,o]),'Todos')+
+    sel('bi-it','data-bi-it','Interferência',BI_ST.it,(BI_ST.grp ? Array.from(C.intByGrp.get(BI_ST.grp)||[]) : Array.from(new Set(Array.from(C.intByGrp.values()).reduce((a,s)=>a.concat(Array.from(s)),[])))).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR')).map(o=>[o,o]),'Todas')+
     '<button type="button" class="evol-quick" data-bi-clr="1">Limpar</button></div><div id="bi-list">'+biListHTML()+'</div></div>';
 }
 function renderBiKpiStrip(){
@@ -3176,16 +3185,22 @@ function biOpen(key){
   document.getElementById('fa-modal-body').innerHTML = h;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
-document.addEventListener('input', e=>{ const q = e.target.closest && e.target.closest('[data-bi-q]'); if (!q) return; BI_ST.q = q.value; BI_ST.lim = 200; document.getElementById('bi-list').innerHTML = biListHTML(); });
+document.addEventListener('input', e=>{
+  const q = e.target.closest && e.target.closest('[data-bi-q]'), a = e.target.closest && e.target.closest('[data-bi-at]');
+  if (!q && !a) return; if (q) BI_ST.q = q.value; if (a) BI_ST.at = a.value; BI_ST.lim = 200; document.getElementById('bi-list').innerHTML = biListHTML();
+});
 document.addEventListener('change', e=>{
-  const m = { 'data-bi-os':'os', 'data-bi-fisc':'fisc', 'data-bi-sit':'sit', 'data-bi-mes':'mes', 'data-bi-at':'at', 'data-bi-it':'it' };
+  const m = { 'data-bi-os':'os', 'data-bi-fisc':'fisc', 'data-bi-sit':'sit', 'data-bi-mes':'mes', 'data-bi-it':'it' };
+  if (e.target.hasAttribute && e.target.hasAttribute('data-bi-grp')){   // trocar o grupo refaz a lista de interferências (só as do grupo)
+    BI_ST.grp = e.target.value; BI_ST.it = ''; BI_ST.lim = 200; render(); return;
+  }
   const k = Object.keys(m).find(a=>e.target.hasAttribute && e.target.hasAttribute(a)); if (!k) return;
   BI_ST[m[k]] = e.target.value; BI_ST.lim = 200; document.getElementById('bi-list').innerHTML = biListHTML();
 });
 document.addEventListener('click', e=>{
   const r = e.target.closest('[data-bi]'); if (r){ biOpen(r.dataset.bi); return; }
   if (e.target.closest('[data-bi-more]')){ BI_ST.lim += 200; document.getElementById('bi-list').innerHTML = biListHTML(); return; }
-  if (e.target.closest('[data-bi-clr]')){ BI_ST.q = ''; BI_ST.os = ''; BI_ST.fisc = ''; BI_ST.sit = ''; BI_ST.mes = ''; BI_ST.at = ''; BI_ST.it = ''; BI_ST.lim = 200; render(); }
+  if (e.target.closest('[data-bi-clr]')){ BI_ST.q = ''; BI_ST.os = ''; BI_ST.fisc = ''; BI_ST.sit = ''; BI_ST.mes = ''; BI_ST.at = ''; BI_ST.grp = ''; BI_ST.it = ''; BI_ST.lim = 200; render(); }
 });
 // clique nos números do painel executivo: resumo do que está pendente (por modalidade e status), com HH, R$ e %
 document.getElementById('kpi-strip').addEventListener('click', e=>{
