@@ -175,6 +175,30 @@ table.pend-tbl th[rowspan]{vertical-align:middle;}
 tr.pn-mes-hdr td{background:#eef6dd;font-size:11.5px;font-style:italic;color:#4a5a2a;padding:2px 8px;}
 tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pend-ospanel{background:#fff9cc;border:2px solid #f2c200;border-radius:8px;padding:8px 10px;margin:4px 0 12px;overflow:auto;}
+/* painel executivo do Resumo de Pendências (estilo terminal escuro) */
+.pk-panel{position:relative;display:inline-block;vertical-align:top;max-width:100%;box-sizing:border-box;padding:10px 14px 12px;border-radius:16px;color:#eaf3ff;background:radial-gradient(120% 140% at 0% 0%,#17407a 0%,#0b2750 45%,#071a38 100%);border:1px solid rgba(120,180,255,.35);box-shadow:0 10px 30px rgba(0,20,60,.45),inset 0 1px 0 rgba(255,255,255,.12);}
+.pk-head{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#9cc4f5;margin-bottom:8px;white-space:nowrap;}
+.pk-live{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 8px #3ddc84;animation:pkpulse 1.8s infinite;}
+@keyframes pkpulse{50%{opacity:.35;}}
+.pk-per{margin-left:auto;font-weight:600;letter-spacing:.04em;color:#7fa6d8;}
+.pk-row{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;}
+.pk-tile{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:150px;padding:9px 14px;border-radius:12px;background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.03));border:1px solid rgba(140,190,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+.pk-lbl{font-size:10px;font-weight:800;letter-spacing:.14em;color:#8db5ea;}
+.pk-val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:#fff;text-shadow:0 0 14px rgba(120,190,255,.55);}
+.pk-main .pk-val{font-size:30px;color:#ffe08a;text-shadow:0 0 18px rgba(255,200,60,.6);}
+.pk-main{min-width:210px;border-color:rgba(255,200,60,.45);background:linear-gradient(160deg,rgba(255,200,60,.16),rgba(255,255,255,.03));}
+.pk-tct .pk-val{color:#7fe3ff;text-shadow:0 0 14px rgba(53,208,255,.65);}
+.pk-usm .pk-val{color:#ffd36b;text-shadow:0 0 14px rgba(255,200,61,.6);}
+.pk-bar{height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin:2px 0;}
+.pk-bar i{display:block;height:100%;border-radius:4px;}
+.pk-tct .pk-bar i{background:linear-gradient(90deg,#1b8fd1,#35d0ff);box-shadow:0 0 8px #35d0ff;}
+.pk-usm .pk-bar i{background:linear-gradient(90deg,#e0902a,#ffc83d);box-shadow:0 0 8px #ffc83d;}
+.pk-tile small{font-size:11px;color:#a9c6ea;white-space:nowrap;}
+.pk-gauge{align-items:center;min-width:170px;}
+.pk-gtxt{font-size:15px;font-weight:800;fill:#fff;}
+.pk-gsub{font-size:5.5px;font-weight:700;fill:#9cc4f5;letter-spacing:.1em;}
+.pk-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+@media (max-width:700px){.pk-panel{display:block;}.pk-tile{flex:1 1 140px;}.pk-val{font-size:18px;}.pk-main .pk-val{font-size:24px;}}
 .pend-xlbtn{border:none;background:none;font-size:20px;cursor:pointer;padding:2px 6px;border-radius:6px;}
 .pend-xlbtn:hover{background:rgba(0,43,92,.1);}
 .pend-ospanel .pop-h{font-size:13px;font-weight:600;margin-bottom:6px;color:#1b2a3a;}
@@ -2921,8 +2945,20 @@ function renderPendHTML(forExport){
 }
 function renderPendKpiStrip(){
   const B = pendBuild(), T = '__TOTAL__', g = B.grand(T);
-  const grp = (title, v) => '<div class="kpi-group"><div class="kpi-group-title sm">'+esc(title)+'</div><div class="kpi-group-row"><div class="kpi-grp-col"><div class="kpi-grp-cap">R$</div><div class="kpi-card kpi-navy"><div class="kpi-icon">💰</div><div><div class="kpi-value">R$ '+fmtBRL(v)+'</div></div></div></div></div></div>';
-  return grp('Total pendente', g.tot) + grp('Pendente TCT', B.byResp.Techint.tot) + grp('Pendente USM', B.byResp.Usiminas.tot);
+  // painel "terminal executivo": fundo escuro, cartões de vidro, números com brilho, barras de participação e medidor TCT x USM
+  const tct = B.byResp.Techint, usm = B.byResp.Usiminas, tot = g.tot || 0;
+  const pT = tot ? tct.tot/tot*100 : 0, pU = tot ? usm.tot/tot*100 : 0;
+  const hh = v => v.hna ? '' : fmtInt(v.hTot)+' HH';
+  const tile = (cls, lbl, v, pc, bar) => '<div class="pk-tile '+cls+'"><span class="pk-lbl">'+lbl+'</span><b class="pk-val">R$ '+fmtBRL(v.tot)+'</b>'+
+    (bar ? '<div class="pk-bar"><i style="width:'+Math.min(100,pc).toFixed(1)+'%"></i></div>' : '')+
+    '<small>'+(bar ? fmtPct(pc/100)+' do total' : 'MOA + PCI')+(hh(v) ? ' · '+hh(v) : '')+'</small></div>';
+  const gauge = '<div class="pk-tile pk-gauge"><span class="pk-lbl">QUEM TEM A BOLA</span>'+
+    '<svg viewBox="0 0 100 58" width="150" height="87"><path d="M10 50 A40 40 0 0 1 90 50" pathLength="100" fill="none" stroke="#35d0ff" stroke-width="9" stroke-linecap="butt"/>'+
+    '<path d="M10 50 A40 40 0 0 1 90 50" pathLength="100" fill="none" stroke="#ffc83d" stroke-width="9" stroke-dasharray="'+pU.toFixed(2)+' 100" stroke-linecap="butt"/>'+
+    '<text x="50" y="45" text-anchor="middle" class="pk-gtxt">'+Math.round(pU)+'%</text><text x="50" y="55" text-anchor="middle" class="pk-gsub">USM</text></svg>'+
+    '<small><span class="pk-dot" style="background:#35d0ff"></span>TCT '+Math.round(pT)+'% <span class="pk-dot" style="background:#ffc83d;margin-left:8px"></span>USM '+Math.round(pU)+'%</small></div>';
+  return '<div class="pk-panel"><div class="pk-head"><span class="pk-live"></span>PENDÊNCIAS · RESUMO DA REUNIÃO<span class="pk-per">'+esc(pendMonthsEff().join(' · '))+'</span></div>'+
+    '<div class="pk-row">'+tile('pk-main','TOTAL PENDENTE', g, 100, false)+tile('pk-tct','PENDENTE TCT', tct, pT, true)+tile('pk-usm','PENDENTE USM', usm, pU, true)+gauge+'</div></div>';
 }
 let lastChartData = null;
 function render(){
