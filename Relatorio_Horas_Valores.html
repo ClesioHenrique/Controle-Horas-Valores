@@ -2659,7 +2659,7 @@ function pendPrintDoc(){
       '<tr>'+V.cols.map(c=>'<th>'+(c.kind==='hh'?'HH':'R$')+'</th>').join('')+'</tr>';
     const kpi = (cls, lbl, v, sub) => '<div class="k '+cls+'"><span>'+lbl+'</span><b>'+v+'</b><small>'+sub+'</small></div>';
     const pT = gt ? tct.tot/gt*100 : 0, pU = gt ? usm.tot/gt*100 : 0, hh = v => v.hna ? '' : ' · '+fmtInt(v.hTot)+' HH';
-    const css = '@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:"Segoe UI",Calibri,Arial,sans-serif;color:#1b2a3a;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+    const css = '@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:"Segoe UI",Calibri,Arial,sans-serif;color:#1b2a3a;font-size:10.5px;zoom:.85;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
       '.hd{background:#12305a;color:#fff;padding:9px 14px;border-radius:7px;display:flex;justify-content:space-between;align-items:center}.hd h1{margin:0;font-size:16px}.hd small{font-size:10px;opacity:.85;text-align:right}'+
       '.ks{display:flex;gap:8px;margin:9px 0}.k{flex:1;border:1px solid #c9d3df;border-radius:7px;padding:7px 11px;background:#f6f8fb}.k span{display:block;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#5a7391}.k b{display:block;font-size:19px;margin:2px 0;color:#12305a}.k small{font-size:9px;color:#5a6f88}'+
       '.k.m{background:#fff7de;border-color:#e0b64a}.k.m b{color:#a86a00}.k.c b{color:#0b78b5}.k.u b{color:#b87400}'+
@@ -2687,7 +2687,7 @@ function pendPrintLevelDoc(){
       '.pks{display:flex;gap:8px;margin:0 0 8px}.pk2{flex:1;border:1px solid #c9d3df;border-radius:7px;padding:6px 11px;background:#f6f8fb}.pk2 span{display:block;font-size:9px;font-weight:700;letter-spacing:.08em;color:#5a7391}.pk2 b{display:block;font-size:20px;margin:1px 0;color:#12305a}.pk2 small{font-size:9.5px;color:#5a6f88}'+
       '.pk2.m{background:#fff7de;border-color:#e0b64a}.pk2.m b{color:#a86a00}.pk2.c b{color:#0b78b5}.pk2.u b{color:#b87400}'+
       '.pz .table-wrap{overflow:visible !important;max-width:none !important;box-shadow:none !important}.pz thead{display:table-header-group}.pz tr{page-break-inside:avoid}.pz .pn-hidden{display:none !important}'+
-      '.pz col:last-child{width:300px !important}.pz td:last-child{white-space:normal !important;font-size:10px}';
+      '.ph,.pks{zoom:.75}.pz col:last-child{width:300px !important}.pz td:last-child{white-space:normal !important;font-size:10px}';
     return '<!doctype html><html><head><meta charset="utf-8"><title>Resumo de Pendências</title><style>'+css+'</style><style>'+extra+'</style></head><body>'+
       '<div class="ph"><h1>Resumo de Pendências — Medição (Techint)</h1><small>'+esc(projs)+' · '+esc(months)+'<br>Gerado em '+new Date().toLocaleString('pt-BR')+'</small></div>'+
       '<div class="pks">'+kpi('m','TOTAL PENDENTE','R$ '+fmtBRL(g.tot), esc(projs)+hh(g))+kpi('c','PENDENTE TCT','R$ '+fmtBRL(tct.tot), (gt?fmtPct(tct.tot/gt):'—')+' do total'+hh(tct))+kpi('u','PENDENTE USM','R$ '+fmtBRL(usm.tot), (gt?fmtPct(usm.tot/gt):'—')+' do total'+hh(usm))+'</div>'+
@@ -2703,7 +2703,7 @@ function pendPrint(level){
     try {
       const d = f.contentDocument, pz = d.getElementById('pz');
       // "nível escolhido": ajusta a largura da tabela à folha (zoom, não transform) para caber em A4 paisagem sem cortar colunas
-      if (pz){ const tb = pz.querySelector('table'); const w = tb ? Math.max(tb.scrollWidth, tb.offsetWidth) : 0; const z = w ? Math.min(1, 1030 / w) : 1; pz.style.zoom = String(z); }
+      if (pz){ const tb = pz.querySelector('table'); const w = tb ? Math.max(tb.scrollWidth, tb.offsetWidth) : 0; const z = w ? Math.min(0.68, 1040 / w) : 0.68; pz.style.zoom = String(z); }
       f.contentWindow.focus(); f.contentWindow.addEventListener('afterprint', done); f.contentWindow.print();
     } catch(e){ done(); }
     setTimeout(done, 180000);
