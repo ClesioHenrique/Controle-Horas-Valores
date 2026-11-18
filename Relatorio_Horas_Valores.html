@@ -3130,10 +3130,9 @@ function biFilterText(){
 const BI_COLS = ['RDC','OS','Fiscal responsável','Situação (Extrato SGE)','Mês','HH','R$','Pessoas','Atividades','Horas ativ.','Interferências','Horas interf.'];
 function biRowCells(g){ return [g.name, g.os||'', g.fiscal||'(RDC fora do Extrato SGE)', g.sit||'', g.mes||'', g.hh||0, g.rs||0, g.p||0, g.at, g.hA, g.it, g.hI]; }
 // 📋 copia a lista como tabela HTML formatada (cores, bordas, zebrado) + texto TSV: cola direto no corpo do e-mail / Excel
-async function biCopyEmail(btn){
-  const all = biFiltered(); if (!all.length) return;
+function biMailBuild(all, maxRows, fam){
   const tA = all.reduce((s,g)=>s+g.hA,0), tI = all.reduce((s,g)=>s+g.hI,0), tHH = all.reduce((s,g)=>s+g.hh,0), tRS = all.reduce((s,g)=>s+g.rs,0);
-  const ft = 'font-family:Calibri,Arial,sans-serif;', bd = 'border:1px solid #c9d3df;', num = 'text-align:right;', cols = BI_COLS.length;
+  const ft = 'font-family:'+(fam||'Calibri,Arial,sans-serif')+';', bd = 'border:1px solid #c9d3df;', num = 'text-align:right;', cols = BI_COLS.length;
   const th = (t,i) => '<th style="'+ft+'font-size:10.5pt;background:#12305a;color:#ffffff;'+bd+'padding:6px 9px;text-align:'+(i>=5?'right':'left')+';white-space:nowrap;">'+esc(t)+'</th>';
   const f2 = v => biH2(v), fi = v => v ? fmtInt(v) : '—', fr = v => v ? 'R$ '+fmtBRL(v) : '—';
   let h = '<table style="border-collapse:collapse;'+ft+'font-size:10.5pt;">'+
@@ -3142,13 +3141,81 @@ async function biCopyEmail(btn){
     '<tr><td colspan="'+cols+'" style="'+ft+'font-size:10pt;color:#12305a;padding:0 0 8px;"><b>'+all.length+'</b> RDC'+(all.length>1?'s':'')+' · <b>'+f2(tA)+' h</b> de atividades · <b>'+f2(tI)+' h</b> de interferências · gerado em '+new Date().toLocaleDateString('pt-BR')+'</td></tr>'+
     '<tr>'+BI_COLS.map(th).join('')+'</tr>';
   let tsv = 'Consulta por RDC (BI)\n'+biFilterText()+'\n\n'+BI_COLS.join('\t')+'\n';
-  all.forEach((g,i)=>{
+  (maxRows ? all.slice(0,maxRows) : all).forEach((g,i)=>{
     const c = biRowCells(g), bg = i%2 ? '#f3f6fa' : '#ffffff', td = (v,a,x) => '<td style="'+ft+bd+'padding:5px 9px;background:'+bg+';text-align:'+a+';white-space:nowrap;'+(x||'')+'">'+v+'</td>';
     h += '<tr>'+td('<b>'+esc(c[0])+'</b>','left','color:#12305a;')+td(esc(c[1]),'left')+td(esc(c[2]),'left')+td(esc(c[3]),'left')+td(esc(c[4]),'left')+td(fi(c[5]),'right')+td(fr(c[6]),'right')+td(c[7]||'—','right')+td(String(c[8]),'right')+td(f2(c[9]),'right')+td(String(c[10]),'right')+td(f2(c[11]),'right')+'</tr>';
     tsv += c.map((v,k)=>k===5 ? fmtInt(v) : k===6 ? fmtBRL(v) : (k>=9&&k!==10) ? f2(v) : String(v)).join('\t')+'\n';
   });
+  if (maxRows && all.length > maxRows) h += '<tr><td colspan="'+cols+'" style="'+ft+bd+'padding:5px 9px;background:#fff8dc;color:#6b5a00;font-size:9.5pt;">… e mais '+(all.length-maxRows)+' RDC(s) — veja a lista completa no relatório ou no Excel</td></tr>';
   const tt = 'background:#12305a;color:#ffffff;font-weight:bold;';
   h += '<tr><td colspan="5" style="'+ft+bd+tt+'padding:6px 9px;">Total ('+all.length+' RDC'+(all.length>1?'s':'')+')</td><td style="'+ft+bd+tt+'padding:6px 9px;text-align:right;">'+fmtInt(tHH)+'</td><td style="'+ft+bd+tt+'padding:6px 9px;text-align:right;">R$ '+fmtBRL(tRS)+'</td><td style="'+ft+bd+tt+'padding:6px 9px;"></td><td style="'+ft+bd+tt+'padding:6px 9px;text-align:right;">'+fmtInt(all.reduce((s,g)=>s+g.at,0))+'</td><td style="'+ft+bd+tt+'padding:6px 9px;text-align:right;">'+f2(tA)+'</td><td style="'+ft+bd+tt+'padding:6px 9px;text-align:right;">'+fmtInt(all.reduce((s,g)=>s+g.it,0))+'</td><td style="'+ft+bd+tt+'padding:6px 9px;text-align:right;">'+f2(tI)+'</td></tr></table>';
+  return { h, tsv };
+}
+// 📷 copia a lista como IMAGEM nítida (PNG): cola igual no e-mail, no Teams e no WhatsApp, sem perder cores nem colunas
+// desenha a lista direto num canvas (sem html2canvas): largura de colunas medida, texto nítido, igual em qualquer máquina
+function biRenderCanvas(all, maxRows){
+  const S = 2, FONT = '"Segoe UI", Calibri, Arial, sans-serif';
+  const NAVY = '#12305a', ZEBRA = '#f3f6fa', LINE = '#c9d3df';
+  const rowsAll = all, rows = maxRows ? all.slice(0, maxRows) : all;
+  const tA = all.reduce((s,g)=>s+g.hA,0), tI = all.reduce((s,g)=>s+g.hI,0), tHH = all.reduce((s,g)=>s+g.hh,0), tRS = all.reduce((s,g)=>s+g.rs,0);
+  const f2 = v => biH2(v);
+  const data = rows.map(g=>{ const c = biRowCells(g); return [c[0], c[1], c[2], c[3], c[4], c[5] ? fmtInt(c[5]) : '—', c[6] ? 'R$ '+fmtBRL(c[6]) : '—', c[7] ? String(c[7]) : '—', String(c[8]), f2(c[9]), String(c[10]), f2(c[11])]; });
+  const total = ['Total ('+all.length+' RDC'+(all.length>1?'s':'')+')', '', '', '', '', fmtInt(tHH), 'R$ '+fmtBRL(tRS), '', fmtInt(all.reduce((s,g)=>s+g.at,0)), f2(tA), fmtInt(all.reduce((s,g)=>s+g.it,0)), f2(tI)];
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d');
+  const font = (px, w) => (w||'400')+' '+px+'px '+FONT;
+  const PADX = 10, HDR_H = 32, ROW_H = 28, M = 20;
+  // largura de cada coluna = maior texto (cabeçalho em negrito, linhas, total) + folga
+  const W = BI_COLS.map((h,i)=>{
+    cx.font = font(13,'700'); let w = cx.measureText(h).width;
+    cx.font = font(13, i===0 ? '700' : '400'); data.forEach(r=>{ w = Math.max(w, cx.measureText(String(r[i])).width); });
+    if (i>0 && i<5) { cx.font = font(13,'700'); w = Math.max(w, 0); }
+    return Math.ceil(w) + PADX*2;
+  });
+  W[0] = Math.max(W[0], Math.ceil((cx.font = font(13,'700'), cx.measureText(total[0]).width)) + PADX*2);   // "Total (n RDCs)" cabe na 1ª coluna
+  const tw = W.reduce((a,b)=>a+b,0);
+  const title = 'Consulta por RDC (BI) — apontamentos de atividades e interferências';
+  const sub1 = biFilterText();
+  const sub2 = all.length+' RDC'+(all.length>1?'s':'')+'  ·  '+f2(tA)+' h de atividades  ·  '+f2(tI)+' h de interferências  ·  gerado em '+new Date().toLocaleDateString('pt-BR');
+  cx.font = font(22,'700'); const titleW = cx.measureText(title).width;
+  const width = Math.ceil(Math.max(tw, titleW)) + M*2;
+  const note = (maxRows && all.length > maxRows) ? '… e mais '+(all.length-maxRows)+' RDC(s) — veja a lista completa no relatório ou no Excel' : '';
+  const height = M + 30 + 22 + 24 + 12 + HDR_H + data.length*ROW_H + (note ? ROW_H : 0) + ROW_H + M;
+  cv.width = width*S; cv.height = height*S; cx.scale(S,S);
+  cx.fillStyle = '#ffffff'; cx.fillRect(0,0,width,height); cx.textBaseline = 'middle';
+  let y = M;
+  cx.fillStyle = NAVY; cx.font = font(22,'700'); cx.fillText(title, M, y+15); y += 30;
+  cx.fillStyle = '#5b6b7c'; cx.font = font(13); cx.fillText(sub1, M, y+11); y += 22;
+  cx.fillStyle = NAVY; cx.font = font(13,'600'); cx.fillText(sub2, M, y+12); y += 24 + 12;
+  const cell = (x, yy, w, h, bg, txt, color, weight, align) => {
+    cx.fillStyle = bg; cx.fillRect(x, yy, w, h); cx.strokeStyle = LINE; cx.lineWidth = 1; cx.strokeRect(x+.5, yy+.5, w-1, h-1);
+    cx.fillStyle = color; cx.font = font(13, weight); cx.textAlign = align; cx.fillText(txt, align==='right' ? x+w-PADX : x+PADX, yy+h/2+1); cx.textAlign = 'left';
+  };
+  let x = M; BI_COLS.forEach((h,i)=>{ cell(x, y, W[i], HDR_H, NAVY, h, '#ffffff', '700', i>=5?'right':'left'); x += W[i]; }); y += HDR_H;
+  data.forEach((r,ri)=>{ x = M; const bg = ri%2 ? ZEBRA : '#ffffff'; r.forEach((v,i)=>{ cell(x, y, W[i], ROW_H, bg, String(v), i===0 ? NAVY : '#1b2a3a', i===0 ? '700' : '400', i>=5?'right':'left'); x += W[i]; }); y += ROW_H; });
+  if (note){ cell(M, y, tw, ROW_H, '#fff8dc', note, '#6b5a00', '400', 'left'); y += ROW_H; }
+  x = M; total.forEach((v,i)=>{ cell(x, y, W[i], ROW_H, NAVY, v, '#ffffff', '700', i>=5?'right':'left'); x += W[i]; });
+  return cv;
+}
+async function biCopyImage(btn){
+  const all = biFiltered(); if (!all.length) return;
+  const old = btn ? btn.textContent : ''; if (btn){ btn.textContent = '⌛ Gerando imagem…'; btn.disabled = true; }
+  let msg = '';
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const canvas = biRenderCanvas(all, 80);
+    const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
+    try { await navigator.clipboard.write([ new ClipboardItem({ 'image/png':blob }) ]); msg = '✔ Imagem copiada! Cole no e-mail ou no Teams (Ctrl+V)'; }
+    catch(clipErr){
+      const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'Consulta por RDC (BI).png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      msg = '💾 Imagem baixada (o navegador não deixou copiar)';
+    }
+  } catch(err){ console.error(err); msg = 'Não foi possível gerar a imagem'; }
+  if (btn){ btn.textContent = msg; setTimeout(()=>{ btn.textContent = old; btn.disabled = false; }, 3800); }
+}
+async function biCopyEmail(btn){
+  const all = biFiltered(); if (!all.length) return;
+  const { h, tsv } = biMailBuild(all);
   const full = '<html><head><meta charset="utf-8"></head><body>'+h+'</body></html>';
   let ok = false;
   try { await navigator.clipboard.write([ new ClipboardItem({ 'text/html':new Blob([full],{type:'text/html'}), 'text/plain':new Blob([tsv],{type:'text/plain'}) }) ]); ok = true; }
@@ -3165,6 +3232,7 @@ function biExportXlsx(){
   xlsxDownload([{ name:'Consulta por RDC (BI)', rows, widths:[14,12,32,24,9,8,14,9,11,12,13,13] }], 'Consulta por RDC (BI).xlsx');
 }
 document.addEventListener('click', e=>{
+  const im = e.target.closest('[data-bi-img]'); if (im){ biCopyImage(im); return; }
   const c = e.target.closest('[data-bi-copy]'); if (c){ biCopyEmail(c); return; }
   if (e.target.closest('[data-bi-xls]')) biExportXlsx();
 });
@@ -3224,7 +3292,7 @@ function renderBiHTML(){
   if (!RAW_BI_ROWS.length && BI_LOADING) return '<div class="fiscal-block"><div class="fiscal-empty">Carregando a BI…</div></div>';
   if (!RAW_BI_ROWS.length) return '<div class="fiscal-block"><div class="fiscal-empty">Nenhum dado da aba <b>BI</b> carregado. Use o botão ⚙ (Atualizar dados) com a planilha que contém a aba “BI”.</div></div>';
   biBuild();
-  return '<div class="fiscal-block bi-block"><div class="pend-controls pend-filters" id="bi-filters">'+biFiltersHTML()+'</div><div class="bi-actions"><button type="button" class="evol-quick" data-bi-copy="1" title="Copia a lista (com os filtros aplicados) formatada para colar no e-mail">📋 Copiar para e-mail</button><button type="button" class="evol-quick" data-bi-xls="1" title="Baixa a lista em Excel (.xlsx)">📊 Exportar Excel</button></div><div id="bi-list">'+biListHTML()+'</div></div>';
+  return '<div class="fiscal-block bi-block"><div class="pend-controls pend-filters" id="bi-filters">'+biFiltersHTML()+'</div><div class="bi-actions"><button type="button" class="evol-quick" data-bi-img="1" title="Copia a lista (com os filtros aplicados) como imagem nítida: cole no e-mail, no Teams ou no WhatsApp" style="font-weight:800">📷 Copiar imagem (e-mail / Teams)</button><button type="button" class="evol-quick" data-bi-copy="1" title="Copia a lista como tabela (para colar no Excel ou no corpo do e-mail)">📋 Copiar tabela</button><button type="button" class="evol-quick" data-bi-xls="1" title="Baixa a lista em Excel (.xlsx)">📊 Exportar Excel</button></div><div id="bi-list">'+biListHTML()+'</div></div>';
 }
 function biRefresh(keepFocus){
   const f = document.getElementById('bi-filters'); if (f){ const q = document.getElementById('bi-q'), pos = q ? q.selectionStart : 0, had = document.activeElement===q; f.innerHTML = biFiltersHTML(); if (keepFocus && had){ const n = document.getElementById('bi-q'); n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} } }
