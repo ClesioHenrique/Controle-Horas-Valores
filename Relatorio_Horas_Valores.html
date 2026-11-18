@@ -245,6 +245,9 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
   .fa-modal table.bi-det td:first-child{font-weight:800;color:var(--navy);}
   #bi-q{min-width:0 !important;width:100%;box-sizing:border-box;}
 }
+a.bi-lnk{color:var(--info-blue);font-weight:700;text-decoration:underline dotted;cursor:pointer;background:rgba(255,238,0,.35);padding:0 2px;border-radius:3px;}
+a.bi-lnk:hover{background:rgba(255,238,0,.7);}
+.bi-more{cursor:pointer;color:var(--info-blue);text-decoration:underline dotted;}
 td.bi-rdc{cursor:pointer;color:var(--info-blue);font-weight:800;text-decoration:underline dotted;}
 td.bi-rdc:hover{background:#eaf3fb;}
 /* mesmo padrão visual do extrato por Fiscal (pe-tbl) */
@@ -2181,7 +2184,7 @@ function openMobilePendenteByOSModal(proj, papel, aprovador){
     list.forEach(g=>{
       totHH += g.hh; totRS += g.rs; totQtd += g.rdcs.length;
       const rdcTxt = g.rdcs.length<=6 ? g.rdcs.join(', ') : g.rdcs.slice(0,6).join(', ')+' (+'+(g.rdcs.length-6)+' mais)';
-      body += '<tr><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(g.rdcs.join(', '))+'">'+esc(rdcTxt)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+      body += '<tr><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(g.rdcs.join(', '))+'">'+rdcLinksHTML(g.rdcs)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
     });
     body += '<tr class="fa-total"><td>Total ('+list.length+' OS)</td><td class="num">'+totQtd+'</td><td></td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
   }
@@ -2961,6 +2964,7 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
     const fis = Array.from(byF.values()).sort((a,b)=>b[K]-a[K]);
     const tRS = fis.reduce((s,f)=>s+f.rs,0), tHH = fis.reduce((s,f)=>s+f.hh,0), tRDC = fis.reduce((s,f)=>s+(allFR ? f.ppl.size : f.rdcs.size),0), tK = K==='hh' ? tHH : tRS;
     const allMes = new Set(); rows.forEach(r=>allMes.add(r.mesano));
+    const rdcArr = set => Array.from(set).sort((x,y)=>String(x).localeCompare(String(y),'pt-BR',{numeric:true}));
     const rdcTxt = set => { const a = Array.from(set).sort((x,y)=>String(x).localeCompare(String(y),'pt-BR',{numeric:true})); return !a.length ? '—' : a.length<=6 ? a.join(', ') : a.slice(0,6).join(', ')+' (+'+(a.length-6)+' mais)'; };
     let acc = 0;
     const top3 = fis.slice(0,3).reduce((s,f)=>s+f[K],0);
@@ -2977,7 +2981,7 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
       acc += f[K]; const pc = tK ? f[K]/tK : 0, ac = tK ? acc/tK : 0;
       const dsc = s => allFR ? ' style="white-space:normal;max-width:480px"' : '';
       const pq = x => allFR ? (x.ppl.size || '—') : (x.rdcs.size || '—');
-      body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td class="pe-rk"><span class="pe-medal pe-m'+(i<3?i+1:0)+'">'+(i+1)+'º</span></td><td>'+esc(f.fiscal)+'</td><td>'+esc(mesOrd(f.mes))+'</td><td class="num">'+pq(f)+'</td><td'+dsc()+' title="'+esc(Array.from(f.rdcs).join(', '))+'">'+esc(allFR ? f.tp.size+' tipo(s) — abra os tipos abaixo' : rdcTxt(f.rdcs))+'</td>'+(allFR?'<td></td>':'')+'<td class="num">'+hhT(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td></tr>';
+      body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td class="pe-rk"><span class="pe-medal pe-m'+(i<3?i+1:0)+'">'+(i+1)+'º</span></td><td>'+esc(f.fiscal)+'</td><td>'+esc(mesOrd(f.mes))+'</td><td class="num">'+pq(f)+'</td><td'+dsc()+' title="'+esc(Array.from(f.rdcs).join(', '))+'">'+(allFR ? esc(f.tp.size+' tipo(s) — abra os tipos abaixo') : rdcLinksHTML(rdcArr(f.rdcs)))+'</td>'+(allFR?'<td></td>':'')+'<td class="num">'+hhT(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td></tr>';
       if (allFR){
         // nivel por TIPO (col AA): fechado por padrao; clique abre os itens. Qtd = so pessoas (linhas com HH)
         Array.from(f.tp.values()).sort((a,b)=>b.rs-a.rs).forEach(tp=>{
@@ -2992,12 +2996,12 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
           const key = 'S:'+sg.status;
           body += '<tr class="ar-grp pe-tipo" data-ar="'+esc(key)+'" title="Clique para abrir / fechar o detalhamento por OS"><td></td><td><span class="ar-tg">▸</span> '+esc(sg.status)+'</td><td>'+esc(mesOrd(sg.mes))+'</td><td class="num">'+(sg.rdcs.size||'—')+'</td><td>'+esc(sg.os.size+' OS')+'</td><td class="num">'+hhT(sg.hh)+'</td><td class="num">R$ '+fmtBRL(sg.rs)+'</td><td class="num">'+fmtPct(f.rs?sg.rs/f.rs:0)+'</td><td></td></tr>';
           Array.from(sg.os.values()).sort((a,b)=>b.rs-a.rs).forEach(o=>{
-            body += '<tr class="pe-os ar-det ar-hide" data-ar="'+esc(key)+'"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+hhT(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
+            body += '<tr class="pe-os ar-det ar-hide" data-ar="'+esc(key)+'"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.rdcs.size||'—')+'</td><td title="'+esc(Array.from(o.rdcs).join(', '))+'">'+rdcLinksHTML(rdcArr(o.rdcs))+'</td><td class="num">'+hhT(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
           });
         });
       } else {
         Array.from(f.os.values()).sort((a,b)=>b[K]-a[K]).forEach(o=>{
-          body += '<tr class="pe-os"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+pq(o)+'</td><td'+dsc()+' title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="num">'+hhT(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
+          body += '<tr class="pe-os"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+pq(o)+'</td><td'+dsc()+' title="'+esc(Array.from(o.rdcs).join(', '))+'">'+rdcLinksHTML(rdcArr(o.rdcs))+'</td><td class="num">'+hhT(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
         });
       }
     });
@@ -3181,8 +3185,29 @@ function pkPanel(title, per, tiles, extra, cols){
   return '<div class="pk-panel"><div class="pk-head"><span class="pk-live"></span>'+title+(per?'<span class="pk-per">'+per+'</span>':'')+'</div>'+
     '<div class="pk-row'+(cols===3?' pk-3':cols==='auto'?' pk-auto':'')+'" style="--pkn:'+(tiles.length+(extra?1:0))+'">'+tiles.join('')+(extra||'')+'</div></div>';
 }
+// RDC clicável nas janelas de detalhe (extrato por Fiscal etc.): abre os apontamentos da BI; "Voltar" retorna à janela anterior
+let BI_BACK = null;
+function biHasRdc(n){ if (!RAW_BI_ROWS.length) return false; const C = biBuild(); if (!C.byKey) C.byKey = new Map(C.list.map(g=>[g.key,g])); return C.byKey.has(String(n).trim()); }
+function rdcLinkOne(n){ const s = String(n).trim(); return /^\d+$/.test(s) && biHasRdc(s) ? '<a class="bi-lnk" data-bi-open="'+esc(s)+'" title="Ver os apontamentos deste RDC (BI)">'+esc(s)+'</a>' : esc(n); }
+function rdcLinksHTML(arr, max){
+  max = max || 6; const a = Array.from(arr||[]);
+  if (!a.length) return '—';
+  if (a.length <= max) return a.map(rdcLinkOne).join(', ');
+  return a.slice(0,max).map(rdcLinkOne).join(', ')+' <span class="bi-more" data-bi-all="'+esc(a.join('|'))+'" title="Mostrar todos os RDCs">(+'+(a.length-max)+' mais)</span>';
+}
+document.addEventListener('click', e=>{
+  const o = e.target.closest('[data-bi-open]'); if (o){ e.preventDefault(); biOpen(o.dataset.biOpen); return; }
+  const m = e.target.closest('[data-bi-all]'); if (m){ const td = m.parentElement; td.innerHTML = m.dataset.biAll.split('|').map(rdcLinkOne).join(', '); return; }
+  if (e.target.closest('[data-bi-back]') && BI_BACK){
+    document.getElementById('fa-modal-title').textContent = BI_BACK.t; document.getElementById('fa-modal-sub').textContent = BI_BACK.s; document.getElementById('fa-modal-body').innerHTML = BI_BACK.b; BI_BACK = null;
+  }
+});
 function biOpen(key){
   const C = biBuild(), g = C.list.find(x=>x.key===key); if (!g) return;
+  const bd = document.getElementById('fa-modal-backdrop'), tt = document.getElementById('fa-modal-title').textContent;
+  // veio de outra janela aberta (ex.: extrato por Fiscal)? guarda o conteúdo para o botão "Voltar"
+  if (bd.classList.contains('open') && tt.indexOf('consulta BI')===-1) BI_BACK = { t:tt, s:document.getElementById('fa-modal-sub').textContent, b:document.getElementById('fa-modal-body').innerHTML };
+  else if (!bd.classList.contains('open')) BI_BACK = null;
   // apontamentos identicos de pessoas diferentes (mesma atividade/interferencia, mesmos horarios) viram UMA linha com a quantidade de pessoas
   const T = i => RAW_BI_TXT[i] || '';
   const grp = new Map();
@@ -3195,7 +3220,7 @@ function biOpen(key){
   const nApont = g.idx.length;
   const hd = ['RDC','OS','Atividade','Grupo Interferência','Interferência','Data Inicial','Hora Inicial','Data Final','Hora Final','Pessoas','Duração por pessoa (h)','Total de horas','Observação'];
   const tot = g.hA + g.hI;
-  let h = '<div class="pe-sum">'+
+  let h = (BI_BACK ? '<div class="ar-bar"><button type="button" data-bi-back="1">← Voltar</button></div>' : '')+'<div class="pe-sum">'+
     '<div class="pe-card pe-card-main"><span>TOTAL DE HORAS · '+esc(g.name)+'</span><b>'+biH2(tot)+' h</b></div>'+
     '<div class="pe-card"><span>ATIVIDADES</span><b>'+g.at+'</b><small>'+biH2(g.hA)+' h</small></div>'+
     '<div class="pe-card"><span>INTERFERÊNCIAS</span><b>'+g.it+'</b><small>'+biH2(g.hI)+' h</small></div>'+
@@ -3862,7 +3887,7 @@ function openRdcByOSModal(proj, lider, fiscal){
     list.forEach(g=>{
       totHH += g.hh; totRS += g.rs; totQtd += g.rdcs.length;
       const rdcTxt = g.rdcs.length<=6 ? g.rdcs.join(', ') : g.rdcs.slice(0,6).join(', ')+' (+'+(g.rdcs.length-6)+' mais)';
-      body += '<tr><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(g.rdcs.join(', '))+'">'+esc(rdcTxt)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+      body += '<tr><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(g.rdcs.join(', '))+'">'+rdcLinksHTML(g.rdcs)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
     });
     body += '<tr class="fa-total"><td>Total ('+list.length+' OS)</td><td class="num">'+totQtd+'</td><td></td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
   }
@@ -3898,7 +3923,7 @@ function openFiscalByOSModal(proj, fiscal){
     list.forEach(g=>{
       totHH += g.hh; totRS += g.rs; totQtd += g.qtd;
       const rdcTxt = !g.rdcs.length ? '—' : (g.rdcs.length<=6 ? g.rdcs.join(', ') : g.rdcs.slice(0,6).join(', ')+' (+'+(g.rdcs.length-6)+' mais)');
-      body += '<tr><td>'+esc(g.os)+'</td><td class="hl-rdc" title="'+esc(g.rdcs.join(', '))+'">'+esc(rdcTxt)+'</td><td class="num">'+g.qtd+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+      body += '<tr><td>'+esc(g.os)+'</td><td class="hl-rdc" title="'+esc(g.rdcs.join(', '))+'">'+rdcLinksHTML(g.rdcs)+'</td><td class="num">'+g.qtd+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
     });
     body += '<tr class="fa-total"><td>Total ('+list.length+' OS)</td><td></td><td class="num">'+totQtd+'</td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
   }
@@ -3997,7 +4022,7 @@ function openRdcResumoModal(proj){
       totHH += g.hh; totRS += g.rs; totQtd += g.rdcs.length;
       const uniq = Array.from(new Set(g.rdcs));
       const rdcTxt = uniq.length<=6 ? uniq.join(', ') : uniq.slice(0,6).join(', ')+' (+'+(uniq.length-6)+' mais)';
-      body += '<tr><td>'+esc(g.projeto)+'</td><td>'+esc(g.lider)+'</td><td>'+esc(g.fiscal)+'</td><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(uniq.join(', '))+'">'+esc(rdcTxt)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
+      body += '<tr><td>'+esc(g.projeto)+'</td><td>'+esc(g.lider)+'</td><td>'+esc(g.fiscal)+'</td><td>'+esc(g.os)+'</td><td class="num">'+g.rdcs.length+'</td><td title="'+esc(uniq.join(', '))+'">'+rdcLinksHTML(uniq)+'</td><td class="num">'+fmtInt(g.hh)+'</td><td class="num">'+fmtBRL(g.rs)+'</td></tr>';
     });
     body += '<tr class="fa-total"><td colspan="4">Total ('+list.length+' linhas)</td><td class="num">'+totQtd+'</td><td></td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
   }
