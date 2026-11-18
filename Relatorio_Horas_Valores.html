@@ -2638,11 +2638,57 @@ function pendTableHTML(){
   h += '</tbody></table></div>';
   return h;
 }
+/* ---------- Impressão do Resumo de Pendências: uma página A4 paisagem, limpa (painel executivo + demonstrativo por modalidade e status) ---------- */
+function pendPrintDoc(){
+  return pendWithMonths(()=>{
+    const B = pendBuild(), T = '__TOTAL__', g = B.grand(T), tct = B.byResp.Techint, usm = B.byResp.Usiminas, V = pendVis(B), gt = g.tot || 0;
+    const months = pendMonthsEff().join(' · '), projs = PEND_PROJS.length===2 ? 'MOA e PCI' : PEND_PROJS[0];
+    const hk = { moa:'hMoa', pci:'hPci', tot:'hTot' }, nm = { moa:'MOA', pci:'PCI', tot:'TOTAL' };
+    const z = x => Math.round((x||0)*100)===0;
+    const cellOf = (v, c) => c.kind==='hh' ? (v.hna ? '<span class="na">n/a</span>' : (z(v[hk[c.pr]]) ? '—' : fmtInt(v[hk[c.pr]]))) : (z(v[c.pr]) ? '—' : 'R$ '+fmtBRL(v[c.pr]));
+    const pc = v => gt ? fmtPct(v.tot/gt) : '—';
+    const tr = (cls, label, v, resp) => '<tr class="'+cls+'"><td class="d">'+label+'</td><td class="r">'+(resp||'')+'</td>'+V.cols.map(c=>'<td class="n'+(c.pr==='tot'?' t':'')+'">'+cellOf(v,c)+'</td>').join('')+'<td class="n t">'+pc(v)+'</td></tr>';
+    let body = tr('tot', 'Total Geral pendente', g) + tr('sub', 'Pendente com a Techint (TCT)', tct, 'TCT') + tr('sub', 'Pendente com a Usiminas (USM)', usm, 'USM');
+    B.secs.forEach(s=>{
+      const its = []; s.groups.forEach(gr=>gr.items.forEach(it=>{ const v = B.mkv(it,T); if (!z(v.tot) || !z(v.hTot)) its.push({ label:it.label, resp:it.resp==='Techint'?'TCT':'USM', v }); }));
+      if (!its.length) return;
+      body += tr('sec', esc(s.title), B.secTot(s,T));
+      its.forEach(i=>{ body += tr('it', esc(i.label), i.v, i.resp); });
+    });
+    const head = '<tr><th rowspan="2" class="d">Modalidade / Status pendente</th><th rowspan="2">Resp.</th>'+['moa','pci','tot'].filter(pr=>V.cols.some(c=>c.pr===pr)).map(pr=>'<th colspan="'+V.cols.filter(c=>c.pr===pr).length+'">'+nm[pr]+'</th>').join('')+'<th rowspan="2">%</th></tr>'+
+      '<tr>'+V.cols.map(c=>'<th>'+(c.kind==='hh'?'HH':'R$')+'</th>').join('')+'</tr>';
+    const kpi = (cls, lbl, v, sub) => '<div class="k '+cls+'"><span>'+lbl+'</span><b>'+v+'</b><small>'+sub+'</small></div>';
+    const pT = gt ? tct.tot/gt*100 : 0, pU = gt ? usm.tot/gt*100 : 0, hh = v => v.hna ? '' : ' · '+fmtInt(v.hTot)+' HH';
+    const css = '@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:"Segoe UI",Calibri,Arial,sans-serif;color:#1b2a3a;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+      '.hd{background:#12305a;color:#fff;padding:9px 14px;border-radius:7px;display:flex;justify-content:space-between;align-items:center}.hd h1{margin:0;font-size:16px}.hd small{font-size:10px;opacity:.85;text-align:right}'+
+      '.ks{display:flex;gap:8px;margin:9px 0}.k{flex:1;border:1px solid #c9d3df;border-radius:7px;padding:7px 11px;background:#f6f8fb}.k span{display:block;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#5a7391}.k b{display:block;font-size:19px;margin:2px 0;color:#12305a}.k small{font-size:9px;color:#5a6f88}'+
+      '.k.m{background:#fff7de;border-color:#e0b64a}.k.m b{color:#a86a00}.k.c b{color:#0b78b5}.k.u b{color:#b87400}'+
+      'table{width:100%;border-collapse:collapse}th{background:#12305a;color:#fff;font-size:9.5px;padding:4px 6px;border:1px solid #12305a}td{border:1px solid #d6dde6;padding:3px 7px;font-size:10px}'+
+      'td.d{text-align:left}td.r{text-align:center;width:44px;color:#5a6f88;font-size:9px}td.n{text-align:right;white-space:nowrap}td.t{font-weight:700}.na{color:#8a98aa;font-style:italic}'+
+      'tr.tot td{background:#dfe8f2;font-weight:800;font-size:11px}tr.sub td{background:#eef3f8;font-weight:700}tr.sec td{background:#c9dcb0;font-weight:800;border-color:#b3c898}tr.it td.d{padding-left:20px}tr.it:nth-child(even) td{background:#fafbfd}'+
+      '.ft{margin-top:7px;font-size:8.5px;color:#6b7c93;display:flex;justify-content:space-between}tr{page-break-inside:avoid}';
+    return '<!doctype html><html><head><meta charset="utf-8"><title>Resumo de Pendências</title><style>'+css+'</style></head><body>'+
+      '<div class="hd"><h1>Resumo de Pendências — Medição (Techint)</h1><small>'+esc(projs)+' · '+esc(months)+'<br>Gerado em '+new Date().toLocaleString('pt-BR')+'</small></div>'+
+      '<div class="ks">'+kpi('m','TOTAL PENDENTE','R$ '+fmtBRL(g.tot), esc(projs)+hh(g))+kpi('c','PENDENTE TCT','R$ '+fmtBRL(tct.tot), fmtPct(pT/100)+' do total'+hh(tct))+kpi('u','PENDENTE USM','R$ '+fmtBRL(usm.tot), fmtPct(pU/100)+' do total'+hh(usm))+'</div>'+
+      '<table><thead>'+head+'</thead><tbody>'+body+'</tbody></table>'+
+      '<div class="ft"><span>TCT: suplementar / ajustar / concluir elaboração · USM: realizar RDC / aprovar / liberar FR</span><span>Relatório Gerencial — Controle de Horas × Valores (R$)</span></div></body></html>';
+  });
+}
+function pendPrint(){
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  document.body.appendChild(f);
+  const done = () => { try { f.remove(); } catch(e){} };
+  f.onload = () => { setTimeout(()=>{ try { f.contentWindow.focus(); f.contentWindow.addEventListener('afterprint', done); f.contentWindow.print(); } catch(e){ done(); } setTimeout(done, 180000); }, 250); };
+  f.srcdoc = pendPrintDoc();
+}
+document.addEventListener('click', e=>{ if (e.target.closest('[data-pn-print]')) pendPrint(); });
 function pendControlsHTML(){
   return '<div class="pend-controls"><span class="evol-flbl">Níveis</span>'+
     [1,2,3,4].map(n=>'<button type="button" class="evol-chip" data-pn-level="'+n+'" title="Mostrar até o nível '+n+'">'+n+'</button>').join('')+
     '<button type="button" class="evol-quick" data-pn-level="4">Expandir tudo</button><button type="button" class="evol-quick" data-pn-level="1">Recolher tudo</button>'+
     '<span class="pend-hint">1 = FADS/FIA/RATEIO · 2 = grupos · 3 = status · 4 = meses de cada status</span>'+
+    '<button type="button" class="evol-quick" data-pn-print="1" style="font-weight:800" title="Imprime o resumo em uma página A4 (paisagem), com o painel e o demonstrativo por status">🖨 Imprimir resumo</button>'+
     '<span class="evol-flbl" style="margin-left:14px">Status do quadro OS/Fiscal</span><span id="pend-st-wrap">'+pendStDropHTML()+'</span></div>';
 }
 let PEND_ST = null;       // null = todos os status; senao lista de status escolhidos para o quadro amarelo
