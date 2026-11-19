@@ -6219,7 +6219,9 @@ window.addEventListener('resize', ()=>{
     });
   }
   async function pickXlsxHandle(){
+    var last = null; try{ last = await loadFileHandle(); }catch(_){}
     var handles = await window.showOpenFilePicker({
+      id: 'horas_valores_xlsx', startIn: last || undefined,
       types: [{ description: 'Planilha Excel', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
       excludeAcceptAllOption: false,
       multiple: false
@@ -6235,7 +6237,7 @@ window.addEventListener('resize', ()=>{
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbnVhdGtmYWplc2N6empkaWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNTQ4MjksImV4cCI6MjEwMzczMDgyOX0.hKKDxg9Hu9SFVTHjfphD8U_SKTollLUpncm7fZo7zjU';
   var SNAP_TABLE = 'relatorio_horas_snapshot';
   var supa = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-  var supaUser = null, supaUpdatedAt = null;
+  var supaUser = null, supaUpdatedAt = null, pendingPublishName = null;
 
   async function loadFromSupabase(){
     if (!supa) return;
@@ -6290,6 +6292,13 @@ window.addEventListener('resize', ()=>{
       var r = await supa.auth.signInWithPassword({ email: email, password: pw });
       if (r.error){ errEl.textContent = 'Login inválido.'; return; }
       document.getElementById('supa-password').value = '';
+      if (pendingPublishName){
+        var pn = pendingPublishName; pendingPublishName = null;
+        supaUser = r.data.user;
+        try{ await publishToSupabase(pn); showUpdateToast('Login realizado e dados publicados: o celular já mostra estes números (recarregue a página lá).', false); }
+        catch(pe){ console.error(pe); showUpdateToast('Login realizado, mas não consegui publicar: '+(pe.message||pe), true); }
+        return;
+      }
       showUpdateToast('Login realizado: '+r.data.user.email+'. Agora "Atualizar dados" também publica no Supabase.', false);
     };
     document.getElementById('supa-login-submit').addEventListener('click', doLogin);
@@ -6317,7 +6326,9 @@ window.addEventListener('resize', ()=>{
         try { await publishToSupabase(file.name); pubMsg = ' Publicado no Supabase: quem abrir o relatório já vê estes números.'; }
         catch(pe){ console.error(pe); pubMsg = ' ATENÇÃO: não consegui publicar no Supabase ('+(pe.message||pe)+').'; }
       } else if (supa){
-        pubMsg = ' Pra publicar pra todos, entre em "☁ Entrar" (topo da página) e atualize de novo.';
+        pendingPublishName = file.name;
+        try{ document.getElementById('supa-login-panel').style.display = 'block'; }catch(_){}
+        pubMsg = ' Para atualizar também o CELULAR, entre em "☁ Entrar" (painel aberto no topo): ao entrar, os dados são publicados automaticamente.';
       } else {
         pubMsg = ' Clique em "Baixar relatório atualizado" se quiser publicar essa versão pra outras pessoas.';
       }
@@ -6333,14 +6344,9 @@ window.addEventListener('resize', ()=>{
   btn.addEventListener('click', async function(){
     if (!supportsFSAccess){ fileInput.click(); return; }
     try{
-      var handle = await loadFileHandle();
-      if (!handle){
-        handle = await pickXlsxHandle();
-        await saveFileHandle(handle);
-      } else {
-        var perm = await handle.requestPermission({ mode: 'read' });
-        if (perm !== 'granted') throw new Error('Permissão de leitura negada para o arquivo salvo.');
-      }
+      // sempre abre o seletor de arquivo (o usuario escolhe a planilha a cada atualizacao), comecando na pasta do ultimo arquivo
+      var handle = await pickXlsxHandle();
+      try{ await saveFileHandle(handle); }catch(_){}
       var file = await handle.getFile();
       await processFile(file);
     } catch(err){
