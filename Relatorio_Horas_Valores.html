@@ -280,7 +280,19 @@ a.bi-lnk:hover{background:rgba(255,238,0,.7);}
 .fx-concl{margin:0;padding-left:20px;font-size:12.5px;line-height:1.5;}.fx-concl li{margin-bottom:6px;}
 .fx-ac{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;margin-top:10px;}.fx-ac-b{border:1px solid var(--border);border-radius:10px;padding:8px 12px;}.fx-ac-b b{font-size:13px;color:var(--navy);}.fx-ac-b ul{margin:5px 0 0;padding-left:18px;font-size:12px;line-height:1.45;}
 .fx-ac-b.fx-tct{border-left:5px solid #0b9ad6;background:#f2fafe;}.fx-ac-b.fx-usm{border-left:5px solid #f0a52a;background:#fffaf0;}
-@media (max-width:700px){.fx-ar{transform:rotate(90deg);width:100%;text-align:center}.fx-st{max-width:none}}
+.fx-sub{margin:0 0 8px;font-size:12px;color:var(--text-muted);max-width:1000px;}
+.fx-time{background:linear-gradient(180deg,#f3f8ff,#fff);border:1px solid #cfdcf0;border-radius:12px;padding:10px 14px 12px;margin-bottom:14px;}
+.fx-sim{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:6px 0 10px;font-size:12px;}.fx-sim label{display:flex;gap:6px;align-items:center;font-weight:600;color:var(--navy);}.fx-sim input[type=range]{width:130px;}.fx-sim output{min-width:34px;font-weight:800;}.fx-day{font-weight:700;color:#0b78b5;font-size:12px;}
+.fx-tlwrap{position:relative;padding:18px 0 4px;}.fx-axis{position:relative;height:16px;margin-left:190px;margin-right:96px;border-bottom:1px solid #cfd8e6;}.fx-axis span{position:absolute;top:0;font-size:9.5px;color:#7a8ca3;transform:translateX(-50%);}
+.fx-tl{display:flex;gap:10px;align-items:stretch;padding:7px 0;border-bottom:1px dashed #dde6f1;}.fx-tn{width:180px;flex:none;}.fx-tn b{font-size:12.5px;display:block;}.fx-tn small{font-size:10.5px;color:var(--text-muted);}
+.fx-tracks{flex:1;display:flex;flex-direction:column;gap:5px;}.fx-trk{display:flex;align-items:center;gap:6px;}.fx-trk label{width:56px;font-size:10px;font-weight:800;color:#5a7391;letter-spacing:.05em;text-transform:uppercase;}
+.fx-bar{flex:1;height:22px;display:flex;background:#eef2f7;border-radius:5px;overflow:hidden;}.fx-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;border-right:1px solid rgba(255,255,255,.7);min-width:2px;transition:width .25s;}
+.fx-s-t{background:#0b9ad6;}.fx-s-u{background:#f0a52a;}.fx-seg span{overflow:hidden;white-space:nowrap;}.fx-imp .fx-bar{box-shadow:inset 0 0 0 1px #9fd5a8;}
+.fx-tt{width:88px;font-size:12px;color:var(--navy);text-align:right;}.fx-tt em{font-style:normal;color:#1f8f55;font-size:11px;}
+.fx-cursor{position:absolute;top:0;bottom:0;width:0;border-left:2px solid #e5484d;pointer-events:none;z-index:3;}.fx-cursor i{position:absolute;top:-2px;left:-5px;width:8px;height:8px;border-radius:50%;background:#e5484d;}
+.fx-legend{font-size:11px;color:var(--text-muted);margin-top:4px;}.fx-legend span{display:inline-block;width:12px;height:10px;border-radius:3px;margin:0 3px 0 8px;vertical-align:middle;}
+.fx-lic{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:8px;}.fx-li{display:flex;gap:10px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#fbfcfe;}.fx-li>span{flex:none;width:24px;height:24px;border-radius:50%;background:#12305a;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;}.fx-li b{color:var(--navy);font-size:12.5px;}.fx-li p{margin:3px 0 0;font-size:11.8px;line-height:1.4;color:#2c3e50;}
+@media (max-width:700px){.fx-ar{transform:rotate(90deg);width:100%;text-align:center}.fx-st{max-width:none}.fx-tl{flex-direction:column}.fx-tn{width:auto}.fx-axis{margin-left:0;margin-right:0}.fx-lic{grid-template-columns:1fr}}
 td.bi-rdc{cursor:pointer;color:var(--info-blue);font-weight:800;text-decoration:underline dotted;}
 td.bi-rdc:hover{background:#eaf3fb;}
 /* mesmo padrão visual do extrato por Fiscal (pe-tbl) */
@@ -3749,6 +3761,137 @@ function fluxoData(){
     });
   } finally { PEND_PROJS.length = 0; sp.forEach(p=>PEND_PROJS.push(p)); PEND_MODS.length = 0; sm.forEach(m=>PEND_MODS.push(m)); }
 }
+/* ---------------- Fluxo no tempo: simulação (somente leitura — não altera nenhum dado) ----------------
+   Tempos REAIS observados nos dados: (a) idade média do saldo parado em cada etapa (hoje - fim do mês de competência, ponderada por R$);
+   (b) FRs já emitidas: da competência até a solicitação da FR; (c) FRs liberadas (Ariba): do período até o mês da FR;
+   (d) RDCs pendentes de aprovação no Mobile: dias desde a data do RDC. A simulação soma as etapas e permite testar reduções de prazo. */
+let FX_RED = { tct:40, usm:40 };
+let FX_TIMER = null;
+const fxMonthEnd = m => { const M = {Jan:0,Fev:1,Mar:2,Abr:3,Mai:4,Jun:5,Jul:6,Ago:7,Set:8,Out:9,Nov:10,Dez:11}; const p = String(m).split('/'); const k = M[p[0].charAt(0).toUpperCase()+p[0].slice(1).toLowerCase()]; return k===undefined ? null : new Date(2000+parseInt(p[1],10), k+1, 0); };
+const fxBR = s => { const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(s||'')); return m ? new Date(+m[3], +m[2]-1, +m[1]) : null; };
+const fxDays = (a,b) => Math.round((b-a)/86400000);
+const fxWMedian = (arr, q) => { const a = arr.filter(x=>isFinite(x.d)).sort((x,y)=>x.d-y.d), t = a.reduce((s,x)=>s+x.w,0); if (!a.length || !t) return null; let c = 0; for (const x of a){ c += x.w; if (c >= t*q) return x.d; } return a[a.length-1].d; };
+function fluxoTempoData(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sp = PEND_PROJS.slice(), sm = PEND_MODS.slice();
+  PEND_PROJS.length = 0; ['MOA','PCI'].forEach(p=>PEND_PROJS.push(p)); PEND_MODS.length = 0; [0,1,2].forEach(m=>PEND_MODS.push(m));
+  let stage;
+  try {
+    stage = pendWithMonths(()=>{
+      const B = pendBuild(), T = '__TOTAL__', months = pendMonthsEff();
+      // idade média (dias) do saldo parado nos itens [sec,label] = soma(R$ do mês * dias desde o fim do mês) / soma(R$)
+      return items => {
+        let w = 0, a = 0, oldest = null, val = 0;
+        items.forEach(([sec,label])=>{ const s = B.secs.find(x=>x.idx===sec); if (!s) return; s.groups.forEach(g=>g.items.forEach(it=>{ if (it.label!==label) return;
+          months.forEach(m=>{ const v = B.mkv(it,m).tot; if (!(Math.abs(v)>0.5)) return; const e = fxMonthEnd(m); if (!e) return; const d = Math.max(0, fxDays(e, today)); w += v; a += v*d; val += v; if (!oldest || e < oldest.e) oldest = { e, m }; });
+        })); });
+        return { dias: w ? a/w : 0, valor: val, mais_antigo: oldest ? oldest.m : '' };
+      };
+    });
+    var F = stage;
+    var S = {
+      cad:   F([[0,'Pendência de Saldo'],[0,'Pendência de Função'],[0,'Recurso não cadastrado no WebTerceiros']]),
+      rdc:   F([[0,'RDC não está aprovada']]),
+      sge:   F([[0,'Aguardando revisão'],[0,'Em Elaboração']]),
+      pend:  F([[0,'Pendente de aprovação']]),
+      fadAp: F([[0,'Aprovado - SGE'],[0,'Medição em Andamento - SGE']]),
+      fadMd: F([[0,'Medido - Para emitir FR - SAP']]),
+      fiaCr: F([[1,'Em criação OS para FIA']]),
+      fiaFin:F([[1,'Aprovação Financeira']]),
+      fiaAp: F([[1,'Aprovado - SGE'],[1,'Medição em Andamento - SGE']]),
+      fiaMd: F([[1,'Medido - Para emitir FR - SAP']]),
+      ratCr: F([[2,'Em Criação RATEIO no sistema SGE']]),
+      ratFin:F([[2,'Aprovação Financeira']]),
+      ratAp: F([[2,'Aprovado - SGE'],[2,'Medição em Andamento - SGE']]),
+      ratMd: F([[2,'Medido - Para emitir FR - SAP']])
+    };
+  } finally { PEND_PROJS.length = 0; sp.forEach(p=>PEND_PROJS.push(p)); PEND_MODS.length = 0; sm.forEach(m=>PEND_MODS.push(m)); }
+  // (b) FRs já emitidas: competência -> solicitação da FR (dias, ponderado por R$)
+  const lag = []; (RAW_FRS_EMITIDAS||[]).forEach(r=>{ const e = fxMonthEnd(String(r.mesComp||'').replace(/^(\w)/, c=>c.toUpperCase())), d = fxBR(r.dataSolic); if (e && d){ const dd = fxDays(e,d); if (dd >= 0 && dd <= 365) lag.push({ d:dd, w:Math.max(1, r.valor||1), tipo:r.tipo }); } });
+  const frReal = { n:lag.length, med:fxWMedian(lag,.5), p80:fxWMedian(lag,.8), min:lag.length ? Math.min.apply(null, lag.map(x=>x.d)) : null };
+  const byTipo = {}; ['FAD','FIA','RAT'].forEach(t=>{ byTipo[t] = fxWMedian(lag.filter(x=>x.tipo===t),.5); });
+  // (c) Ariba: do último mês do período até o mês da FR (dias, ponderado)
+  const ar = []; (RAW_ARIBA||[]).forEach(r=>{ const per = String(r.periodo||'').split(/[;,]/).map(s=>s.trim()).filter(s=>/^[A-Za-zçÇ]{3}\/\d{4}$/.test(s)); const mf = /^(\d{1,2})\/(\d{4})$/.exec(String(r.mesFR||'')); if (!per.length || !mf) return;
+    const last = per[per.length-1].split('/'); const e = fxMonthEnd(last[0]+'/'+last[1].slice(2)); const fr = new Date(+mf[2], +mf[1]-1, 15); if (e) ar.push({ d:Math.max(0, fxDays(e, fr)), w:Math.max(1, r.rs||1) }); });
+  const ariba = { n:ar.length, med:fxWMedian(ar,.5) };
+  // (d) RDCs pendentes de aprovação no Mobile
+  const mob = []; (RAW_RDC_MOBILE_PENDENTE||[]).forEach(r=>{ const d = fxBR(r.dataRef); if (d) mob.push({ d:Math.max(0, fxDays(d,today)), w:1 }); });
+  const mobil = { n:mob.length, med:fxWMedian(mob,.5), g7:mob.length ? mob.filter(x=>x.d>7).length/mob.length : 0, g15:mob.length ? mob.filter(x=>x.d>15).length/mob.length : 0, g30:mob.length ? mob.filter(x=>x.d>30).length/mob.length : 0 };
+  return { S, frReal, byTipo, ariba, mobil, today };
+}
+// trilhas (sequência de etapas): cada etapa tem responsável e duração = idade média do saldo parado (dias); "FR liberada" usa o prazo observado no Ariba
+function fluxoTrilhas(T){
+  const S = T.S, lib = Math.round(T.ariba.med || 0);
+  const mk = (nome, owner, o) => ({ nome, dono:owner, dias:Math.round(o.dias||0), valor:o.valor||0, ant:o.mais_antigo||'' });
+  return [
+    { id:'FAD', nome:'FADS — horas', cor:'#35b36b', etapas:[ mk('Cadastro (saldo / função / WebTerceiros)','TCT',S.cad), mk('RDC não aprovada','USM',S.rdc), mk('Carregamento SGE (revisão / elaboração)','TCT',S.sge), mk('Pendente de aprovação','USM',S.pend), mk('Aprovado + medição em andamento','USM',S.fadAp), mk('Medido — para emitir FR','USM',S.fadMd), { nome:'FR liberada (Ariba)', dono:'USM', dias:lib, valor:0, ant:'' } ] },
+    { id:'FIA', nome:'FIA — equipamentos auxiliares', cor:'#f5a04a', etapas:[ mk('Criação da OS FIA','TCT',S.fiaCr), mk('Aprovação financeira','USM',S.fiaFin), mk('Aprovado + medição','USM',S.fiaAp), mk('Medido — para emitir FR','USM',S.fiaMd), { nome:'FR liberada (Ariba)', dono:'USM', dias:lib, valor:0, ant:'' } ] },
+    { id:'RAT', nome:'RATEIO — mão de obra indireta', cor:'#7c6bd6', etapas:[ mk('Criação do RATEIO no SGE','TCT',S.ratCr), mk('Aprovação financeira','USM',S.ratFin), mk('Aprovado + medição','USM',S.ratAp), mk('Medido — para emitir FR','USM',S.ratMd), { nome:'FR liberada (Ariba)', dono:'USM', dias:lib, valor:0, ant:'' } ] }
+  ];
+}
+function fluxoTempoHTML(){
+  const T = fluxoTempoData(), tr = fluxoTrilhas(T), rt = FX_RED.tct, ru = FX_RED.usm;
+  const adj = (e) => Math.round(e.dias * (1 - (e.dono==='TCT' ? rt : ru)/100));
+  const tot = (et, f) => et.reduce((s,e)=>s+(f ? f(e) : e.dias),0);
+  const maxT = Math.max(30, ...tr.map(x=>tot(x.etapas)));
+  const scale = Math.ceil(maxT/30)*30;
+  const seg = (e, f) => { const d = f ? f(e) : e.dias; return d>0 ? '<div class="fx-seg '+(e.dono==='TCT'?'fx-s-t':'fx-s-u')+'" style="width:'+(d/scale*100)+'%" title="'+esc(e.nome)+' ('+e.dono+') — '+d+' dias'+(e.valor?' · R$ '+fmtBRL(e.valor)+(e.ant?' · desde '+e.ant:''):'')+'"><span>'+d+'d</span></div>' : ''; };
+  const ticks = []; for (let d=0; d<=scale; d+=30) ticks.push('<span style="left:'+(d/scale*100)+'%">'+d+'d</span>');
+  const rows = tr.map(x=>{
+    const a = tot(x.etapas), b = tot(x.etapas, adj);
+    return '<div class="fx-tl"><div class="fx-tn"><b style="color:'+x.cor+'">'+esc(x.nome)+'</b><small>'+x.etapas.filter(e=>e.dias>0).length+' etapas com saldo parado</small></div>'+
+      '<div class="fx-tracks"><div class="fx-trk"><label>Atual</label><div class="fx-bar">'+x.etapas.map(e=>seg(e)).join('')+'</div><b class="fx-tt">'+a+' dias</b></div>'+
+      '<div class="fx-trk fx-imp"><label>Simulado</label><div class="fx-bar">'+x.etapas.map(e=>seg(e,adj)).join('')+'</div><b class="fx-tt">'+b+' dias'+(a ? ' <em>(−'+Math.round((a-b)/a*100)+'%)</em>' : '')+'</b></div></div></div>';
+  }).join('');
+  const m = T.mobil, fr = T.frReal;
+  const kp = (l, v, s, c) => '<div class="fx-kp '+(c||'')+'"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
+  const d = v => (v===null || v===undefined) ? '—' : Math.round(v)+' dias';
+  return '<div class="fx-sec fx-time" id="fx-time"><h3>Fluxo no tempo — quanto tempo o valor leva (simulação, sem alterar nada)</h3>'+
+    '<p class="fx-sub">Hoje é '+T.today.toLocaleDateString('pt-BR')+'. Cada barra soma o tempo que o valor já está parado em cada etapa (dias desde o fim do mês de competência, ponderado por R$), na ordem do fluxo. <b>A soma é a jornada acumulada de um valor que enfrentasse a espera atual em todas as etapas (pior caso)</b>; as FRs já emitidas levaram o prazo real mostrado nos cartões abaixo. Azul = etapa da <b>Techint</b>, âmbar = etapa da <b>Usiminas</b>. Passe o mouse numa barra para ver a etapa, os dias e o valor.</p>'+
+    '<div class="fx-kps">'+
+      kp('FR JÁ EMITIDA — COMPETÊNCIA → SOLICITAÇÃO', d(fr.med), 'mediana de '+fr.n+' FRs · 80% até '+d(fr.p80)+(T.byTipo.FAD!=null ? ' · FADS '+Math.round(T.byTipo.FAD)+'d' : ''), 'f')+
+      kp('FR LIBERADA (ARIBA) — PERÍODO → MÊS DA FR', d(T.ariba.med), T.ariba.n ? 'mediana de '+T.ariba.n+' FRs liberadas' : 'sem período informado na aba Ariba','a')+
+      kp('RDC PENDENTE DE APROVAÇÃO (MOBILE)', m.n ? d(m.med) : '—', m.n ? Math.round(m.g7*100)+'% > 7 dias · '+Math.round(m.g15*100)+'% > 15 dias · '+Math.round(m.g30*100)+'% > 30 dias' : 'sem RDC pendente','u')+
+      kp('MAIOR SALDO PARADO', Math.max.apply(null, [T.S.cad,T.S.rdc,T.S.sge,T.S.pend,T.S.fadAp,T.S.fadMd,T.S.fiaCr,T.S.ratCr].map(x=>x.dias)).toFixed(0)+' dias', 'idade média da etapa mais antiga com valor','m')+
+    '</div>'+
+    '<div class="fx-sim"><b>Simular melhoria de prazo:</b><label>Techint −<input type="range" id="fx-rt" min="0" max="90" step="5" value="'+rt+'"><output id="fx-rto">'+rt+'%</output></label><label>Usiminas −<input type="range" id="fx-ru" min="0" max="90" step="5" value="'+ru+'"><output id="fx-ruo">'+ru+'%</output></label><button type="button" class="evol-quick" data-fx-play="1" style="font-weight:800">▶ Simular no tempo</button><span class="fx-day" id="fx-day"></span></div>'+
+    '<div class="fx-tlwrap" id="fx-tlwrap"><div class="fx-axis">'+ticks.join('')+'</div>'+rows+'<div class="fx-cursor" id="fx-cursor" style="display:none"><i></i></div></div>'+
+    '<div class="fx-legend"><span class="fx-s-t"></span> Techint <span class="fx-s-u"></span> Usiminas · A simulação é só uma conta em tela: reduz os dias de cada etapa pelo % escolhido e <b>não grava nem muda nenhum dado</b>.</div>'+
+  '</div>';
+}
+function fluxoTempoRefresh(){ const el = document.getElementById('fx-time'); if (!el) return; const t = document.createElement('div'); t.innerHTML = fluxoTempoHTML(); el.replaceWith(t.firstChild); }
+function fluxoPlay(){
+  if (FX_TIMER){ clearInterval(FX_TIMER); FX_TIMER = null; }
+  const wrap = document.getElementById('fx-tlwrap'), cur = document.getElementById('fx-cursor'), lbl = document.getElementById('fx-day'); if (!wrap || !cur) return;
+  const bar = wrap.querySelector('.fx-bar'); if (!bar) return;
+  const x0 = bar.offsetLeft, w = bar.offsetWidth, scale = wrap.querySelectorAll('.fx-axis span').length ? parseInt(wrap.querySelector('.fx-axis span:last-child').textContent,10) : 90;
+  cur.style.display = 'block'; let day = 0; const step = Math.max(1, scale/150);
+  const stageOf = (day, mode) => { /* etapa em andamento na trilha FADS (referência) */ const tl0 = wrap.querySelector('.fx-tl'); const segs = tl0 ? Array.from(tl0.querySelectorAll('.fx-trk'+(mode?'.fx-imp':':not(.fx-imp)')+' .fx-seg')) : []; let acc = 0; for (const s of segs){ const dd = parseInt(s.textContent,10)||0; if (day <= acc+dd) return (s.title||'').split(' — ')[0]; acc += dd; } return 'FR liberada / fim'; };
+  FX_TIMER = setInterval(()=>{
+    day += step; if (day > scale){ clearInterval(FX_TIMER); FX_TIMER = null; lbl.textContent = 'Fim da simulação'; return; }
+    cur.style.left = (x0 + w*(day/scale)) + 'px';
+    lbl.textContent = 'Dia '+Math.round(day)+' · FADS agora em: '+stageOf(day, false);
+  }, 40);
+}
+document.addEventListener('input', e=>{
+  if (e.target.id==='fx-rt' || e.target.id==='fx-ru'){ if (FX_TIMER){ clearInterval(FX_TIMER); FX_TIMER = null; } FX_RED[e.target.id==='fx-rt' ? 'tct' : 'usm'] = parseInt(e.target.value,10)||0; fluxoTempoRefresh(); const el = document.getElementById(e.target.id==='fx-rt'?'fx-rt':'fx-ru'); if (el) el.focus(); }
+});
+document.addEventListener('click', e=>{ if (e.target.closest('[data-fx-play]')) fluxoPlay(); });
+/* ---- Lições aprendidas / sugestões para um novo contrato (com os números atuais) ---- */
+function fluxoLicoesHTML(){
+  const T = fluxoTempoData(), S = T.S, g = (typeof pendBuild==='function') ? null : null;
+  const fr = T.frReal, m = T.mobil, R = v => 'R$ '+fmtBRL(v||0);
+  const li = [];
+  li.push(['Registrar a data de cada etapa', 'Hoje a base só guarda a data do RDC, a competência e a data de solicitação da FR — não há data de entrada/saída de cada status. Por isso o tempo de cada etapa só pode ser estimado pela idade do saldo parado. <b>No novo contrato:</b> exigir carimbo de data/hora em cada mudança de status (RDC criado, aprovado, carregado, medido, FR solicitada, FR liberada) para medir prazo real e cobrar por SLA.']);
+  li.push(['Prazo contratual (SLA) por etapa e responsável', 'Os saldos mais antigos são os que esperam aprovação ou liberação'+(S.pend.valor ? ' (Pendente de aprovação: '+R(S.pend.valor)+', média de '+Math.round(S.pend.dias)+' dias parado)' : '')+'. <b>No novo contrato:</b> fixar prazos por etapa (ex.: fiscal aprova o RDC em D+2; carregamento e revisão em D+3; medição em D+5; liberação da FR em D+X) e a regra de <b>aprovação por decurso de prazo</b> quando o aprovador não responder.']);
+  li.push(['Cadastro antes de mobilizar', 'Saldo, função e WebTerceiros somam '+R(S.cad.valor)+', com '+Math.round(S.cad.dias)+' dias em média parados e só a Techint resolve. <b>No novo contrato:</b> checklist de cadastro (OS com saldo, função, recurso no WebTerceiros) como pré-requisito para lançar horas — o RDC só é aceito se o cadastro estiver completo.']);
+  li.push(['Fechar o ciclo mensal com data de corte', ''+(m.n ? 'Dos RDCs pendentes de aprovação no Mobile, '+Math.round(m.g15*100)+'% têm mais de 15 dias e '+Math.round(m.g30*100)+'% mais de 30. ' : '')+'<b>No novo contrato:</b> calendário fixo — data limite de lançamento, data limite de aprovação e data de medição/FR todo mês — para que nenhum mês fique aberto no seguinte.']);
+  li.push(['FIA e RATEIO: criação programada', 'A criação da OS FIA e do RATEIO ('+R((S.fiaCr.valor||0)+(S.ratCr.valor||0))+') é o maior saldo parado, e depois de criados o fiscal é sempre a Usiminas. <b>No novo contrato:</b> criar RATEIO e OS de FIA automaticamente no primeiro dia útil do mês, com valores-base, e simplificar a "Aprovação Financeira" (paralela à técnica, não em sequência).']);
+  li.push(['Medição e FR no mesmo ciclo', (fr.med!=null ? 'As FRs já emitidas levaram, em mediana, '+Math.round(fr.med)+' dias do fim da competência até a solicitação (80% até '+Math.round(fr.p80)+'). ' : '')+'Hoje '+R((S.fadMd.valor||0)+(S.fiaMd.valor||0)+(S.ratMd.valor||0))+' estão "Medido" sem FR emitida. <b>No novo contrato:</b> FR solicitada automaticamente na data da medição e meta de liberação em até N dias, com alerta para o que passar disso.']);
+  li.push(['Um painel diário de cobrança', 'O que mais trava é cobrança: quem tem a bola e há quantos dias. <b>No novo contrato:</b> adotar desde o início um painel como este (por fiscal, aprovador e etapa), com a imagem para e-mail/Teams e meta de aging (ex.: nenhum saldo &gt; 15 dias).']);
+  li.push(['Dados padronizados e rastreáveis', 'OS, RDC, FA, medição e FR chegam em abas diferentes e com formatos diferentes (OS_43984 / OS 43984; RDC_333390 / 333390), e cerca de 25% das FRs não casam com a base. <b>No novo contrato:</b> uma chave única (OS → RDC → medição → FR) em todos os sistemas e fiscal responsável sempre preenchido.']);
+  return '<div class="fx-sec"><h3>Lições aprendidas e sugestões para um novo contrato</h3><p class="fx-sub">Baseadas nos números atuais deste relatório. São sugestões de processo — não mudam nada no relatório.</p><div class="fx-lic">'+li.map((x,i)=>'<div class="fx-li"><span>'+(i+1)+'</span><div><b>'+x[0]+'</b><p>'+x[1]+'</p></div></div>').join('')+'</div></div>';
+}
 function renderFluxoHTML(){
   const D = fluxoData(), g = D.g, gt = g.tot || 0, P = v => gt ? fmtPct(v/gt) : '—';
   const st = (sec, label, owner, note, titleOverride) => {
@@ -3805,6 +3948,7 @@ function renderFluxoHTML(){
   return '<div class="fx-root" id="fx-root">'+
     '<div class="fx-top"><div><h2>Fluxo até a FR — do apontamento à fatura</h2><p>Etapas, responsáveis e condições para o valor chegar em "Medido — para emitir FR" e virar FR. Valores ao vivo (MOA + PCI, meses: '+esc(D.months.join(' · '))+').</p></div><button type="button" class="evol-quick" data-fx-print="1" style="font-weight:800">🖨 Imprimir fluxo</button></div>'+
     '<div class="fx-kps">'+kp('m','TOTAL PENDENTE','R$ '+fmtBRL(g.tot), fmtInt(g.hTot||0)+' HH')+kp('c','COM A TECHINT','R$ '+fmtBRL(D.tct.tot), pT.toFixed(1).replace('.',',')+'% do total')+kp('u','COM A USIMINAS','R$ '+fmtBRL(D.usm.tot), pU.toFixed(1).replace('.',',')+'% do total')+kp('f','PRONTO PARA EMITIR FR','R$ '+fmtBRL(medTot), P(medTot)+' do total')+(D.ariba ? kp('a','FR LIBERADA SAP_USM','R$ '+fmtBRL(D.ariba), libPct.toFixed(1).replace('.',',')+'% do que está para emitir') : '')+'</div>'+
+    fluxoTempoHTML()+
     '<div class="fx-step0"><div class="fx-st fx-tct fx-start"><span class="fx-own">TCT</span><b class="fx-t">Apontamento — RDC</b><div class="fx-n">O encarregado cria o RDC no SGE Mobile com as <b>atividades</b> e <b>interferências</b> de cada pessoa (aba BI). Cada RDC leva o fiscal e a OS.</div></div>'+arrow+
       '<div class="fx-st fx-usm fx-start"><span class="fx-own">USM</span><b class="fx-t">Aprovação do RDC</b><div class="fx-n">Fiscal / supervisor aprovam no Mobile ("Pendente Aprovação Fiscalização"). Sem aprovação aparece como <b>RDC não está aprovada</b>.</div></div>'+arrow+
       '<div class="fx-st fx-tct fx-start"><span class="fx-own">TCT</span><b class="fx-t">Extrato SGE (FAD)</b><div class="fx-n">Os RDCs aprovados viram horas e valor no Extrato SGE. A situação do registro define a etapa abaixo.</div></div></div>'+
@@ -3827,6 +3971,7 @@ function renderFluxoHTML(){
     '</div></div>'+
     '<div class="fx-sec"><h3>Condições para chegar à FR</h3><div class="fx-rules">'+regras.map(r=>'<div class="fx-rule"><b>'+r[0]+'</b><p>'+r[1]+'</p></div>').join('')+'</div></div>'+
     '<div class="fx-sec"><h3>Conclusões (com os valores atuais)</h3><ol class="fx-concl">'+concl.map(c=>'<li>'+c+'</li>').join('')+'</ol>'+acoes+'</div>'+
+    fluxoLicoesHTML()+
   '</div>';
 }
 // imprime o fluxo (A4 paisagem) com o mesmo visual
