@@ -2577,6 +2577,25 @@ document.addEventListener('focusout', e=>{
   try { localStorage.setItem('pendObs', JSON.stringify(PEND_OBS)); } catch(err){}
 });
 document.addEventListener('keydown', e=>{ const td = e.target.closest && e.target.closest('td[data-pn-obs]'); if (td && e.key==='Enter'){ e.preventDefault(); td.blur(); } });
+// Observação automática das linhas de mês do FADS: "Fiscal · HH · Qtd. RDC" (maior HH primeiro; vários fiscais separados por " | ")
+const PEND_MESINFO_CACHE = new Map();
+function pendMesInfo(id){
+  const sc = PEND_SCOPES[id]; if (!sc || !sc.items.length || sc.items[0].sec!==0) return '';
+  const ck = id+'|'+PEND_PROJS.join(',')+'|'+PEND_OS+'|'+PEND_FISC+'|'+RAW_PEND_FISCAL.length;
+  if (PEND_MESINFO_CACHE.has(ck)) return PEND_MESINFO_CACHE.get(ck);
+  const sv = PEND_EXT_PR; PEND_EXT_PR = 'tot'; let rows = [];
+  try { rows = pendDetailRowsFor(sc); } finally { PEND_EXT_PR = sv; }
+  const m = new Map();
+  rows.forEach(r=>{ let f = m.get(r.fiscal); if (!f){ f = { fiscal:r.fiscal, hh:0, rdcs:new Set() }; m.set(r.fiscal,f); } f.hh += r.hh||0; if (r.rdc) f.rdcs.add(r.rdc); });
+  const list = Array.from(m.values()).sort((a,b)=>b.hh-a.hh);
+  let out = '';
+  if (list.length){
+    const one = f => esc(f.fiscal)+' · '+fmtInt(f.hh)+' HH · '+f.rdcs.size+' RDC';
+    out = list.slice(0,3).map(one).join(' | ') + (list.length>3 ? ' <span class="pn-note">(+'+(list.length-3)+' fiscais)</span>' : '');
+  }
+  if (PEND_MESINFO_CACHE.size > 3000) PEND_MESINFO_CACHE.clear();
+  PEND_MESINFO_CACHE.set(ck, out); return out;
+}
 let PEND_SCOPES = {};   // id -> {title, items:[{sec,label,resp}], mes}: o que cada linha representa (usado no extrato por fiscal)
 function pendTableHTML(){
   const B = pendBuild(), months = pendCols(), T = '__TOTAL__', V = pendVis(B);
@@ -2588,7 +2607,7 @@ function pendTableHTML(){
     if (c.kind==='hh') return '<td data-pr="'+c.pr+'" class="pn-num pn-hh'+(c.pr==='tot'?' pn-tot':'')+(v.hna?' pn-na':'')+'">'+hhTxt(v, c.pr==='moa'?'hMoa':c.pr==='pci'?'hPci':'hTot')+'</td>';
     return '<td data-pr="'+c.pr+'" class="pn-num'+(c.pr==='tot'?' pn-tot':'')+'">'+money(v[c.pr])+'</td>';
   };
-  PEND_SCOPES = {}; let scN = 0;
+  PEND_SCOPES = {}; let scN = 0; PEND_MESINFO_CACHE.clear();
   const newSc = (title, items, mes) => { const id = 'sc'+(scN++); PEND_SCOPES[id] = { title, items, mes: mes||null }; return id; };
   const itemsOfGroup = (s,g) => g.items.map(it=>({ sec:s.idx, label:it.label, resp:it.resp }));
   const itemsOfSec = s => s.groups.reduce((a,g)=>a.concat(itemsOfGroup(s,g)), []);
@@ -2643,7 +2662,10 @@ function pendTableHTML(){
   const tail = (r, key) => '<td class="pn-pct">'+r.pctTxt+'</td>'+(r.obs ? '<td class="pn-obs">'+r.obs+'</td>' : '<td class="pn-obs pn-obs-ed" contenteditable="true" spellcheck="false" data-pn-obs="'+esc(key)+'" title="Clique para escrever uma observação">'+esc(PEND_OBS[key]||'')+'</td>');
   const SH = PEND_SHOW_ITEMS, kindOfRow = r => r.cls==='pn-grp' ? 'grp' : r.cls==='pn-it' ? 'it' : (r.cls==='pn-mes-hdr' || r.cls.indexOf('pn-mes-grp')>=0) ? 'grpmes' : r.cls.indexOf('pn-mes-it')>=0 ? 'itmes' : r.cls==='pn-mes' ? 'secmes' : '';
   const scAttr = id => id ? ' data-pn-scope="'+id+'" title="Clique para ver o extrato por Fiscal / OS / RDC (Pareto dos fiscais)"' : '';
-  const tr = r => {
+  const tr = r0 => {
+    let r = r0;
+    // FADS, linhas de mês: em vez de "escrever…", traz Fiscal · HH · Qtd. RDC daquele status/mês (vem da planilha)
+    if (r.sc && /pn-mes-(it|grp)/.test(r.cls) && !r.obs){ const info = pendMesInfo(r.sc); if (info) r = Object.assign({}, r, { obs:info }); }
     const kd = kindOfRow(r); if (kd && !SH[kd]) return '';   // item desmarcado em "Itens exibidos"
     const hidden = r.anc.some(a=>PEND_COLLAPSED.has(a));
     const hasKids = parents.has(r.k);
