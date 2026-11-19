@@ -3391,7 +3391,10 @@ function biFilteredEx(excl){
   const has = (k, v) => !on(k) || BI_ST[k].includes(v), hasAny = (k, set) => !on(k) || BI_ST[k].some(x=>set.has(x));
   const s1 = biSerial(BI_ST.d1), s2 = biSerial(BI_ST.d2);
   const inDate = g => (!s1 || (g.dMax||0) >= s1) && (!s2 || (g.dMin||0) <= s2 && g.dMin);
-  return C.list.filter(g=>(!q || g.name.toLowerCase().includes(q) || g.key.includes(q)) && inDate(g) && has('os', g.os) && has('fisc', g.fiscal||'(sem fiscal)')
+  // vários RDCs: números separados por espaço, vírgula ou ;  — os já "fechados" (seguidos de separador) casam exato; o último, ainda sendo digitado, casa por trecho
+  const toks = q.replace(/rdc_?/g,'').split(/[\s,;]+/).filter(Boolean), typing = !/[\s,;]$/.test(BI_ST.q);
+  const qOk = g => !toks.length || toks.some((t,i)=> g.key === t || (i===toks.length-1 && typing && g.key.includes(t)));
+  return C.list.filter(g=>qOk(g) && inDate(g) && has('os', g.os) && has('fisc', g.fiscal||'(sem fiscal)')
     && has('sit', g.sit) && has('mes', g.mes) && hasAny('grp', g.grps) && hasAny('it', g.ints));
 }
 function biFiltered(){ return biFilteredEx(''); }
@@ -3572,7 +3575,7 @@ function biMsHTML(key){
     (BI_OPEN===key ? '<div class="pn-mpanel bi-mpanel"'+(key==='grp'||key==='it'||key==='mes' ? ' style="right:0;left:auto"' : '')+'><div class="pn-mgrid">'+(opts.length ? opts.map(o=>'<label class="pe-fitem"><input type="checkbox" data-bi-mc="'+key+'" value="'+esc(o[0])+'"'+(sel.includes(o[0])?' checked':'')+'> '+esc(o[0])+' <small style="color:var(--text-muted)">('+o[1]+')</small></label>').join('') : '<div class="fiscal-empty" style="padding:6px">Sem opções com os outros filtros.</div>')+'</div><div class="pe-fact"><button type="button" data-bi-mclr="'+key+'">Limpar</button></div></div>' : '')+'</div>';
 }
 function biFiltersHTML(){
-  return '<span class="evol-flbl">Consultar RDC</span><input type="text" id="bi-q" data-bi-q="1" autocomplete="off" placeholder="Digite o nº do RDC (ex.: 339265)" value="'+esc(BI_ST.q)+'" class="bi-sel" style="min-width:230px">'+
+  return '<span class="evol-flbl">Consultar RDC</span><input type="text" id="bi-q" data-bi-q="1" autocomplete="off" placeholder="Digite um ou mais RDCs separados por espaço (ex.: 339265 350163)" title="Digite ou cole vários números de RDC separados por espaço, vírgula ou ponto e vírgula" value="'+esc(BI_ST.q)+'" class="bi-sel" style="min-width:330px">'+
     '<span class="evol-flbl" style="margin-left:12px" title="Mostra os RDCs com apontamentos dentro do período">Data de</span><input type="date" class="bi-sel" data-bi-d="d1" value="'+esc(BI_ST.d1)+'">'+
     '<span class="evol-flbl" style="margin-left:6px">até</span><input type="date" class="bi-sel" data-bi-d="d2" value="'+esc(BI_ST.d2)+'">'+
     ['os','fisc','sit','mes','grp','it'].map(biMsHTML).join('')+'<button type="button" class="evol-quick" data-bi-clr="1">Limpar</button>';
