@@ -263,6 +263,11 @@ td.bi-rdc:hover{background:#eaf3fb;}
 .fa-modal table.bi-det tr.fa-total td{font-weight:800;background:var(--navy-100);color:var(--navy);}
 .bi-sel{padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;background:#fff;}
 .fa-modal table.bi-det td.bi-wrap{white-space:normal;min-width:220px;max-width:420px;}
+.pend-tbl.pend-no-obs th.pn-obsh,.pend-tbl.pend-no-obs td.pn-obs{display:none;}
+td.pn-obs-ed{min-width:120px;cursor:text;outline:none;}
+td.pn-obs-ed:empty::before{content:'escrever…';color:#8a9bb0;font-style:italic;font-size:11px;}
+td.pn-obs-ed:hover{background:#fffbe0 !important;}
+td.pn-obs-ed:focus{background:#fff3b0 !important;box-shadow:inset 0 0 0 2px #e0b000;}
 .pend-xlbtn{border:none;background:none;font-size:20px;cursor:pointer;padding:2px 6px;border-radius:6px;}
 .pend-xlbtn:hover{background:rgba(0,43,92,.1);}
 .pend-ospanel .pop-h{font-size:13px;font-weight:600;margin-bottom:6px;color:#1b2a3a;}
@@ -2541,6 +2546,37 @@ function pendVis(B){
   [['moa',m],['pci',p],['tot',true]].forEach(([pr,on])=>{ if (!on) return; if (hh) cols.push({pr,kind:'hh'}); if (rs) cols.push({pr,kind:'rs'}); });
   return { cols, n: 2 + cols.length + 2 };
 }
+// "Itens exibidos": quais blocos/linhas do demonstrativo aparecem (tela e impressão). Fica salvo neste navegador.
+const PEND_ITEM_LBL = [['top','Total Geral · Pendente TCT · Pendente USM'],['res','Resumo por modalidade (FADS / FIA / RATEIO)'],['band','Faixa "Detalhamento por nível"'],['grp','Grupos (1.1, 1.2, 1.3 …)'],['it','Status de cada grupo'],['secmes','Meses de cada modalidade'],['grpmes','Total do grupo por mês'],['itmes','Meses de cada status'],['obs','Coluna Observações']];
+let PEND_SHOW_ITEMS = (()=>{ const d = {}; PEND_ITEM_LBL.forEach(x=>{ d[x[0]] = 1; }); try { const s = JSON.parse(localStorage.getItem('pendShowItems')||'null'); if (s) Object.keys(d).forEach(k=>{ if (k in s) d[k] = s[k] ? 1 : 0; }); } catch(e){} return d; })();
+// observações livres (só nas linhas que não trazem texto): chave da linha -> texto. Fica salvo neste navegador.
+let PEND_OBS = (()=>{ try { return JSON.parse(localStorage.getItem('pendObs')||'{}') || {}; } catch(e){ return {}; } })();
+let PEND_ITEMS_OPEN = false;
+function pendItemsDropHTML(){
+  const n = PEND_ITEM_LBL.filter(x=>!PEND_SHOW_ITEMS[x[0]]).length;
+  return '<span class="pn-mdrop"><button type="button" class="evol-chip on pn-mbtn" data-pn-items-open="1" title="Escolha quais itens aparecem no demonstrativo e na impressão">☰ Itens exibidos'+(n ? ' ('+n+' oculto'+(n>1?'s':'')+')' : '')+' ▾</button>'+
+    (PEND_ITEMS_OPEN ? '<div class="pn-mpanel pn-stpanel"><div class="pn-mq"><button type="button" class="evol-quick" data-pn-items-all="1">Marcar todos</button></div><div class="pn-stlist">'+
+      PEND_ITEM_LBL.map(x=>'<label><input type="checkbox" data-pn-item="'+x[0]+'"'+(PEND_SHOW_ITEMS[x[0]]?' checked':'')+'> '+esc(x[1])+'</label>').join('')+'</div></div>' : '')+'</span>';
+}
+function pendItemsRefresh(){ const w = document.getElementById('pend-items-wrap'); if (w) w.innerHTML = pendItemsDropHTML(); pendRefresh(); }
+function pendItemsSave(){ try { localStorage.setItem('pendShowItems', JSON.stringify(PEND_SHOW_ITEMS)); } catch(e){} }
+document.addEventListener('click', e=>{
+  if (e.target.closest('[data-pn-items-open]')){ PEND_ITEMS_OPEN = !PEND_ITEMS_OPEN; pendItemsRefresh(); return; }
+  if (e.target.closest('[data-pn-items-all]')){ PEND_ITEM_LBL.forEach(x=>{ PEND_SHOW_ITEMS[x[0]] = 1; }); pendItemsSave(); pendItemsRefresh(); return; }
+  if (PEND_ITEMS_OPEN && !e.target.closest('#pend-items-wrap') && document.getElementById('pend-items-wrap')){ PEND_ITEMS_OPEN = false; const w = document.getElementById('pend-items-wrap'); if (w) w.innerHTML = pendItemsDropHTML(); }
+});
+document.addEventListener('change', e=>{
+  const c = e.target.closest && e.target.closest('input[data-pn-item]'); if (!c) return;
+  PEND_SHOW_ITEMS[c.dataset.pnItem] = c.checked ? 1 : 0; pendItemsSave(); pendItemsRefresh();
+});
+// observação livre: salva ao sair da célula (Enter também confirma)
+document.addEventListener('focusout', e=>{
+  const td = e.target.closest && e.target.closest('td[data-pn-obs]'); if (!td) return;
+  const k = td.dataset.pnObs, v = td.textContent.replace(/\s+/g,' ').trim();
+  if (v) PEND_OBS[k] = v; else delete PEND_OBS[k];
+  try { localStorage.setItem('pendObs', JSON.stringify(PEND_OBS)); } catch(err){}
+});
+document.addEventListener('keydown', e=>{ const td = e.target.closest && e.target.closest('td[data-pn-obs]'); if (td && e.key==='Enter'){ e.preventDefault(); td.blur(); } });
 let PEND_SCOPES = {};   // id -> {title, items:[{sec,label,resp}], mes}: o que cada linha representa (usado no extrato por fiscal)
 function pendTableHTML(){
   const B = pendBuild(), months = pendCols(), T = '__TOTAL__', V = pendVis(B);
@@ -2603,37 +2639,40 @@ function pendTableHTML(){
     });
   });
   PEND_PARENTS = Array.from(parents.keys()).filter(k=>lvlOf[k]).map(k=>({k, lvl:lvlOf[k]}));
-  const tail = (r) => '<td class="pn-pct">'+r.pctTxt+'</td><td class="pn-obs">'+(r.obs||'')+'</td>';
+  // Observações: o que já vem escrito fica fixo; célula vazia vira campo livre (clique e escreva; fica salvo neste navegador)
+  const tail = (r, key) => '<td class="pn-pct">'+r.pctTxt+'</td>'+(r.obs ? '<td class="pn-obs">'+r.obs+'</td>' : '<td class="pn-obs pn-obs-ed" contenteditable="true" spellcheck="false" data-pn-obs="'+esc(key)+'" title="Clique para escrever uma observação">'+esc(PEND_OBS[key]||'')+'</td>');
+  const SH = PEND_SHOW_ITEMS, kindOfRow = r => r.cls==='pn-grp' ? 'grp' : r.cls==='pn-it' ? 'it' : (r.cls==='pn-mes-hdr' || r.cls.indexOf('pn-mes-grp')>=0) ? 'grpmes' : r.cls.indexOf('pn-mes-it')>=0 ? 'itmes' : r.cls==='pn-mes' ? 'secmes' : '';
   const scAttr = id => id ? ' data-pn-scope="'+id+'" title="Clique para ver o extrato por Fiscal / OS / RDC (Pareto dos fiscais)"' : '';
   const tr = r => {
+    const kd = kindOfRow(r); if (kd && !SH[kd]) return '';   // item desmarcado em "Itens exibidos"
     const hidden = r.anc.some(a=>PEND_COLLAPSED.has(a));
     const hasKids = parents.has(r.k);
     const tg = hasKids ? '<span class="pn-tg" data-pn-k="'+esc(r.k)+'" title="Recolher / expandir">'+(PEND_COLLAPSED.has(r.k)?'▸':'▾')+'</span> ' : '';
     if (r.hdr) return '<tr class="'+r.cls+(hidden?' pn-hidden':'')+'"><td class="pn-item"></td><td class="pn-desc" colspan="'+(V.n-1)+'">'+tg+'<span class="pn-hdr-t">'+esc(r.desc)+'</span> <span class="pn-note">(clique em '+(PEND_COLLAPSED.has(r.k)?'▸':'▾')+' para '+(PEND_COLLAPSED.has(r.k)?'mostrar':'agrupar')+' os meses)</span></td></tr>';
-    return '<tr class="'+r.cls+(hidden?' pn-hidden':'')+(r.sc?' pn-click':'')+'"'+scAttr(r.sc)+'><td class="pn-item">'+r.item+'</td><td class="pn-desc">'+tg+r.desc+'</td>'+V.cols.map(c=>cell(r.v,c)).join('')+tail(r)+'</tr>';
+    return '<tr class="'+r.cls+(hidden?' pn-hidden':'')+(r.sc?' pn-click':'')+'"'+scAttr(r.sc)+'><td class="pn-item">'+r.item+'</td><td class="pn-desc">'+tg+r.desc+'</td>'+V.cols.map(c=>cell(r.v,c)).join('')+tail(r, r.k)+'</tr>';
   };
-  const topRow = (cls, desc, v, obs, pctTxt, sc) => '<tr class="'+cls+(sc?' pn-click':'')+'"'+scAttr(sc)+'><td class="pn-item"></td><td class="pn-desc">'+desc+'</td>'+V.cols.map(c=>cell(v,c)).join('')+tail({pctTxt, obs})+'</tr>';
+  const topRow = (cls, desc, v, obs, pctTxt, sc) => { if (!SH[cls==='pn-res' ? 'res' : 'top']) return ''; return '<tr class="'+cls+(sc?' pn-click':'')+'"'+scAttr(sc)+'><td class="pn-item"></td><td class="pn-desc">'+desc+'</td>'+V.cols.map(c=>cell(v,c)).join('')+tail({pctTxt, obs}, 'top:'+desc)+'</tr>'; };
   // cabecalho em dois niveis: MOA / PCI / TOTAL com HH e R$ embaixo
   const nm = {moa:'MOA', pci:'PCI', tot:'TOTAL'};
   const groupsHdr = ['moa','pci','tot'].filter(pr=>V.cols.some(c=>c.pr===pr));
   const subHdr = V.cols.length && V.cols.some(c=>c.kind==='hh') && V.cols.some(c=>c.kind==='rs');
-  let h = '<div class="table-wrap"><table class="pend-tbl" id="pend-tbl"><colgroup><col style="width:46px"><col style="width:360px">'+
+  let h = '<div class="table-wrap"><table class="pend-tbl'+(SH.obs ? '' : ' pend-no-obs')+'" id="pend-tbl"><colgroup><col style="width:46px"><col style="width:360px">'+
     V.cols.map(c=>'<col style="width:'+(c.kind==='hh'?84:c.pr==='tot'?130:118)+'px">').join('')+'<col style="width:70px"><col style="width:540px"></colgroup>';
   h += '<thead><tr><th colspan="'+V.n+'" class="pn-title">Resumo de Valores Pendentes — Medição (Techint)</th></tr>';
   if (subHdr){
-    h += '<tr><th rowspan="2">Item</th><th rowspan="2">Descrição</th>'+groupsHdr.map(pr=>'<th colspan="2">'+nm[pr]+'</th>').join('')+'<th rowspan="2">(%)</th><th rowspan="2">Observações</th></tr>'+
+    h += '<tr><th rowspan="2">Item</th><th rowspan="2">Descrição</th>'+groupsHdr.map(pr=>'<th colspan="2">'+nm[pr]+'</th>').join('')+'<th rowspan="2">(%)</th><th rowspan="2" class="pn-obsh">Observações</th></tr>'+
          '<tr>'+groupsHdr.map(()=>'<th>HH</th><th>R$</th>').join('')+'</tr></thead><tbody>';
   } else {
-    h += '<tr><th>Item</th><th>Descrição</th>'+V.cols.map(c=>'<th>'+nm[c.pr]+' '+(c.kind==='hh'?'(HH)':'(R$)')+'</th>').join('')+'<th>(%)</th><th>Observações</th></tr></thead><tbody>';
+    h += '<tr><th>Item</th><th>Descrição</th>'+V.cols.map(c=>'<th>'+nm[c.pr]+' '+(c.kind==='hh'?'(HH)':'(R$)')+'</th>').join('')+'<th>(%)</th><th class="pn-obsh">Observações</th></tr></thead><tbody>';
   }
   const respItems = r => allItems.filter(i=>i.resp===r);
   h += topRow('pn-grand','Total Geral pendente', g0, 'Meses: '+months.join(', '), '100,0%', newSc('Total Geral pendente', allItems));
   h += topRow('pn-sub1','Pendente com a Techint (TCT)', B.byResp.Techint, 'Enviar suplementação / ajustar / concluir elaboração', pct(B.byResp.Techint.tot), newSc('Pendente com a Techint (TCT)', respItems('Techint')));
   h += topRow('pn-sub2','Pendente com a Usiminas (USM)', B.byResp.Usiminas, 'Aprovar / realizar RDC / liberar FR', pct(B.byResp.Usiminas.tot), newSc('Pendente com a Usiminas (USM)', respItems('Usiminas')));
-  h += '<tr class="pn-band"><td colspan="'+V.n+'">FAD / FIA &amp; RATEIO</td></tr>';
+  if (SH.res) h += '<tr class="pn-band"><td colspan="'+V.n+'">FAD / FIA &amp; RATEIO</td></tr>';
   const names = ['FADS — horas','FIA — equipamentos auxiliares','RATEIO'];
   B.secs.forEach((s,i)=>{ const v = B.secTot(s,T); h += topRow('pn-res', names[s.idx], v, (s.idx===0 ? 'TCT: suplementar / ajustar / concluir elaboração · USM: realizar RDC / aprovar / liberar FR' : s.groups.map(g=>g.obs).filter((x,k,a)=>a.indexOf(x)===k).join(' | ')), pct(v.tot), newSc(names[s.idx], itemsOfSec(s))); });
-  h += '<tr class="pn-band"><td colspan="'+V.n+'">Detalhamento por nível (use ▾ ▸ ou os botões de nível acima) · clique num valor para ver os fiscais</td></tr>';
+  if (SH.band) h += '<tr class="pn-band"><td colspan="'+V.n+'">Detalhamento por nível (use ▾ ▸ ou os botões de nível acima) · clique num valor para ver os fiscais</td></tr>';
   h += rows.map(tr).join('');
   h += '</tbody></table></div>';
   return h;
@@ -2687,7 +2726,7 @@ function pendPrintLevelDoc(){
       '.pks{display:flex;gap:8px;margin:0 0 8px}.pk2{flex:1;border:1px solid #c9d3df;border-radius:7px;padding:6px 11px;background:#f6f8fb}.pk2 span{display:block;font-size:9px;font-weight:700;letter-spacing:.08em;color:#5a7391}.pk2 b{display:block;font-size:20px;margin:1px 0;color:#12305a}.pk2 small{font-size:9.5px;color:#5a6f88}'+
       '.pk2.m{background:#fff7de;border-color:#e0b64a}.pk2.m b{color:#a86a00}.pk2.c b{color:#0b78b5}.pk2.u b{color:#b87400}'+
       '.pz .table-wrap{overflow:visible !important;max-width:none !important;box-shadow:none !important}.pz thead{display:table-header-group}.pz tr{page-break-inside:avoid}.pz .pn-hidden{display:none !important}'+
-      '.ph,.pks{zoom:.75}.pz col:last-child{width:300px !important}.pz td:last-child{white-space:normal !important;font-size:10px}';
+      '.ph,.pks{zoom:.75}.pz td.pn-obs-ed:empty::before{content:none !important}.pz td.pn-obs-ed{background:transparent !important;box-shadow:none !important}.pz col:last-child{width:300px !important}.pz td:last-child{white-space:normal !important;font-size:10px}';
     return '<!doctype html><html><head><meta charset="utf-8"><title>Resumo de Pendências</title><style>'+css+'</style><style>'+extra+'</style></head><body>'+
       '<div class="ph"><h1>Resumo de Pendências — Medição (Techint)</h1><small>'+esc(projs)+' · '+esc(months)+'<br>Gerado em '+new Date().toLocaleString('pt-BR')+'</small></div>'+
       '<div class="pks">'+kpi('m','TOTAL PENDENTE','R$ '+fmtBRL(g.tot), esc(projs)+hh(g))+kpi('c','PENDENTE TCT','R$ '+fmtBRL(tct.tot), (gt?fmtPct(tct.tot/gt):'—')+' do total'+hh(tct))+kpi('u','PENDENTE USM','R$ '+fmtBRL(usm.tot), (gt?fmtPct(usm.tot/gt):'—')+' do total'+hh(usm))+'</div>'+
@@ -2697,6 +2736,7 @@ function pendPrintLevelDoc(){
 // ordem da impressão: FAD completo primeiro (resumo + detalhe) e só no final a FIA e o RATEIO — tira FIA/RATEIO do bloco de resumo de cima
 function pendPrintPrepare(d){
   const pz = d.getElementById('pz'); if (!pz) return;
+  pz.querySelectorAll('[contenteditable]').forEach(x=>x.removeAttribute('contenteditable'));
   pz.querySelectorAll('tr.pn-res').forEach(r=>{ const t = (r.cells[1] ? r.cells[1].textContent : '').trim(); if (/^(FIA|RATEIO)/i.test(t)) r.remove(); });
   const band = pz.querySelector('tr.pn-band td'); if (band && /FAD \/ FIA/i.test(band.textContent)) band.textContent = 'FAD';
 }
@@ -2725,6 +2765,7 @@ function pendControlsHTML(){
     '<span class="pend-hint">1 = FADS/FIA/RATEIO · 2 = grupos · 3 = status · 4 = meses de cada status</span>'+
     '<button type="button" class="evol-quick" data-pn-print="level" style="font-weight:800" title="Imprime o demonstrativo exatamente no nível de detalhe que está na tela (Níveis 1 a 4, linhas abertas ou recolhidas)">🖨 Imprimir no nível escolhido</button>'+
     '<button type="button" class="evol-quick" data-pn-print="one" title="Imprime só o resumo por modalidade e status, em uma página A4 (paisagem)">🖨 Resumo em 1 página</button>'+
+    '<span id="pend-items-wrap" style="margin-left:6px">'+pendItemsDropHTML()+'</span>'+
     '<span class="evol-flbl" style="margin-left:14px">Status do quadro OS/Fiscal</span><span id="pend-st-wrap">'+pendStDropHTML()+'</span></div>';
 }
 let PEND_ST = null;       // null = todos os status; senao lista de status escolhidos para o quadro amarelo
