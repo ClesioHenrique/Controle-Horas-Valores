@@ -2761,6 +2761,9 @@ function pendPrintPrepare(d){
   pz.querySelectorAll('[contenteditable]').forEach(x=>x.removeAttribute('contenteditable'));
   pz.querySelectorAll('tr.pn-res').forEach(r=>{ const t = (r.cells[1] ? r.cells[1].textContent : '').trim(); if (/^(FIA|RATEIO)/i.test(t)) r.remove(); });
   const band = pz.querySelector('tr.pn-band td'); if (band && /FAD \/ FIA/i.test(band.textContent)) band.textContent = 'FAD';
+  // a FIA (e em seguida o RATEIO) começa numa página nova
+  const fia = Array.from(pz.querySelectorAll('tr.pn-sec')).find(r=>/^\W*FIA/i.test((r.cells[1] ? r.cells[1].textContent : '').trim()));
+  if (fia){ fia.style.breakBefore = 'page'; fia.style.pageBreakBefore = 'always'; }
 }
 function pendPrint(level){
   const f = document.createElement('iframe');
