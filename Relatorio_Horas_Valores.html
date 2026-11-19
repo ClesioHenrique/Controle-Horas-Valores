@@ -2765,6 +2765,84 @@ function pendPrintPrepare(d){
   const fia = Array.from(pz.querySelectorAll('tr.pn-sec')).find(r=>/^\W*FIA/i.test((r.cells[1] ? r.cells[1].textContent : '').trim()));
   if (fia){ fia.style.breakBefore = 'page'; fia.style.pageBreakBefore = 'always'; }
 }
+/* ---------- Impressão única de várias abas (Geral / MOA / PCI / RDC não aprovada / Resumo de Pendências), com número de página ---------- */
+const PRINT_TABS = [['GERAL','MOA & PCI - Geral'],['MOA','MOA'],['PCI','PCI'],['RDC','RDC não aprovada'],['PEND','Resumo de Pendências']];
+let PEND_PRINT_SEL = ['GERAL','MOA','PCI','RDC','PEND'];
+let PEND_PRINT_OPEN = false;
+function pendPrintDropHTML(){
+  const n = PEND_PRINT_SEL.length;
+  return '<span class="pn-mdrop"><button type="button" class="evol-chip on pn-mbtn" data-pn-pp-open="1" title="Imprime várias abas de uma vez, com numeração de páginas">🖨 Imprimir abas ▾</button>'+
+    (PEND_PRINT_OPEN ? '<div class="pn-mpanel pn-stpanel"><div class="pn-stlist">'+PRINT_TABS.map(t=>'<label><input type="checkbox" data-pn-pp="'+t[0]+'"'+(PEND_PRINT_SEL.includes(t[0])?' checked':'')+'> '+esc(t[1])+'</label>').join('')+'</div>'+
+      '<div class="pn-mq" style="padding:6px 8px"><button type="button" class="evol-quick" data-pn-pp-go="1" style="font-weight:800"'+(n?'':' disabled')+'>🖨 Imprimir '+n+' aba'+(n===1?'':'s')+'</button></div></div>' : '')+'</span>';
+}
+function pendPrintDropRefresh(){ const w = document.getElementById('pend-pp-wrap'); if (w) w.innerHTML = pendPrintDropHTML(); }
+function pendPrintBodyHTML(){
+  return pendWithMonths(()=>{
+    const B = pendBuild(), g = B.grand('__TOTAL__'), tct = B.byResp.Techint, usm = B.byResp.Usiminas, gt = g.tot || 0;
+    const months = pendMonthsEff().join(' · '), projs = PEND_PROJS.length===2 ? 'MOA e PCI' : PEND_PROJS[0];
+    const kpi = (cls, lbl, v, sub) => '<div class="pk2 '+cls+'"><span>'+lbl+'</span><b>'+v+'</b><small>'+sub+'</small></div>';
+    const hh = v => v.hna ? '' : ' · '+fmtInt(v.hTot)+' HH';
+    return '<div class="ph"><h1>Resumo de Pendências — Medição (Techint)</h1><small>'+esc(projs)+' · '+esc(months)+'<br>Gerado em '+new Date().toLocaleString('pt-BR')+'</small></div>'+
+      '<div class="pks">'+kpi('m','TOTAL PENDENTE','R$ '+fmtBRL(g.tot), esc(projs)+hh(g))+kpi('c','PENDENTE TCT','R$ '+fmtBRL(tct.tot), (gt?fmtPct(tct.tot/gt):'—')+' do total'+hh(tct))+kpi('u','PENDENTE USM','R$ '+fmtBRL(usm.tot), (gt?fmtPct(usm.tot/gt):'—')+' do total'+hh(usm))+'</div>'+
+      '<div class="pz" id="pz">'+pendTableHTML()+'</div>';
+  });
+}
+function pendPrintAllDoc(keys){
+  const names = {}; PRINT_TABS.forEach(t=>{ names[t[0]] = t[1]; });
+  const css = Array.from(document.querySelectorAll('style')).map(s=>s.textContent).join('\n');
+  const stamp = 'Gerado em '+new Date().toLocaleString('pt-BR');
+  const secs = keys.map(key=>{
+    let body = '', head = '';
+    if (key==='GERAL' || key==='MOA' || key==='PCI'){ const data = buildTable(key); head = names[key]; body = renderKpiStrip(key, data)+renderTableHTML(data, true); }
+    else if (key==='RDC'){ head = names[key]; body = renderRdcKpiStrip()+renderRdcHTML(); }
+    else body = pendPrintBodyHTML();
+    const hdr = key==='PEND' ? '' : '<div class="ph"><h1>'+esc(head)+' — Medição (Techint)</h1><small>'+esc(DISPLAY_MONTHS.join(' · '))+'<br>'+stamp+'</small></div>';
+    return '<section class="ps" data-key="'+key+'">'+hdr+'<div class="pw">'+body+'</div></section>';
+  }).join('');
+  const extra = '@page{size:A4 landscape;margin:8mm 8mm 12mm 8mm;@bottom-right{content:"Página " counter(page) " de " counter(pages);font-family:"Segoe UI",Arial,sans-serif;font-size:9px;color:#5b6b7c}@bottom-left{content:"Relatório Gerencial — Controle de Horas × Valores (R$)";font-family:"Segoe UI",Arial,sans-serif;font-size:9px;color:#5b6b7c}}'+
+    'html,body{margin:0;padding:0;background:#fff !important}body{font-family:"Segoe UI",Calibri,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+    '.ps{break-after:page;page-break-after:always}.ps:last-child{break-after:auto;page-break-after:auto}'+
+    '.ph{background:#12305a;color:#fff;padding:8px 14px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}.ph h1{margin:0;font-size:17px;color:#fff}.ph small{font-size:10px;opacity:.85;text-align:right}'+
+    '.pks{display:flex;gap:8px;margin:0 0 8px}.pk2{flex:1;border:1px solid #c9d3df;border-radius:7px;padding:6px 11px;background:#f6f8fb}.pk2 span{display:block;font-size:9px;font-weight:700;letter-spacing:.08em;color:#5a7391}.pk2 b{display:block;font-size:20px;margin:1px 0;color:#12305a}.pk2 small{font-size:9.5px;color:#5a6f88}'+
+    '.pk2.m{background:#fff7de;border-color:#e0b64a}.pk2.m b{color:#a86a00}.pk2.c b{color:#0b78b5}.pk2.u b{color:#b87400}'+
+    '.ps .table-wrap{overflow:visible !important;max-width:none !important;box-shadow:none !important}.ps thead{display:table-header-group}.ps tr{page-break-inside:avoid}.ps .pn-hidden{display:none !important}'+
+    '.ps .pk-panel{display:inline-block;margin-bottom:8px;box-shadow:none}.ps .pk-click{cursor:default}'+
+    '.pz td.pn-obs-ed:empty::before{content:none !important}.pz td.pn-obs-ed{background:transparent !important;box-shadow:none !important}.pz col:last-child{width:300px !important}.pz td:last-child{white-space:normal !important;font-size:10px}.ps[data-key="PEND"] .ph,.ps[data-key="PEND"] .pks{zoom:.75}';
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Relatório — Pendências</title><style>'+css+'</style><style>'+extra+'</style></head><body>'+secs+'</body></html>';
+}
+function pendPrintAll(){
+  const keys = PRINT_TABS.map(t=>t[0]).filter(k=>PEND_PRINT_SEL.includes(k)); if (!keys.length) return;
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;left:-6000px;top:0;width:1100px;height:800px;border:0;';
+  document.body.appendChild(f);
+  const done = () => { try { f.remove(); } catch(e){} };
+  f.onload = () => { setTimeout(()=>{
+    try {
+      const d = f.contentDocument;
+      d.querySelectorAll('[contenteditable]').forEach(x=>x.removeAttribute('contenteditable'));
+      pendPrintPrepare(d);   // PEND: FAD primeiro, FIA em página nova (usa o bloco #pz)
+      d.querySelectorAll('.ps').forEach(sec=>{
+        const pw = sec.querySelector('.pw'); if (!pw) return;
+        if (sec.dataset.key==='PEND'){ const pz = d.getElementById('pz'), tb = pz && pz.querySelector('table'); const w = tb ? Math.max(tb.scrollWidth, tb.offsetWidth) : 0; if (pz) pz.style.zoom = String(w ? Math.min(0.68, 1040/w) : 0.68); return; }
+        let w = 0; pw.querySelectorAll('table').forEach(t=>{ w = Math.max(w, t.scrollWidth, t.offsetWidth); });
+        pw.style.zoom = String(w ? Math.min(0.75, 1040/w) : 0.75);
+      });
+      f.contentWindow.focus(); f.contentWindow.addEventListener('afterprint', done); f.contentWindow.print();
+    } catch(e){ console.error(e); done(); }
+    setTimeout(done, 240000);
+  }, 400); };
+  f.srcdoc = pendPrintAllDoc(keys);
+}
+document.addEventListener('click', e=>{
+  if (e.target.closest('[data-pn-pp-open]')){ PEND_PRINT_OPEN = !PEND_PRINT_OPEN; pendPrintDropRefresh(); return; }
+  if (e.target.closest('[data-pn-pp-go]')){ PEND_PRINT_OPEN = false; pendPrintDropRefresh(); pendPrintAll(); return; }
+  if (PEND_PRINT_OPEN && !e.target.closest('#pend-pp-wrap') && document.getElementById('pend-pp-wrap')){ PEND_PRINT_OPEN = false; pendPrintDropRefresh(); }
+});
+document.addEventListener('change', e=>{
+  const c = e.target.closest && e.target.closest('input[data-pn-pp]'); if (!c) return;
+  const k = c.dataset.pnPp; PEND_PRINT_SEL = c.checked ? PEND_PRINT_SEL.concat(k).filter((v,i,a)=>a.indexOf(v)===i) : PEND_PRINT_SEL.filter(x=>x!==k);
+  pendPrintDropRefresh();
+});
 function pendPrint(level){
   const f = document.createElement('iframe');
   f.style.cssText = 'position:fixed;left:-6000px;top:0;width:1100px;height:800px;border:0;';
@@ -2791,6 +2869,7 @@ function pendControlsHTML(){
     '<button type="button" class="evol-quick" data-pn-print="level" style="font-weight:800" title="Imprime o demonstrativo exatamente no nível de detalhe que está na tela (Níveis 1 a 4, linhas abertas ou recolhidas)">🖨 Imprimir no nível escolhido</button>'+
     '<button type="button" class="evol-quick" data-pn-print="one" title="Imprime só o resumo por modalidade e status, em uma página A4 (paisagem)">🖨 Resumo em 1 página</button>'+
     '<span id="pend-items-wrap" style="margin-left:6px">'+pendItemsDropHTML()+'</span>'+
+    '<span id="pend-pp-wrap" style="margin-left:6px">'+pendPrintDropHTML()+'</span>'+
     '<span class="evol-flbl" style="margin-left:14px">Status do quadro OS/Fiscal</span><span id="pend-st-wrap">'+pendStDropHTML()+'</span></div>';
 }
 let PEND_ST = null;       // null = todos os status; senao lista de status escolhidos para o quadro amarelo
