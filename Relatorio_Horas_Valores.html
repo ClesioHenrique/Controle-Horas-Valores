@@ -1921,7 +1921,7 @@ function renderKpiStrip(proj, data){
     const pc = c.aprovProj ? pcPronto : (c.aribaProj && medidoFR.rs ? Math.min(100, aribaTot/medidoFR.rs*100) : 0);
     tiles.push(pkTile(k, c.label.toUpperCase(), c.value, pc, c.sub ? c.sub : 'clique para detalhar', attrsOf(c) || ''));
   });
-  return pkPanel('PAINEL · '+projLabelPk(proj).toUpperCase(), '', tiles, pkGauge('FR EM APROVAÇÃO', pcPronto, 'DEMAIS', 'FR APROV.'), 'auto');
+  return pkPanel('PAINEL · '+projLabelPk(proj).toUpperCase(), '', tiles, '', 'auto');
 }
 function projLabelPk(proj){ return proj==='GERAL' ? 'MOA + PCI' : proj; }
 // Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
