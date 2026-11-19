@@ -4497,24 +4497,24 @@ function faDetailRowsFor(kind, proj, col){
   const inMonth = r => col==='__TOTAL__' ? DISPLAY_MONTHS.includes(r.mesano) : r.mesano===col;
   const map = new Map();
   rows.filter(inMonth).forEach(r=>{
-    const key = r.numfa+'|'+(r.numsapmed||'');
-    const cur = map.get(key) || {numfa:r.numfa, numsapmed:r.numsapmed||'', rs:0};
+    const key = r.numfa+'|'+(r.numsapmed||'')+'|'+r.mesano;
+    const cur = map.get(key) || {numfa:r.numfa, numsapmed:r.numsapmed||'', mes:r.mesano, rs:0};
     cur.rs += r.rs;
     map.set(key, cur);
   });
-  return Array.from(map.values()).sort((a,b)=> b.rs-a.rs);
+  return Array.from(map.values()).sort((a,b)=> mesKey(a.mes)-mesKey(b.mes) || b.rs-a.rs);
 }
 function fadDetailRowsFor(proj, col){
   const rows = filterProj(RAW_MEDIDO_FR_DETAIL, proj);
   const inMonth = r => col==='__TOTAL__' ? DISPLAY_MONTHS.includes(r.mesano) : r.mesano===col;
   const map = new Map();
   rows.filter(inMonth).forEach(r=>{
-    const key = r.med+'|'+r.sapmed;
-    const cur = map.get(key) || {med:r.med, sapmed:r.sapmed, hh:0, rs:0};
+    const key = r.med+'|'+r.sapmed+'|'+r.mesano;
+    const cur = map.get(key) || {med:r.med, sapmed:r.sapmed, mes:r.mesano, hh:0, rs:0};
     cur.hh += r.hh; cur.rs += r.rs;
     map.set(key, cur);
   });
-  return Array.from(map.values()).sort((a,b)=> b.rs-a.rs);
+  return Array.from(map.values()).sort((a,b)=> mesKey(a.mes)-mesKey(b.mes) || b.rs-a.rs);
 }
 function pendAprovRowsFor(proj, col){
   // nao usa filterProj (essa espera campo "projeto") — RAW_PEND_APROVACAO_DETAIL usa "proj".
@@ -4629,25 +4629,41 @@ function openPendAprovModal(proj, col){
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
+// detalhe das medições "Para emitir FR" (FAD 3.3 / FIA 1.5 / RATEIO 2.5): uma linha por Nº Med. + FR + MÊS, com filtro por FR / Med.
+let FA_MD = null;
+function faMdFiltered(){
+  const q = (FA_MD.q||'').toLowerCase().trim(), toks = q.split(/[\s,;]+/).filter(Boolean);
+  if (!toks.length) return FA_MD.rows;
+  return FA_MD.rows.filter(r=>{ const s = (String(r.b||'')+' '+String(r.a||'')).toLowerCase(); return toks.some(t=>s.includes(t)); });
+}
+function faMdTable(){
+  const rows = faMdFiltered(), fad = FA_MD.fad;
+  if (!rows.length) return '<div class="fiscal-empty">'+(FA_MD.rows.length ? 'Nenhuma medição com esse número de FR / Med.' : FA_MD.empty)+'</div>';
+  let totHH = 0, totRS = 0;
+  let h = '<table><tr><th>'+FA_MD.first+'</th><th>Nº SAP Med. (FR)</th><th>Mês</th>'+(fad?'<th class="num">HH</th>':'')+'<th class="num">R$</th></tr>';
+  rows.forEach(r=>{
+    totRS += r.rs; if (fad) totHH += r.hh;
+    h += '<tr><td>'+esc(r.a)+'</td><td>'+(r.b?esc(r.b):'—')+'</td><td>'+esc(r.mes||'')+'</td>'+(fad?'<td class="num">'+fmtInt(r.hh)+'</td>':'')+'<td class="num">'+fmtBRL(r.rs)+'</td></tr>';
+  });
+  h += '<tr class="fa-total"><td>Total ('+rows.length+')</td><td></td><td></td>'+(fad?'<td class="num">'+fmtInt(totHH)+'</td>':'')+'<td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
+  return h;
+}
+function faMdHTML(){
+  FA_MD.q = '';
+  return '<div style="margin:0 0 8px"><span class="evol-flbl">Filtrar FR / Med.</span> <input type="text" class="bi-sel" data-fa-q="1" autocomplete="off" placeholder="Digite um ou mais números (ex.: 1013352097 MED_85218)" style="min-width:300px"></div><div id="fa-md-tbl">'+faMdTable()+'</div>';
+}
+document.addEventListener('input', e=>{
+  const q = e.target.closest && e.target.closest('[data-fa-q]'); if (!q || !FA_MD) return;
+  FA_MD.q = q.value; document.getElementById('fa-md-tbl').innerHTML = faMdTable();
+});
 function openFaModal(kind, proj, col){
   const colLabel = col==='__TOTAL__' ? 'meses selecionados' : col;
   if (kind==='fad'){
     const rows = fadDetailRowsFor(proj, col);
     document.getElementById('fa-modal-title').textContent = 'Medições — '+proj;
     document.getElementById('fa-modal-sub').textContent = 'Periodo: '+colLabel+' | Item 3.3 "Medido - Para emitir FR - SAP"';
-    let body = '';
-    if (!rows.length){
-      body = '<div class="fiscal-empty">Nenhuma medição encontrada para esse período.</div>';
-    } else {
-      let totHH = 0, totRS = 0;
-      body = '<table><tr><th>Nº Med.</th><th>Nº SAP Med. (FR)</th><th class="num">HH</th><th class="num">R$</th></tr>';
-      rows.forEach(r=>{
-        totHH += r.hh; totRS += r.rs;
-        body += '<tr><td>'+esc(r.med)+'</td><td>'+esc(r.sapmed)+'</td><td class="num">'+fmtInt(r.hh)+'</td><td class="num">'+fmtBRL(r.rs)+'</td></tr>';
-      });
-      body += '<tr class="fa-total"><td>Total</td><td></td><td class="num">'+fmtInt(totHH)+'</td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
-    }
-    document.getElementById('fa-modal-body').innerHTML = body;
+    FA_MD = { fad:true, first:'Nº Med.', rows:rows.map(r=>({a:r.med, b:r.sapmed, mes:r.mes, hh:r.hh, rs:r.rs})), empty:'Nenhuma medição encontrada para esse período.' };
+    document.getElementById('fa-modal-body').innerHTML = faMdHTML();
     document.getElementById('fa-modal-backdrop').classList.add('open');
     return;
   }
@@ -4660,19 +4676,8 @@ function openFaModal(kind, proj, col){
   const firstCol = kind==='rateio' ? 'Nº FA' : 'Nº Med.';
   document.getElementById('fa-modal-title').textContent = 'Medições — '+label+' — '+proj;
   document.getElementById('fa-modal-sub').textContent = 'Periodo: '+colLabel+' | Item '+(kind==='fia'?'1.5':'2.5')+' "Medido - Para emitir FR - SAP"';
-  let body = '';
-  if (!rows.length){
-    body = '<div class="fiscal-empty">Nenhuma medição de '+label+' encontrada para esse período.</div>';
-  } else {
-    let totRS = 0;
-    body = '<table><tr><th>'+firstCol+'</th><th>Nº SAP Med. (FR)</th><th class="num">R$</th></tr>';
-    rows.forEach(r=>{
-      totRS += r.rs;
-      body += '<tr><td>'+esc(r.numfa)+'</td><td>'+(r.numsapmed?esc(r.numsapmed):'—')+'</td><td class="num">'+fmtBRL(r.rs)+'</td></tr>';
-    });
-    body += '<tr class="fa-total"><td>Total</td><td></td><td class="num">'+fmtBRL(totRS)+'</td></tr></table>';
-  }
-  document.getElementById('fa-modal-body').innerHTML = body;
+  FA_MD = { fad:false, first:firstCol, rows:rows.map(r=>({a:r.numfa, b:r.numsapmed, mes:r.mes, rs:r.rs})), empty:'Nenhuma medição de '+label+' encontrada para esse período.' };
+  document.getElementById('fa-modal-body').innerHTML = faMdHTML();
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
 function closeFaModal(){ document.getElementById('fa-modal-backdrop').classList.remove('open'); }
