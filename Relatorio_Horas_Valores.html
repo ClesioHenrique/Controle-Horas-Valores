@@ -251,6 +251,36 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 a.bi-lnk{color:var(--info-blue);font-weight:700;text-decoration:underline dotted;cursor:pointer;background:rgba(255,238,0,.35);padding:0 2px;border-radius:3px;}
 a.bi-lnk:hover{background:rgba(255,238,0,.7);}
 .bi-more{cursor:pointer;color:var(--info-blue);text-decoration:underline dotted;}
+/* ---- aba "Fluxo até a FR" ---- */
+.fx-root{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:6px 0 16px;box-shadow:var(--shadow);}
+.fx-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.fx-top h2{margin:0 0 3px;font-size:19px;color:var(--navy);}.fx-top p{margin:0;font-size:12.5px;color:var(--text-muted);max-width:900px;}
+.fx-kps{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 14px;}
+.fx-kp{flex:1 1 170px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:linear-gradient(160deg,#fff,#f4f6f9);}
+.fx-kp span{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;color:#5a7391;}.fx-kp b{display:block;font-size:20px;color:var(--navy);margin:2px 0;}.fx-kp small{font-size:11px;color:var(--text-muted);}
+.fx-kp.m{background:linear-gradient(160deg,#fff7de,#fff);border-color:#e0b64a;}.fx-kp.m b{color:#a86a00;}.fx-kp.c b{color:#0b78b5;}.fx-kp.u b{color:#b87400;}.fx-kp.f b{color:#1f8f55;}.fx-kp.a b{color:#6a3fb5;}
+.fx-step0{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px;}
+.fx-lane{border:1px solid var(--border);border-radius:12px;margin:0 0 10px;padding:8px 10px;background:#fbfcfe;}
+.fx-lane.fx-fad{border-left:6px solid #35b36b;}.fx-lane.fx-fia{border-left:6px solid #f5a04a;}.fx-lane.fx-rat{border-left:6px solid #7c6bd6;}.fx-lane.fx-fr{border-left:6px solid #12305a;background:#f3f7fd;}
+.fx-lh{display:flex;gap:10px;align-items:baseline;margin-bottom:6px;}.fx-lh b{font-size:14px;color:var(--navy);}.fx-lh small{color:var(--text-muted);font-size:11px;}
+.fx-row{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;}
+.fx-ar{align-self:center;color:#7d8ea6;font-size:18px;padding:0 1px;}
+.fx-grp{border:1px dashed #b9c6d8;border-radius:10px;padding:6px 8px;background:#fff;}.fx-gl{font-size:10.5px;font-weight:800;color:#5a7391;letter-spacing:.04em;margin-bottom:5px;}.fx-col{display:flex;flex-direction:column;gap:5px;}
+.fx-st{position:relative;border:1px solid var(--border);border-radius:9px;padding:6px 9px 6px;min-width:150px;max-width:230px;background:#fff;flex:1 1 150px;}
+.fx-st.fx-tct{border-top:4px solid #0b9ad6;}.fx-st.fx-usm{border-top:4px solid #f0a52a;}.fx-st.fx-ari{border-top:4px solid #7b4fc9;}.fx-st.fx-ok{border-top:4px solid #2e9d5b;background:#f2fbf5;}
+.fx-st.fx-start{max-width:340px;flex:1 1 260px;}
+.fx-col .fx-st{flex:none;max-width:none;min-width:210px;}
+.fx-own{position:absolute;top:4px;right:6px;font-size:9px;font-weight:800;letter-spacing:.06em;padding:1px 6px;border-radius:9px;background:#e6edf5;color:#12305a;}
+.fx-tct .fx-own{background:#d9f0fb;color:#07608a;}.fx-usm .fx-own{background:#ffe9c2;color:#8a5a00;}.fx-ari .fx-own{background:#e8dcfb;color:#5a2fb0;}
+.fx-t{display:block;font-size:12px;color:var(--navy);padding-right:34px;line-height:1.2;}.fx-v{font-size:15px;font-weight:800;color:#12305a;margin-top:3px;font-variant-numeric:tabular-nums;}.fx-h{font-size:10.5px;color:var(--text-muted);}.fx-n{font-size:10.5px;color:#5b6b7c;margin-top:3px;line-height:1.25;}
+.fx-st.fx-none{opacity:.55;background:#f7f8fa;}.fx-st.fx-none .fx-v{color:#8a98aa;font-weight:600;}
+.fx-join{text-align:center;font-size:11px;font-weight:800;color:#5a7391;letter-spacing:.06em;margin:2px 0 8px;}
+.fx-sec{margin-top:14px;}.fx-sec h3{margin:0 0 8px;font-size:15px;color:var(--navy);border-bottom:2px solid #e3eaf2;padding-bottom:4px;}
+.fx-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px;}.fx-rule{border:1px solid var(--border);border-radius:9px;padding:7px 10px;background:#fbfcfe;}.fx-rule b{color:var(--navy);font-size:12.5px;}.fx-rule p{margin:3px 0 0;font-size:11.5px;line-height:1.35;color:#2c3e50;}
+.fx-concl{margin:0;padding-left:20px;font-size:12.5px;line-height:1.5;}.fx-concl li{margin-bottom:6px;}
+.fx-ac{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;margin-top:10px;}.fx-ac-b{border:1px solid var(--border);border-radius:10px;padding:8px 12px;}.fx-ac-b b{font-size:13px;color:var(--navy);}.fx-ac-b ul{margin:5px 0 0;padding-left:18px;font-size:12px;line-height:1.45;}
+.fx-ac-b.fx-tct{border-left:5px solid #0b9ad6;background:#f2fafe;}.fx-ac-b.fx-usm{border-left:5px solid #f0a52a;background:#fffaf0;}
+@media (max-width:700px){.fx-ar{transform:rotate(90deg);width:100%;text-align:center}.fx-st{max-width:none}}
 td.bi-rdc{cursor:pointer;color:var(--info-blue);font-weight:800;text-decoration:underline dotted;}
 td.bi-rdc:hover{background:#eaf3fb;}
 /* mesmo padrão visual do extrato por Fiscal (pe-tbl) */
@@ -836,6 +866,7 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
         <div class="tabs" id="tabs-pend">
           <button class="tab-btn" data-proj="PEND">Resumo de Pendências</button>
           <button class="tab-btn" data-proj="BIRDC">Consulta por RDC (BI)</button>
+          <button class="tab-btn" data-proj="FLUXO">Fluxo até a FR</button>
         </div>
       </div>
       <div class="kpi-strip" id="kpi-strip"></div>
@@ -3705,6 +3736,109 @@ document.getElementById('kpi-strip').addEventListener('click', e=>{
   document.getElementById('fa-modal-body').innerHTML = list.length ? h : '<div class="fiscal-empty">Nada neste recorte.</div>';
   document.getElementById('fa-modal-backdrop').classList.add('open');
 });
+/* ---------------- Fluxo até a FR: etapas, responsáveis, condições e conclusões (valores ao vivo, mesmos filtros de meses do Resumo de Pendências) ---------------- */
+function fluxoData(){
+  const sp = PEND_PROJS.slice(), sm = PEND_MODS.slice();
+  PEND_PROJS.length = 0; ['MOA','PCI'].forEach(p=>PEND_PROJS.push(p)); PEND_MODS.length = 0; [0,1,2].forEach(m=>PEND_MODS.push(m));
+  try {
+    return pendWithMonths(()=>{
+      const B = pendBuild(), T = '__TOTAL__', g = B.grand(T);
+      const get = (sec, label) => { const s = B.secs.find(x=>x.idx===sec); let v = null; if (s) s.groups.forEach(gr=>gr.items.forEach(it=>{ if (it.label===label && !v) v = B.mkv(it,T); })); return v || { tot:0, hTot:0, hna:true }; };
+      const months = pendMonthsEff();
+      return { g, tct:B.byResp.Techint, usm:B.byResp.Usiminas, get, months, ariba:aribaTotalFor('GERAL'), emit:(typeof frsTotalGeralFor==='function' ? frsTotalGeralFor('GERAL') : 0) };
+    });
+  } finally { PEND_PROJS.length = 0; sp.forEach(p=>PEND_PROJS.push(p)); PEND_MODS.length = 0; sm.forEach(m=>PEND_MODS.push(m)); }
+}
+function renderFluxoHTML(){
+  const D = fluxoData(), g = D.g, gt = g.tot || 0, P = v => gt ? fmtPct(v/gt) : '—';
+  const st = (sec, label, owner, note, titleOverride) => {
+    const v = D.get(sec, label), none = Math.round(v.tot)===0 && Math.round(v.hTot||0)===0;
+    return '<div class="fx-st fx-'+owner.toLowerCase()+(none?' fx-none':'')+'"><span class="fx-own">'+owner+'</span><b class="fx-t">'+esc(titleOverride||label)+'</b>'+
+      '<div class="fx-v">'+(none ? '—' : 'R$ '+fmtBRL(v.tot))+'</div><div class="fx-h">'+(v.hna ? 'sem HH (só R$)' : (none ? '&nbsp;' : fmtInt(v.hTot)+' HH'))+(none ? '' : ' · '+P(v.tot))+'</div>'+(note ? '<div class="fx-n">'+note+'</div>' : '')+'</div>';
+  };
+  const gate = txt => '<div class="fx-gate" title="Condição para passar à próxima etapa">'+txt+'</div>';
+  const arrow = '<div class="fx-ar">➜</div>';
+  const lane = (cls, title, sub, items) => '<div class="fx-lane '+cls+'"><div class="fx-lh"><b>'+title+'</b><small>'+sub+'</small></div><div class="fx-row">'+items.join(arrow)+'</div></div>';
+  // valores usados nas conclusões
+  const sum = (arr) => arr.reduce((s,v)=>s+(v.tot||0),0);
+  const cad = [D.get(0,'Pendência de Saldo'), D.get(0,'Pendência de Função'), D.get(0,'Recurso não cadastrado no WebTerceiros')], rdcNA = D.get(0,'RDC não está aprovada');
+  const sge = [D.get(0,'Aguardando revisão'), D.get(0,'Em Elaboração')], pend = D.get(0,'Pendente de aprovação');
+  const apr = D.get(0,'Aprovado - SGE'), med = D.get(0,'Medição em Andamento - SGE'), medFad = D.get(0,'Medido - Para emitir FR - SAP');
+  const fiaMed = D.get(1,'Medido - Para emitir FR - SAP'), ratMed = D.get(2,'Medido - Para emitir FR - SAP');
+  const medTot = (medFad.tot||0)+(fiaMed.tot||0)+(ratMed.tot||0);
+  const fiaCria = D.get(1,'Em criação OS para FIA'), ratCria = D.get(2,'Em Criação RATEIO no sistema SGE');
+  const ratFin = D.get(2,'Aprovação Financeira'), fiaFin = D.get(1,'Aprovação Financeira');
+  const stages = [
+    { nome:'Pendências de cadastro (Saldo, Função, WebTerceiros)', v:sum(cad), dono:'TCT' },
+    { nome:'RDC não aprovada', v:rdcNA.tot, dono:'USM' },
+    { nome:'Carregamento no SGE (revisão / elaboração)', v:sum(sge), dono:'TCT' },
+    { nome:'Pendente de aprovação', v:pend.tot, dono:'USM' },
+    { nome:'Aprovado - SGE (FADS)', v:apr.tot, dono:'USM' },
+    { nome:'Medição em andamento (FADS)', v:med.tot, dono:'USM' },
+    { nome:'FIA — criação da OS', v:fiaCria.tot, dono:'TCT' },
+    { nome:'RATEIO — criação no SGE', v:ratCria.tot, dono:'TCT' },
+    { nome:'Medido — para emitir FR (FADS + FIA + RATEIO)', v:medTot, dono:'USM' }
+  ].sort((a,b)=>b.v-a.v);
+  const maior = stages[0], seg = stages[1];
+  const pT = gt ? D.tct.tot/gt*100 : 0, pU = 100 - pT;
+  const libPct = medTot ? D.ariba/medTot*100 : 0;
+  const concl = [];
+  concl.push('<b>Quem tem a bola:</b> R$ '+fmtBRL(D.usm.tot)+' ('+pU.toFixed(1).replace('.',',')+'%) dependem da <b>Usiminas</b> e R$ '+fmtBRL(D.tct.tot)+' ('+pT.toFixed(1).replace('.',',')+'%) da <b>Techint</b>. '+(pU>=60 ? 'A maior parte do valor pendente está na ponta da Usiminas (aprovação, medição e liberação da FR).' : 'A maior parte do valor depende de ações internas da Techint.'));
+  concl.push('<b>Maior gargalo:</b> '+esc(maior.nome)+' — R$ '+fmtBRL(maior.v)+' ('+P(maior.v)+' do total, responsável: '+maior.dono+'). Em seguida, '+esc(seg.nome)+' — R$ '+fmtBRL(seg.v)+' ('+P(seg.v)+').');
+  concl.push('<b>Pronto para a FR:</b> R$ '+fmtBRL(medTot)+' ('+P(medTot)+' do total) já estão "Medido — para emitir FR": FADS R$ '+fmtBRL(medFad.tot)+', FIA R$ '+fmtBRL(fiaMed.tot)+' e RATEIO R$ '+fmtBRL(ratMed.tot)+'. É o dinheiro que só depende de a Usiminas aprovar e liberar a FR no SAP.');
+  if (D.ariba) concl.push('<b>Da medição à FR liberada:</b> R$ '+fmtBRL(D.ariba)+' já estão como FR liberada SAP_USM ('+libPct.toFixed(1).replace('.',',')+'% do que está para emitir). O restante, R$ '+fmtBRL(Math.max(0, medTot-D.ariba))+', ainda aguarda a liberação.');
+  concl.push('<b>FIA e RATEIO:</b> '+(Math.round(ratCria.tot)>0 ? 'o RATEIO tem R$ '+fmtBRL(ratCria.tot)+' parados em "Em criação no sistema SGE" (Techint precisa concluir a criação para a Usiminas aprovar). ' : '')+(Math.round(fiaCria.tot)>0 ? 'A FIA tem R$ '+fmtBRL(fiaCria.tot)+' aguardando a criação da OS. ' : '')+'Como o fiscal da FIA e do RATEIO é sempre a Usiminas, depois de criados o desbloqueio é todo da Usiminas.');
+  concl.push('<b>Cadastro e saldo (Techint):</b> pendências de saldo, função e WebTerceiros somam R$ '+fmtBRL(sum(cad))+' ('+P(sum(cad))+') e só a Techint resolve; enquanto não forem regularizadas, o RDC não segue para aprovação.');
+  const acoes = '<div class="fx-ac"><div class="fx-ac-b fx-tct"><b>Techint (TCT) — o que fazer</b><ul><li>Regularizar saldo, função e recurso no WebTerceiros ('+('R$ '+fmtBRL(sum(cad)))+').</li><li>Concluir revisão e elaboração no SGE ('+('R$ '+fmtBRL(sum(sge)))+').</li><li>Criar a OS da FIA e o RATEIO no sistema ('+('R$ '+fmtBRL((fiaCria.tot||0)+(ratCria.tot||0)))+').</li><li>Ajustar os RDCs apontados e enviar suplementação quando faltar.</li></ul></div>'+
+    '<div class="fx-ac-b fx-usm"><b>Usiminas (USM) — o que fazer</b><ul><li>Aprovar RDC e pendências de aprovação ('+('R$ '+fmtBRL((rdcNA.tot||0)+(pend.tot||0)))+').</li><li>Concluir aprovação e medição no SGE ('+('R$ '+fmtBRL((apr.tot||0)+(med.tot||0)))+').</li><li>Aprovar a Aprovação Financeira da FIA/RATEIO ('+('R$ '+fmtBRL((fiaFin.tot||0)+(ratFin.tot||0)))+').</li><li>Liberar a FR no SAP do que já está medido ('+('R$ '+fmtBRL(medTot))+').</li></ul></div></div>';
+  const regras = [
+    ['FADS — "Medido"','Situação = <b>Medida</b> + Faturado SIM ou NÃO = <b>Não faturado</b> + o Nº SAP Med. <b>não</b> consta na aba "FR\'S emitidas". Traz HH (coluna Avanço UN) e R$.'],
+    ['FIA — "Medido"','Mesma regra (Situação = <b>Medida</b>, Não faturado, FR ainda não emitida). O fiscal é sempre a <b>Usiminas</b>; só entram linhas da Techint (TCT ou USM = TECHINT). Sem HH — só R$.'],
+    ['RATEIO — "Medido"','Situação = <b>Concluído</b> (status final do RATEIO) + Não faturado + FR ainda não emitida. Também sem HH e com fiscal Usiminas.'],
+    ['FR em aprovação SAP_USM','= soma dos três "Medido — para emitir FR": é o valor pronto para faturar, aguardando a Usiminas aprovar no SAP.'],
+    ['FR liberada SAP_USM','FRs da aba <b>Ariba</b> com valor em R$_PENDENTE (coluna H) diferente de zero: já liberadas pela Usiminas e aguardando o pagamento/faturamento.'],
+    ['FR emitida','Aba "FR\'S emitidas": quando a FR é emitida (Nº SAP Med. = coluna A da aba) o valor <b>sai</b> de "Medido" para não contar duas vezes. Cerca de 25% das FRs não casam com a base e ficam em "Não classificado".'],
+    ['Mês de referência','Os valores entram no mês da Data Referência (Extrato SGE) ou do Mês/Ano (FAD_FIA & RATEIO). Os filtros de meses mostram, por padrão, só os meses com pendência.'],
+    ['Responsável por etapa','Cadastro, carregamento e criação (OS FIA / RATEIO) = <b>Techint</b>. RDC não aprovada, aprovação, medição, aprovação financeira e liberação da FR = <b>Usiminas</b>.']
+  ];
+  const kp = (cls, l, v, s) => '<div class="fx-kp '+cls+'"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
+  return '<div class="fx-root" id="fx-root">'+
+    '<div class="fx-top"><div><h2>Fluxo até a FR — do apontamento à fatura</h2><p>Etapas, responsáveis e condições para o valor chegar em "Medido — para emitir FR" e virar FR. Valores ao vivo (MOA + PCI, meses: '+esc(D.months.join(' · '))+').</p></div><button type="button" class="evol-quick" data-fx-print="1" style="font-weight:800">🖨 Imprimir fluxo</button></div>'+
+    '<div class="fx-kps">'+kp('m','TOTAL PENDENTE','R$ '+fmtBRL(g.tot), fmtInt(g.hTot||0)+' HH')+kp('c','COM A TECHINT','R$ '+fmtBRL(D.tct.tot), pT.toFixed(1).replace('.',',')+'% do total')+kp('u','COM A USIMINAS','R$ '+fmtBRL(D.usm.tot), pU.toFixed(1).replace('.',',')+'% do total')+kp('f','PRONTO PARA EMITIR FR','R$ '+fmtBRL(medTot), P(medTot)+' do total')+(D.ariba ? kp('a','FR LIBERADA SAP_USM','R$ '+fmtBRL(D.ariba), libPct.toFixed(1).replace('.',',')+'% do que está para emitir') : '')+'</div>'+
+    '<div class="fx-step0"><div class="fx-st fx-tct fx-start"><span class="fx-own">TCT</span><b class="fx-t">Apontamento — RDC</b><div class="fx-n">O encarregado cria o RDC no SGE Mobile com as <b>atividades</b> e <b>interferências</b> de cada pessoa (aba BI). Cada RDC leva o fiscal e a OS.</div></div>'+arrow+
+      '<div class="fx-st fx-usm fx-start"><span class="fx-own">USM</span><b class="fx-t">Aprovação do RDC</b><div class="fx-n">Fiscal / supervisor aprovam no Mobile ("Pendente Aprovação Fiscalização"). Sem aprovação aparece como <b>RDC não está aprovada</b>.</div></div>'+arrow+
+      '<div class="fx-st fx-tct fx-start"><span class="fx-own">TCT</span><b class="fx-t">Extrato SGE (FAD)</b><div class="fx-n">Os RDCs aprovados viram horas e valor no Extrato SGE. A situação do registro define a etapa abaixo.</div></div></div>'+
+    lane('fx-fad','FADS — horas (HH)','Pendências → carregamento → aprovação → medição', [
+      '<div class="fx-grp"><div class="fx-gl">1 · Apresentou pendência</div><div class="fx-col">'+st(0,'Pendência de Saldo','TCT')+st(0,'Pendência de Função','TCT')+st(0,'Recurso não cadastrado no WebTerceiros','TCT')+st(0,'RDC não está aprovada','USM')+'</div></div>',
+      '<div class="fx-grp"><div class="fx-gl">2 · Carregamento no SGE</div><div class="fx-col">'+st(0,'Aguardando revisão','TCT')+st(0,'Em Elaboração','TCT')+st(0,'Pendente de aprovação','USM')+'</div></div>',
+      '<div class="fx-grp"><div class="fx-gl">3 · Aprovado / medição</div><div class="fx-col">'+st(0,'Aprovado - SGE','USM')+st(0,'Medição em Andamento - SGE','USM')+st(0,'Medido - Para emitir FR - SAP','USM','', 'Medido — para emitir FR')+'</div></div>'
+    ])+
+    lane('fx-fia','FIA — equipamentos auxiliares','Só R$ · fiscal sempre Usiminas', [
+      st(1,'Em criação OS para FIA','TCT','Techint cria a OS/FIA'), st(1,'Aprovação Financeira','USM'), st(1,'Aprovado - SGE','USM'), st(1,'Medição em Andamento - SGE','USM'), st(1,'Medido - Para emitir FR - SAP','USM','', 'Medido — para emitir FR')
+    ])+
+    lane('fx-rat','RATEIO — HH de mão de obra indireta','Só R$ · fiscal sempre Usiminas', [
+      st(2,'Em Criação RATEIO no sistema SGE','TCT','Techint cria o RATEIO'), st(2,'Aprovação Financeira','USM'), st(2,'Aprovado - SGE','USM'), st(2,'Medição em Andamento - SGE','USM'), st(2,'Medido - Para emitir FR - SAP','USM','', 'Medido — para emitir FR')
+    ])+
+    '<div class="fx-join">▼ as três modalidades chegam em "Medido — para emitir FR" ▼</div>'+
+    '<div class="fx-lane fx-fr"><div class="fx-lh"><b>Da medição à FR</b><small>SAP / Ariba</small></div><div class="fx-row">'+
+      '<div class="fx-st fx-usm"><span class="fx-own">USM</span><b class="fx-t">FR em aprovação SAP_USM</b><div class="fx-v">R$ '+fmtBRL(medTot)+'</div><div class="fx-h">'+P(medTot)+' do total</div><div class="fx-n">= Medido de FADS + FIA + RATEIO, ainda sem FR emitida.</div></div>'+arrow+
+      '<div class="fx-st fx-ari"><span class="fx-own">USM</span><b class="fx-t">FR liberada SAP_USM</b><div class="fx-v">'+(D.ariba ? 'R$ '+fmtBRL(D.ariba) : '—')+'</div><div class="fx-h">'+(D.ariba ? libPct.toFixed(1).replace('.',',')+'% do que está para emitir' : 'sem FR liberada na base')+'</div><div class="fx-n">Aba Ariba: R$_PENDENTE ≠ 0.</div></div>'+arrow+
+      '<div class="fx-st fx-ok"><span class="fx-own">FIM</span><b class="fx-t">FR emitida / faturado</b><div class="fx-v">'+(D.emit ? 'R$ '+fmtBRL(D.emit) : '—')+'</div><div class="fx-h">já emitido (aba FR\'S emitidas)</div><div class="fx-n">Sai de "Medido" e vira faturamento.</div></div>'+
+    '</div></div>'+
+    '<div class="fx-sec"><h3>Condições para chegar à FR</h3><div class="fx-rules">'+regras.map(r=>'<div class="fx-rule"><b>'+r[0]+'</b><p>'+r[1]+'</p></div>').join('')+'</div></div>'+
+    '<div class="fx-sec"><h3>Conclusões (com os valores atuais)</h3><ol class="fx-concl">'+concl.map(c=>'<li>'+c+'</li>').join('')+'</ol>'+acoes+'</div>'+
+  '</div>';
+}
+// imprime o fluxo (A4 paisagem) com o mesmo visual
+function fluxoPrint(){
+  const css = Array.from(document.querySelectorAll('style')).map(s=>s.textContent).join('\n');
+  const extra = '@page{size:A4 landscape;margin:8mm 8mm 12mm 8mm;@bottom-right{content:"Página " counter(page) " de " counter(pages);font-family:"Segoe UI",Arial,sans-serif;font-size:9px;color:#5b6b7c}}html,body{margin:0;background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.fx-top button{display:none}.fx-sec,.fx-lane{break-inside:avoid}';
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-6000px;top:0;width:1100px;height:800px;border:0;'; document.body.appendChild(f);
+  const done = () => { try { f.remove(); } catch(e){} };
+  f.onload = () => { setTimeout(()=>{ try { const r = f.contentDocument.getElementById('fx-root'); const w = r ? r.scrollWidth : 0; if (r && w > 1040) r.style.zoom = String(1040/w); f.contentWindow.focus(); f.contentWindow.addEventListener('afterprint', done); f.contentWindow.print(); } catch(e){ done(); } setTimeout(done, 240000); }, 350); };
+  f.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><title>Fluxo até a FR</title><style>'+css+'</style><style>'+extra+'</style></head><body>'+renderFluxoHTML()+'</body></html>';
+}
+document.addEventListener('click', e=>{ if (e.target.closest('[data-fx-print]')) fluxoPrint(); });
 let lastChartData = null;
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
@@ -3731,6 +3865,14 @@ function render(){
     updateMonthFilterSummary();
     const noteP = document.getElementById('freenote');
     if (noteP) noteP.addEventListener('input', ()=>{ try { localStorage.setItem('freenote_'+noteP.dataset.proj, noteP.value); } catch(e){} });
+    return;
+  }
+  if (active === 'FLUXO'){
+    ['month-filter','item-filter','btn-toggle-frs','frs-date-filter','frs-forn-filter','rdc-proj-filter','mobile-papel-filter','mobile-mes-filter'].forEach(id=>{ document.getElementById(id).style.display = 'none'; });
+    document.getElementById('month-filter').style.display = '';
+    document.getElementById('content').innerHTML = renderFluxoHTML();
+    document.getElementById('kpi-strip').innerHTML = '';
+    updateMonthFilterSummary();
     return;
   }
   if (active === 'BIRDC'){
