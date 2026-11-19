@@ -6415,6 +6415,16 @@ window.addEventListener('resize', ()=>{
   loadFromSupabase().then(attemptAutoLoad);
 })();
 
+/* Link para compartilhar so a "Consulta por RDC (BI)": abrir o relatorio com ?vista=rdc no endereco.
+   Esconde as demais abas, filtros do topo, configuracoes e "Trocar de painel"; abre direto na consulta. */
+(function(){
+  if (!/[?&]vista=rdc\b/i.test(location.search) && !/^#vista-rdc/i.test(location.hash)) return;
+  var st = document.createElement('style');
+  st.textContent = '.tabs-groups-row .tabs-group,#btn-settings,#settings-panel,#supa-login-panel,a.confronto-banner-switch,#btn-toggle-filters,.confronto-banner-filters,details.notes,#btn-toggle-theme{display:none !important;}';
+  document.head.appendChild(st);
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.proj === 'BIRDC'); });
+})();
+
 render();
 
 // Faixa azul do topo tambem fixa ao rolar (pedido do usuario em 28/09/2026), empilhada acima
