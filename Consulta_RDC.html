@@ -3247,7 +3247,7 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
         so.rs += r.rs; so.hh += r.hh; if (r.rdc) so.rdcs.add(r.rdc); so.mes.add(r.mesano);
       }
       f.rs += r.rs; f.hh += r.hh; if (r.rdc) f.rdcs.add(r.rdc); f.mes.add(r.mesano); if (r.pessoa) f.ppl.add(r.pessoa);
-      const ok = allFR ? r.os+'|'+(r.pessoa||'') : r.os;   // FIA/RATEIO: uma linha por funcao+pessoa
+      const ok = allFR ? r.os+'|'+(r.pessoa||r.rdc||'') : r.os;   // FIA/RATEIO: uma linha por item + pessoa (nome / descricao), cada uma com a sua Qtd. e R$
       let o = f.os.get(ok); if (!o){ o = Object.assign(qNew(), { os:r.os, rs:0, hh:0, rdcs:new Set(), mes:new Set(), ppl:new Set(), fas:new Set() }); f.os.set(ok,o); }
       if (allFR) qAdd(o, r);
       if (r.fa) o.fas.add(r.fa);
