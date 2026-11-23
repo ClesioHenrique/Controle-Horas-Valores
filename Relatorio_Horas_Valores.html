@@ -1340,7 +1340,11 @@ function renderTableHTML(data, printMode){
       // SGE) porque as duas abas nao batem 100% linha a linha — assim o clique so aparece
       // quando ha de fato detalhe pra mostrar, e sempre aparece quando ha.
       const canPendDetail = opts.hlTotal && c==='__TOTAL__' && pendAprovRowsFor(proj, c).length>0;
-      const detailAttrs = canPendDetail
+      // FIA / RATEIO, qualquer status (1.1-1.4, 2.1-2.4 e os totais 1 / 2): clique unico abre o detalhe por Nº FA / item
+      const canStatus = opts.status && Math.round(v.rs)!==0;
+      const detailAttrs = canStatus
+        ? ' class="num'+hl+' fa-status" data-kind="'+opts.status.kind+'" data-sit="'+esc(opts.status.sit)+'" data-proj="'+esc(proj)+'" data-col="'+esc(c)+'" title="Clique para ver o detalhe (Nº FA, item, descrição)"'
+        : canPendDetail
         ? ' class="num'+hl+' pend-aprov-detail" data-proj="'+esc(proj)+'" data-col="'+esc(c)+'" title="Clique para ver o detalhe (Nº FA, Item, Fornecedor...)"'
         : canDetail
           ? ' class="num'+hl+' fa-detail" data-detail="'+opts.detail+'" data-proj="'+esc(proj)+'" data-col="'+esc(c)+'" title="Duplo clique para ver o(s) numero(s) de '+detailLabel+'"'
@@ -1403,18 +1407,18 @@ function renderTableHTML(data, printMode){
 
     // FIA
     if (SELECTED_SECTIONS.has(4)){
-    html += '<tr class="fia darkgray sec-head"><td class="item-idx">1</td><td class="desc">FIA - equipamentos auxiliares</td>'+rowCellsX(data.fiaTotal, data.fiaRateioTotal, {noHH:true})+obsEmpty()+'</tr>';
+    html += '<tr class="fia darkgray sec-head"><td class="item-idx">1</td><td class="desc">FIA - equipamentos auxiliares</td>'+rowCellsX(data.fiaTotal, data.fiaRateioTotal, {noHH:true, status:{kind:'FIA', sit:''}})+obsEmpty()+'</tr>';
     FIA_ITEMS.forEach((it,i)=>{
-      html += '<tr class="fia bgwhite"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
+      html += '<tr class="fia bgwhite"><td class="item-idx">1.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.fiaSubvalues[i], data.fiaTotal, {noHH:true, status:{kind:'FIA', sit:it.label}})+obsCell(it.obs)+'</tr>';
     });
     html += '<tr class="fia blue medido-row"><td class="item-idx">1.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.fiaSub5values, data.fiaTotal, {noHH:true, detail:'fia'})+obsCell(OBS_FIA)+'</tr>';
     }
 
     // RATEIO
     if (SELECTED_SECTIONS.has(5)){
-    html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO - Hs Mão de Obra Indireta</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true})+obsEmpty()+'</tr>';
+    html += '<tr class="rateio darkgray sec-head"><td class="item-idx">2</td><td class="desc">RATEIO - Hs Mão de Obra Indireta</td>'+rowCellsX(data.rateioTotal, data.fiaRateioTotal, {noHH:true, status:{kind:'RAT', sit:''}})+obsEmpty()+'</tr>';
     RATEIO_ITEMS.forEach((it,i)=>{
-      html += '<tr class="rateio bgwhite"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true})+obsCell(it.obs)+'</tr>';
+      html += '<tr class="rateio bgwhite"><td class="item-idx">2.'+(i+1)+'</td><td class="desc">'+esc(it.label)+'</td>'+rowCellsX(data.rateioSubvalues[i], data.rateioTotal, {noHH:true, status:{kind:'RAT', sit:it.label}})+obsCell(it.obs)+'</tr>';
     });
     html += '<tr class="rateio medido-row"><td class="item-idx">2.5</td><td class="desc">Medido - Para emitir FR - SAP</td>'+rowCellsX(data.rateioSub5values, data.rateioTotal, {noHH:true, detail:'rateio'})+obsCell(OBS_RATEIO)+'</tr>';
     }
@@ -4633,6 +4637,38 @@ function openPendAprovModal(proj, col){
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
+// detalhe FIA / RATEIO por status (1.1-1.4, 2.1-2.4; sit vazio = linhas-título 1 / 2): Nº FA + item + descrição + mês, a partir de RAW_FIARAT_DETAIL
+function openFiaRatSitModal(kind, sit, proj, col){
+  const nz = s => String(s||'').trim().toLowerCase();
+  const labels = (kind==='FIA' ? FIA_ITEMS : RATEIO_ITEMS).map(i=>nz(i.label));
+  const inMonth = r => col==='__TOTAL__' ? DISPLAY_MONTHS.includes(r.mesano) : r.mesano===col;
+  const rows = RAW_FIARAT_DETAIL.filter(r=>r.t===kind && (proj==='GERAL' || r.projeto===proj) && inMonth(r)
+    && (sit ? (r.e===1 && nz(r.situacao)===nz(sit)) : ((r.e===1 && labels.includes(nz(r.situacao))) || r.m===1)));
+  const map = new Map();
+  rows.forEach(r=>{
+    const k = [r.situacao, r.mesano, r.fa, r.item, r.nome, r.projeto].join('|');
+    let o = map.get(k); if (!o){ o = { sit:r.situacao, mes:r.mesano, fa:r.fa, item:r.item, nome:r.nome, proj:r.projeto, rs:0 }; map.set(k,o); }
+    o.rs += r.rs;
+  });
+  const list = Array.from(map.values()).sort((a,b)=> mesKey(a.mes)-mesKey(b.mes) || String(a.fa).localeCompare(String(b.fa),'pt-BR') || b.rs-a.rs);
+  const label = kind==='FIA' ? 'FIA' : 'RATEIO', colLabel = col==='__TOTAL__' ? 'meses selecionados' : col;
+  document.getElementById('fa-modal-title').textContent = label+' — '+(sit || 'todos os status')+' — '+(proj==='GERAL'?'MOA & PCI':proj);
+  document.getElementById('fa-modal-sub').textContent = 'Periodo: '+colLabel+' | detalhe por Nº FA / item (aba FAD_FIA & RATEIO)';
+  let body;
+  if (!list.length) body = '<div class="fiscal-empty">Nenhum detalhe encontrado para esse período.</div>';
+  else {
+    let tot = 0;
+    body = '<table><tr><th>Mês</th><th>Nº FA</th>'+(sit?'':'<th>Status</th>')+'<th>Item</th><th>Descrição</th><th class="num">R$</th></tr>';
+    list.forEach(o=>{ tot += o.rs; body += '<tr><td>'+esc(o.mes)+'</td><td>'+esc(o.fa||'—')+'</td>'+(sit?'':'<td>'+esc(o.sit)+'</td>')+'<td>'+esc(o.item||'—')+'</td><td>'+esc(o.nome||'—')+'</td><td class="num">'+fmtBRL(o.rs)+'</td></tr>'; });
+    body += '<tr class="fa-total"><td>Total ('+list.length+')</td><td></td>'+(sit?'':'<td></td>')+'<td></td><td></td><td class="num">'+fmtBRL(tot)+'</td></tr></table>';
+  }
+  document.getElementById('fa-modal-body').innerHTML = body;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+}
+document.getElementById('content').addEventListener('click', e=>{
+  const td = e.target.closest('td.fa-status'); if (!td) return;
+  openFiaRatSitModal(td.dataset.kind, td.dataset.sit, td.dataset.proj, td.dataset.col);
+});
 // detalhe das medições "Para emitir FR" (FAD 3.3 / FIA 1.5 / RATEIO 2.5): uma linha por Nº Med. + FR + MÊS, com filtro por FR / Med.
 let FA_MD = null;
 function faMdFiltered(){
