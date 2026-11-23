@@ -995,6 +995,9 @@ let RAW_UTS = [];
 let RAW_PEND_FISCAL = [];
 let RAW_FISCAL_OUTROS = [];
 /* aba "BI" (consulta por RDC): textos unicos, linhas compactas [rdc,os,tipo,ativ,grupo,interf,dIni,hIni(min),dFim,hFim(min),obs] (indices nos textos; datas = serial Excel) e fiscal/OS/situacao de cada RDC (Extrato SGE) */
+/* momento em que os dados embutidos abaixo foram gerados: se o Supabase tiver uma publicacao MAIS ANTIGA que isso (ex.: celular com dados velhos
+   guardados la), vale o que esta embutido na pagina; publicacao mais nova no Supabase continua valendo. */
+let DATA_EMBEDDED_AT = '2026-11-23T15:03:00Z';
 let RAW_BI_TXT = [''];
 let RAW_BI_ROWS = [];
 let RAW_BI_RDC = [];
@@ -6260,6 +6263,7 @@ window.addEventListener('resize', ()=>{
       var re = new RegExp('(?:const|let)\\s+'+name+'\\s*=\\s*\\[[\\s\\S]*?\\];');
       doc = doc.replace(re, 'let '+name+' = '+JSON.stringify(current[name])+';');
     });
+    doc = doc.replace(/let DATA_EMBEDDED_AT = '[^']*';/, function(){ return "let DATA_EMBEDDED_AT = '"+new Date().toISOString()+"';"; });
     return '<!doctype html>\n' + doc;
   }
 
@@ -6364,6 +6368,7 @@ window.addEventListener('resize', ()=>{
       var p = res.data.payload;
       Object.keys(currentRawValues()).forEach(function(k){ if (!Array.isArray(p[k])) p[k] = []; });
       if (!p.RAW_EXTRATO.length && !p.RAW_FIA_EXTRATO.length) return; // snapshot vazio/invalido: ignora
+      if (DATA_EMBEDDED_AT && new Date(res.data.updated_at) < new Date(DATA_EMBEDDED_AT)) { console.info('Supabase mais antigo que os dados embutidos: usando os embutidos'); return; }
       applyNewData(p);
       supaUpdatedAt = new Date(res.data.updated_at);
       showUpdateToast('Dados carregados do Supabase (publicados em '+supaUpdatedAt.toLocaleString('pt-BR')+(res.data.file_name?' — '+res.data.file_name:'')+').', false);
