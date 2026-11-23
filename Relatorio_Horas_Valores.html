@@ -3166,7 +3166,7 @@ function pendDetailRowsFor(scope){
         // tipo HH (pessoas): item (esquerda) = FUNCAO (col J) e descricao (direita) = nome da pessoa (col AD); se a col J so repete o nome, fica so o nome
         const gente = r.aa==='HH' && r.nome && !/^n\/?a$/i.test(r.nome);
         const funcao = gente && r.item && r.item.trim().toUpperCase()!==r.nome.trim().toUpperCase() ? r.item : '';
-        if (okProj(r) && okMes(r)) out.push({ projeto:r.projeto, mesano:r.mesano, fiscal:'Usiminas', os:gente ? (funcao || r.nome) : (r.item||'(sem item)'), rdc:gente ? (funcao ? r.nome : '') : (r.nome && !/^n\/?a$/i.test(r.nome) ? (r.nome.trim().toUpperCase()===String(r.item||'').trim().toUpperCase() ? '' : r.nome) : ''), hh:r.hh||0, rs:r.rs||0, status:it.label, fr:true, fa:r.fa||'', tipo:r.aa||'(sem tipo)', pessoa:(r.hh>0 && r.nome && !/^n\/?a$/i.test(r.nome)) ? r.nome : '' });
+        if (okProj(r) && okMes(r)) out.push({ projeto:r.projeto, mesano:r.mesano, fiscal:'Usiminas', os:gente ? (funcao || r.nome) : (r.item||'(sem item)'), rdc:gente ? (funcao ? r.nome : '') : (r.nome && !/^n\/?a$/i.test(r.nome) ? (r.nome.trim().toUpperCase()===String(r.item||'').trim().toUpperCase() ? '' : r.nome) : ''), hh:r.hh||0, rs:r.rs||0, q:(typeof r.q==='number' ? r.q : null), un:r.un||'', status:it.label, fr:true, fa:r.fa||'', tipo:r.aa||'(sem tipo)', pessoa:(r.hh>0 && r.nome && !/^n\/?a$/i.test(r.nome)) ? r.nome : '' });
       });
       return;
     }
@@ -3223,9 +3223,23 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
   if (!rows.length){
     body = '<div class="fiscal-empty">'+(PEND_OS ? 'Nenhum registro da OS <b>'+esc(PEND_OS)+'</b> nesta linha. Limpe o filtro de OS (na barra de filtros) para ver todos os fiscais.' : 'Esta linha não tem Fiscal vinculado na planilha (FIA, RATEIO ou itens sem detalhamento por Fiscal).')+'</div>';
   } else {
+    // FIA / RATEIO: coluna "Qtd." = quantidade prevista da base (col K "Avanço UN"); so vale quando todas as linhas somadas tem a mesma unidade
+    // e a col K nao repete o R$ (verba). Senao "—".
+    const qNew = () => ({ q:0, qBad:false, qHas:false, uk:new Set() });
+    const qAdd = (n, r) => {
+      if (r.q==null || (r.q>1 && Math.abs(r.q-r.rs)<1)){ n.qBad = true; return; }
+      n.q += r.q; n.qHas = true; n.uk.add((r.un||'')+'|'+r.tipo);
+    };
+    const qT = n => {
+      if (!(n.qHas && !n.qBad && n.uk.size===1)) return '—';
+      const u = Array.from(n.uk)[0].split('|'), lbl = u[1]==='HH' ? ' h' : (u[0]==='MES' || u[0]==='MÊS' ? ' mês' : '');
+      return n.q.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2})+lbl;
+    };
+    const tn = qNew(); if (allFR) rows.forEach(r=>qAdd(tn, r));
     const byF = new Map();
     rows.forEach(r=>{
-      let f = byF.get(r.fiscal); if (!f){ f = { fiscal:r.fiscal, rs:0, hh:0, rdcs:new Set(), os:new Map(), mes:new Set(), ppl:new Set(), tp:new Map(), st:new Map() }; byF.set(r.fiscal,f); }
+      let f = byF.get(r.fiscal); if (!f){ f = Object.assign(qNew(), { fiscal:r.fiscal, rs:0, hh:0, rdcs:new Set(), os:new Map(), mes:new Set(), ppl:new Set(), tp:new Map(), st:new Map() }); byF.set(r.fiscal,f); }
+      if (allFR) qAdd(f, r);
       if (inline && !allFR){   // painel amarelo: agrupa por status (Pendência de Saldo, de Função...) e dentro por OS
         let sg = f.st.get(r.status); if (!sg){ sg = { status:r.status, rs:0, hh:0, rdcs:new Set(), mes:new Set(), os:new Map() }; f.st.set(r.status,sg); }
         sg.rs += r.rs; sg.hh += r.hh; if (r.rdc) sg.rdcs.add(r.rdc); sg.mes.add(r.mesano);
@@ -3234,13 +3248,16 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
       }
       f.rs += r.rs; f.hh += r.hh; if (r.rdc) f.rdcs.add(r.rdc); f.mes.add(r.mesano); if (r.pessoa) f.ppl.add(r.pessoa);
       const ok = allFR ? r.os+'|'+(r.pessoa||'') : r.os;   // FIA/RATEIO: uma linha por funcao+pessoa
-      let o = f.os.get(ok); if (!o){ o = { os:r.os, rs:0, hh:0, rdcs:new Set(), mes:new Set(), ppl:new Set(), fas:new Set() }; f.os.set(ok,o); }
+      let o = f.os.get(ok); if (!o){ o = Object.assign(qNew(), { os:r.os, rs:0, hh:0, rdcs:new Set(), mes:new Set(), ppl:new Set(), fas:new Set() }); f.os.set(ok,o); }
+      if (allFR) qAdd(o, r);
       if (r.fa) o.fas.add(r.fa);
       o.rs += r.rs; o.hh += r.hh; if (r.rdc) o.rdcs.add(r.rdc); o.mes.add(r.mesano); if (r.pessoa) o.ppl.add(r.pessoa);
       if (allFR){   // FIA / RATEIO: nivel intermediario por TIPO (col AA), com os itens dentro
-        let tp = f.tp.get(r.tipo); if (!tp){ tp = { tipo:r.tipo, rs:0, hh:0, rdcs:new Set(), mes:new Set(), ppl:new Set(), os:new Map() }; f.tp.set(r.tipo,tp); }
+        let tp = f.tp.get(r.tipo); if (!tp){ tp = Object.assign(qNew(), { tipo:r.tipo, rs:0, hh:0, rdcs:new Set(), mes:new Set(), ppl:new Set(), os:new Map() }); f.tp.set(r.tipo,tp); }
+        qAdd(tp, r);
         tp.rs += r.rs; tp.hh += r.hh; if (r.rdc) tp.rdcs.add(r.rdc); tp.mes.add(r.mesano); if (r.pessoa) tp.ppl.add(r.pessoa);
-        let to = tp.os.get(ok); if (!to){ to = { os:r.os, rs:0, hh:0, rdcs:new Set(), mes:new Set(), ppl:new Set(), fas:new Set() }; tp.os.set(ok,to); }
+        let to = tp.os.get(ok); if (!to){ to = Object.assign(qNew(), { os:r.os, rs:0, hh:0, rdcs:new Set(), mes:new Set(), ppl:new Set(), fas:new Set() }); tp.os.set(ok,to); }
+        qAdd(to, r);
         if (r.fa) to.fas.add(r.fa);
         to.rs += r.rs; to.hh += r.hh; if (r.rdc) to.rdcs.add(r.rdc); to.mes.add(r.mesano); if (r.pessoa) to.ppl.add(r.pessoa);
       }
@@ -3260,19 +3277,19 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
       '<div class="pe-card"><span>'+(allFR?'PESSOAS (HH)':'RDC')+'</span><b>'+tRDC+'</b></div>'+
       '<div class="pe-card"><span>MAIOR VOLUME '+(K==='hh'?'HH':'R$')+'</span><b class="pe-card-nm">'+esc(fis[0].fiscal)+'</b><small>'+fv(fis[0])+' · '+fmtPct(tK?fis[0][K]/tK:0)+'</small></div>'+
       '</div>';
-    body += '<table class="pe-tbl"><thead><tr><th class="pe-rkh">Ranking</th><th>'+(allFR?'Fiscal / Função / Item':'Fiscal / OS-Entregável')+'</th><th>Mês</th><th class="num">'+(allFR?'Qtd':'Qtd RDC')+'</th><th>'+(allFR?'Nome / Descrição':'Nº RDC')+'</th>'+(allFR?'<th>Nº FA</th>':'')+'<th class="num">HH</th><th class="num">R$</th><th class="num">%</th><th class="num">% acum.</th></tr></thead><tbody>';
+    body += '<table class="pe-tbl"><thead><tr><th class="pe-rkh">Ranking</th><th>'+(allFR?'Fiscal / Função / Item':'Fiscal / OS-Entregável')+'</th><th>Mês</th><th class="num">'+(allFR?'Pessoas':'Qtd RDC')+'</th><th>'+(allFR?'Nome / Descrição':'Nº RDC')+'</th>'+(allFR?'<th>Nº FA</th>':'')+'<th class="num">'+(allFR?'Qtd.':'HH')+'</th><th class="num">R$</th><th class="num">%</th><th class="num">% acum.</th></tr></thead><tbody>';
     fis.forEach((f,i)=>{
       acc += f[K]; const pc = tK ? f[K]/tK : 0, ac = tK ? acc/tK : 0;
       const dsc = s => allFR ? ' style="white-space:normal;max-width:480px"' : '';
       const pq = x => allFR ? (x.ppl.size || '—') : (x.rdcs.size || '—');
-      body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td class="pe-rk"><span class="pe-medal pe-m'+(i<3?i+1:0)+'">'+(i+1)+'º</span></td><td>'+esc(f.fiscal)+'</td><td>'+esc(mesOrd(f.mes))+'</td><td class="num">'+pq(f)+'</td><td'+dsc()+' title="'+esc(Array.from(f.rdcs).join(', '))+'">'+(allFR ? esc(f.tp.size+' tipo(s) — abra os tipos abaixo') : rdcLinksHTML(rdcArr(f.rdcs)))+'</td>'+(allFR?'<td></td>':'')+'<td class="num">'+hhT(f.hh)+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td></tr>';
+      body += '<tr class="pe-fis'+(ac-pc < 0.8 ? ' pe-top' : '')+'"><td class="pe-rk"><span class="pe-medal pe-m'+(i<3?i+1:0)+'">'+(i+1)+'º</span></td><td>'+esc(f.fiscal)+'</td><td>'+esc(mesOrd(f.mes))+'</td><td class="num">'+pq(f)+'</td><td'+dsc()+' title="'+esc(Array.from(f.rdcs).join(', '))+'">'+(allFR ? esc(f.tp.size+' tipo(s) — abra os tipos abaixo') : rdcLinksHTML(rdcArr(f.rdcs)))+'</td>'+(allFR?'<td></td>':'')+'<td class="num">'+(allFR ? qT(f) : hhT(f.hh))+'</td><td class="num">R$ '+fmtBRL(f.rs)+'</td><td class="num">'+fmtPct(pc)+'</td><td class="num">'+fmtPct(ac)+'</td></tr>';
       if (allFR){
         // nivel por TIPO (col AA): fechado por padrao; clique abre os itens. Qtd = so pessoas (linhas com HH)
         Array.from(f.tp.values()).sort((a,b)=>b.rs-a.rs).forEach(tp=>{
           const key = 'T:'+tp.tipo;
-          body += '<tr class="ar-grp pe-tipo" data-ar="'+esc(key)+'" title="Clique para abrir / fechar o detalhamento"><td></td><td><span class="ar-tg">▸</span> '+esc(tp.tipo==='HH' ? 'HH — pessoas (homem-hora)' : tp.tipo)+'</td><td>'+esc(mesOrd(tp.mes))+'</td><td class="num">'+(tp.ppl.size||'—')+'</td><td>'+(tp.ppl.size ? tp.ppl.size+' pessoa(s)' : tp.os.size+' item(ns)')+'</td><td></td><td class="num">'+hhT(tp.hh)+'</td><td class="num">R$ '+fmtBRL(tp.rs)+'</td><td class="num">'+fmtPct(f.rs?tp.rs/f.rs:0)+'</td><td></td></tr>';
+          body += '<tr class="ar-grp pe-tipo" data-ar="'+esc(key)+'" title="Clique para abrir / fechar o detalhamento"><td></td><td><span class="ar-tg">▸</span> '+esc(tp.tipo==='HH' ? 'HH — pessoas (homem-hora)' : (/^qtd\.?$/i.test(String(tp.tipo).trim()) ? 'Descrição' : tp.tipo))+'</td><td>'+esc(mesOrd(tp.mes))+'</td><td class="num">'+(tp.ppl.size||'—')+'</td><td>'+(tp.ppl.size ? tp.ppl.size+' pessoa(s)' : tp.os.size+' item(ns)')+'</td><td></td><td class="num">'+qT(tp)+'</td><td class="num">R$ '+fmtBRL(tp.rs)+'</td><td class="num">'+fmtPct(f.rs?tp.rs/f.rs:0)+'</td><td></td></tr>';
           Array.from(tp.os.values()).sort((a,b)=>b.rs-a.rs).forEach(o=>{
-            body += '<tr class="pe-os ar-det ar-hide" data-ar="'+esc(key)+'"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.ppl.size||'—')+'</td><td'+dsc()+' title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="pe-fa">'+esc(rdcTxt(o.fas))+'</td><td class="num">'+hhT(o.hh)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
+            body += '<tr class="pe-os ar-det ar-hide" data-ar="'+esc(key)+'"><td></td><td class="pe-osn">'+esc(o.os)+'</td><td>'+esc(mesOrd(o.mes))+'</td><td class="num">'+(o.ppl.size||'—')+'</td><td'+dsc()+' title="'+esc(Array.from(o.rdcs).join(', '))+'">'+esc(rdcTxt(o.rdcs))+'</td><td class="pe-fa">'+esc(rdcTxt(o.fas))+'</td><td class="num">'+qT(o)+'</td><td class="num">R$ '+fmtBRL(o.rs)+'</td><td></td><td></td></tr>';
           });
         });
       } else if (inline){
@@ -3289,7 +3306,7 @@ function openPendExtratoModal(id, pr, kind, keep, inline){
         });
       }
     });
-    body += '<tr class="fa-total"><td></td><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td>'+esc(scope.mes || mesOrd(allMes))+'</td><td class="num">'+tRDC+'</td><td></td>'+(allFR?'<td></td>':'')+'<td class="num">'+hhT(tHH)+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td></tr></tbody></table>';
+    body += '<tr class="fa-total"><td></td><td>Total ('+fis.length+' fiscal'+(fis.length>1?'is':'')+')</td><td>'+esc(scope.mes || mesOrd(allMes))+'</td><td class="num">'+tRDC+'</td><td></td>'+(allFR?'<td></td>':'')+'<td class="num">'+(allFR ? qT(tn) : hhT(tHH))+'</td><td class="num">R$ '+fmtBRL(tRS)+'</td><td class="num">100,0%</td><td></td></tr></tbody></table>';
     const falta = pendScopeTotal(scope) - tRS;
     const nota = [];
     if (!inline && !PEND_EXT_FSEL.length && Math.abs(falta) > 1) nota.push('R$ '+fmtBRL(Math.abs(falta))+(falta>0?' do resumo ':' a mais no detalhe ')+'sem detalhamento por Fiscal na planilha (FIA, RATEIO ou itens sem fiscal).');
