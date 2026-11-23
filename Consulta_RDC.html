@@ -4646,9 +4646,9 @@ function openFiaRatSitModal(kind, sit, proj, col){
     && (sit ? (r.e===1 && nz(r.situacao)===nz(sit)) : ((r.e===1 && labels.includes(nz(r.situacao))) || r.m===1)));
   const map = new Map();
   rows.forEach(r=>{
-    const k = [r.situacao, r.mesano, r.fa, r.item, r.nome, r.projeto].join('|');
-    let o = map.get(k); if (!o){ o = { sit:r.situacao, mes:r.mesano, fa:r.fa, item:r.item, nome:r.nome, proj:r.projeto, rs:0 }; map.set(k,o); }
-    o.rs += r.rs;
+    const k = [r.situacao, r.mesano, r.fa, r.item, r.nome, r.projeto, r.un||'', r.aa||''].join('|');
+    let o = map.get(k); if (!o){ o = { sit:r.situacao, mes:r.mesano, fa:r.fa, item:r.item, nome:r.nome, proj:r.projeto, un:r.un||'', aa:r.aa||'', q:0, hasQ:false, rs:0 }; map.set(k,o); }
+    o.rs += r.rs; if (typeof r.q==='number'){ o.q += r.q; o.hasQ = true; }
   });
   const list = Array.from(map.values()).sort((a,b)=> mesKey(a.mes)-mesKey(b.mes) || String(a.fa).localeCompare(String(b.fa),'pt-BR') || b.rs-a.rs);
   const label = kind==='FIA' ? 'FIA' : 'RATEIO', colLabel = col==='__TOTAL__' ? 'meses selecionados' : col;
@@ -4657,10 +4657,19 @@ function openFiaRatSitModal(kind, sit, proj, col){
   let body;
   if (!list.length) body = '<div class="fiscal-empty">Nenhum detalhe encontrado para esse período.</div>';
   else {
-    let tot = 0;
-    body = '<table><tr><th>Mês</th><th>Nº FA</th>'+(sit?'':'<th>Status</th>')+'<th>Item</th><th>Descrição</th><th class="num">R$</th></tr>';
-    list.forEach(o=>{ tot += o.rs; body += '<tr><td>'+esc(o.mes)+'</td><td>'+esc(o.fa||'—')+'</td>'+(sit?'':'<td>'+esc(o.sit)+'</td>')+'<td>'+esc(o.item||'—')+'</td><td>'+esc(o.nome||'—')+'</td><td class="num">'+fmtBRL(o.rs)+'</td></tr>'; });
-    body += '<tr class="fa-total"><td>Total ('+list.length+')</td><td></td>'+(sit?'':'<td></td>')+'<td></td><td></td><td class="num">'+fmtBRL(tot)+'</td></tr></table>';
+    let tot = 0, totQ = 0, unTot = new Set(), qOk = true;
+    // quantidade (col K "Avanço UN"): so faz sentido para QTD / HH / MES; em "VB" (verba) a coluna K repete o valor em R$, entao fica "—"
+    const qVal = o => o.hasQ && !(o.q > 1 && Math.abs(o.q - o.rs) < 1);   // col K igual ao R$ = repete o valor (verba), nao e quantidade
+    const qTxt = o => !qVal(o) ? '—' : o.q.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2});
+    const unLbl = o => o.aa==='HH' ? ' h' : (o.un==='MES' ? ' mês' : '');
+    body = '<table><tr><th>Mês</th><th>Nº FA</th>'+(sit?'':'<th>Status</th>')+'<th>Item</th><th>Descrição</th><th class="num">Qtd.</th><th class="num">R$</th></tr>';
+    list.forEach(o=>{
+      tot += o.rs; if (qVal(o)){ totQ += o.q; unTot.add(o.un+'|'+o.aa); } else qOk = false;
+      body += '<tr><td>'+esc(o.mes)+'</td><td>'+esc(o.fa||'—')+'</td>'+(sit?'':'<td>'+esc(o.sit)+'</td>')+'<td>'+esc(o.item||'—')+'</td><td>'+esc(o.nome||'—')+'</td><td class="num">'+qTxt(o)+unLbl(o)+'</td><td class="num">'+fmtBRL(o.rs)+'</td></tr>';
+    });
+    // total de quantidade so quando todas as linhas tem a mesma unidade (senao somaria coisas diferentes)
+    const totQTxt = (qOk && unTot.size===1) ? totQ.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—';
+    body += '<tr class="fa-total"><td>Total ('+list.length+')</td><td></td>'+(sit?'':'<td></td>')+'<td></td><td></td><td class="num">'+totQTxt+'</td><td class="num">'+fmtBRL(tot)+'</td></tr></table>';
   }
   document.getElementById('fa-modal-body').innerHTML = body;
   document.getElementById('fa-modal-backdrop').classList.add('open');
@@ -5737,7 +5746,7 @@ window.addEventListener('resize', ()=>{
     var C = { fa:colLetterOffset('D'), sit:colLetterOffset('F'), nmed:colLetterOffset('G'), sapmed:colLetterOffset('H'),
       avun:colLetterOffset('K'), valor:colLetterOffset('L'), mesano:colLetterOffset('M'), tipo:colLetterOffset('N'),
       proj:colLetterOffset('O'), tct:colLetterOffset('S'), fatsn:colLetterOffset('AB'),
-      item:colLetterOffset('J'), forn:colLetterOffset('V'), itemPU:colLetterOffset('Y'), cls:colLetterOffset('A'), desc:colLetterOffset('AD'), aa:colLetterOffset('AA') };
+      item:colLetterOffset('J'), un:colLetterOffset('W'), forn:colLetterOffset('V'), itemPU:colLetterOffset('Y'), cls:colLetterOffset('A'), desc:colLetterOffset('AD'), aa:colLetterOffset('AA') };
     var hdrRowR = rRows[hdrIdx];
     if (normTxt(cellAt(hdrRowR,C.sit)).indexOf('situacao')===-1 || normTxt(cellAt(hdrRowR,C.proj)).indexOf('projeto')===-1){
       throw new Error('O layout da aba "'+sheets.rateio.sheetName+'" mudou (colunas F/O não são mais Situação/Projeto) — avise para eu ajustar o mapeamento antes de confiar nestes números.');
@@ -5832,10 +5841,12 @@ window.addEventListener('resize', ()=>{
           // col AA "TIPO" (HH = pessoas; MÊS / VB x MÊS = verbas mensais ...): agrupa o extrato. HH so vem da col K nas linhas de tipo HH
           var aaD = txtOrBlank(cellAt(row,C.aa)).toUpperCase(); if (aaD==='MES') aaD='MÊS'; if (aaD==='HOMEM HORA') aaD='HH';
           var kD = cellAt(row,C.avun), hhD = (aaD==='HH' && typeof kD==='number') ? kD : 0;
+          // quantidade (col K "Avanço UN") e unidade (col W "Un.": QTD / MES / VB / ...): aparecem no detalhe por status
+          var unD = txtOrBlank(cellAt(row,C.un)).toUpperCase().replace('MÊS','MES'), qD = (typeof kD==='number') ? kD : 0;
           var addDet = function(mFlag, val, hv){
-            var dk = tipoS+'|'+projS+'|'+mes+'|'+situS+'|'+fa+'|'+itD+'|'+nmD+'|'+aaD+'|'+(isTechint?1:0)+'|'+mFlag;
-            if (!fiaratDetail[dk]) fiaratDetail[dk]={t:tipoS,projeto:projS,mesano:mes,situacao:situS,fa:String(fa).trim(),item:itD,nome:nmD,aa:aaD,e:isTechint?1:0,m:mFlag,hh:0,rs:0};
-            fiaratDetail[dk].rs+=val; fiaratDetail[dk].hh+=hv;
+            var dk = tipoS+'|'+projS+'|'+mes+'|'+situS+'|'+fa+'|'+itD+'|'+nmD+'|'+aaD+'|'+(isTechint?1:0)+'|'+mFlag+'|'+unD;
+            if (!fiaratDetail[dk]) fiaratDetail[dk]={t:tipoS,projeto:projS,mesano:mes,situacao:situS,fa:String(fa).trim(),item:itD,nome:nmD,aa:aaD,e:isTechint?1:0,m:mFlag,un:unD,q:0,hh:0,rs:0};
+            fiaratDetail[dk].rs+=val; fiaratDetail[dk].hh+=hv; fiaratDetail[dk].q+= (rs ? qD*(val/rs) : qD);
           };
           // parte ja emitida de uma celula com varias FR's: continua no extrato (e), mas fora do "Para emitir FR" (m)
           if (medC && rs - rsMed > 0.005){ addDet(0, rs - rsMed, 0); addDet(1, rsMed, hhD); }
@@ -6175,7 +6186,7 @@ window.addEventListener('resize', ()=>{
       RAW_FIA_MEDIDO: vals(fiaMedidoAgg), RAW_RATEIO_MEDIDO: vals(rateioMedidoAgg),
       RAW_FIA_MEDIDO_DETAIL: vals(fiaMedidoDetail), RAW_RATEIO_MEDIDO_DETAIL: vals(rateioMedidoDetail),
       RAW_FIA_EXTRATO: vals(fiaExtratoAgg), RAW_RATEIO_EXTRATO: vals(rateioExtratoAgg),
-      RAW_FIARAT_DETAIL: vals(fiaratDetail).map(function(o){ o.rs=Math.round(o.rs*100)/100; o.hh=Math.round(o.hh*100)/100; return o; })
+      RAW_FIARAT_DETAIL: vals(fiaratDetail).map(function(o){ o.rs=Math.round(o.rs*100)/100; o.hh=Math.round(o.hh*100)/100; o.q=Math.round(o.q*100)/100; return o; })
     };
   }
 
