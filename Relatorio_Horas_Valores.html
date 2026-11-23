@@ -6221,8 +6221,6 @@ window.addEventListener('resize', ()=>{
   dlBtn.title = 'Salva o HTML atualizado — depois é só substituir o arquivo do projeto por este (e comitar/publicar, pra quem abre em outro computador ver tambem)';
   dlBtn.style.cssText = 'display:none;margin-left:8px;font-size:12px;font-weight:700;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--green);color:var(--navy);cursor:pointer;white-space:nowrap;';
   document.getElementById('sp-refresh-row').insertAdjacentElement('afterend', dlBtn);
-  // a linha inteira "Atualizar dados" (icone + texto) abre o seletor de planilha, nao so o icone pequeno
-  document.getElementById('sp-refresh-row').addEventListener('click', function(e){ if (e.target.closest('#btn-refresh-data')) return; btn.click(); });
   dlBtn.addEventListener('click', downloadUpdatedReport);
 
   /* ---- persistencia do arquivo entre reaberturas (File System Access API + IndexedDB) ----
@@ -6566,6 +6564,16 @@ if (bannerEl && 'ResizeObserver' in window){
   ['content','fa-modal-body'].forEach(function(id){
     new MutationObserver(function(){ refresh(); }).observe(document.getElementById(id), { childList: true });
   });
+})();
+/* menu da engrenagem (Configuracoes): abre/fecha e a linha inteira "Atualizar dados" abre o seletor de planilha */
+(function(){
+  var g=document.getElementById('btn-settings'), p=document.getElementById('settings-panel'), row=document.getElementById('sp-refresh-row'), rb=document.getElementById('btn-refresh-data');
+  if(!g||!p) return;
+  function setOpen(o){ p.style.display = o ? 'block' : 'none'; g.setAttribute('aria-expanded', o ? 'true':'false'); }
+  g.addEventListener('click', function(e){ e.stopPropagation(); setOpen(p.style.display==='none'); });
+  document.addEventListener('click', function(e){ if (p.style.display!=='none' && !p.contains(e.target) && e.target!==g) setOpen(false); });
+  document.addEventListener('keydown', function(e){ if (e.key==='Escape') setOpen(false); });
+  row.addEventListener('click', function(e){ if (e.target.closest('#btn-refresh-data')) return; if (!rb.disabled) rb.click(); });
 })();
 </script>
 </body></html>
