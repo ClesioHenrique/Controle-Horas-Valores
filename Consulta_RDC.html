@@ -5685,10 +5685,10 @@ window.addEventListener('resize', ()=>{
 
     // FR's ja emitidas (aba "FR'S emitidas", coluna A): essas FR's saem de "Medido - Para emitir FR - SAP" (itens 3.3 / 1.5 / 2.5),
     // pois o que ja foi liberado/emitido nao esta mais "para emitir"
-    var frEmitidaSet = {};
+    var frEmitidaSet = {}, frEmitValor = {}, combinedLeft = {};   // frEmitValor: valor (col I) de cada FR emitida; combinedLeft: saldo ainda nao abatido por celula com varias FR's
     (function(){
       var rr = sheets.frs.rows, hh0 = findHeaderRow(rr, ['fornecedor'], 5); if (hh0 === -1) hh0 = 0;
-      for (var ii=hh0+1; ii<rr.length; ii++){ var v0 = cellAt(rr[ii], colLetterOffset('A')); if (!isBlankV(v0)) frEmitidaSet[String(v0).trim()] = 1; }
+      for (var ii=hh0+1; ii<rr.length; ii++){ var v0 = cellAt(rr[ii], colLetterOffset('A')); if (!isBlankV(v0)){ var k0 = String(v0).trim(); frEmitidaSet[k0] = 1; var vi = cellAt(rr[ii], colLetterOffset('I')); if (typeof vi==='number') frEmitValor[k0] = (frEmitValor[k0]||0) + vi; } }
     })();
     // FAD_FIA & RATEIO
     var rRows = sheets.rateio.rows;
@@ -5740,6 +5740,20 @@ window.addEventListener('resize', ()=>{
       var sapmedS = isBlankV(cellAt(row,C.sapmed)) ? '' : String(cellAt(row,C.sapmed));
       var nmedS = isBlankV(cellAt(row,C.nmed)) ? '' : String(cellAt(row,C.nmed));
       var jaEmitida = !!(sapmedS && frEmitidaSet[String(sapmedS).trim()]);
+      // celula "Nº SAP Med." com VARIAS FR's juntas ("1013337108 / 1013337111 / ..."): FR emitida desconta o valor dela (col I da aba FR'S
+      // emitidas) da linha; se todas ja foram emitidas a linha toda sai do "Para emitir FR". rsMed = o que ainda falta emitir.
+      var rsMed = rs;
+      if (!jaEmitida && sapmedS.indexOf('/')!==-1){
+        var partsFR = sapmedS.split('/').map(function(s){ return s.trim(); }).filter(Boolean);
+        var emFR = partsFR.filter(function(p){ return frEmitidaSet[p]; });
+        if (partsFR.length && emFR.length===partsFR.length) jaEmitida = true;
+        else if (emFR.length){
+          var ckC = tipoS+'|'+sapmedS;
+          if (combinedLeft[ckC]===undefined) combinedLeft[ckC] = emFR.reduce(function(a,p){ return a + (frEmitValor[p]||0); }, 0);
+          var dedC = Math.max(0, Math.min(combinedLeft[ckC], rs)); combinedLeft[ckC] -= dedC; rsMed = rs - dedC;
+          if (rsMed < 0.005) { rsMed = 0; jaEmitida = true; }
+        }
+      }
 
       if (tipoS==='FAD' && normTxt(situS).indexOf('pendente de aprovacao')===0){
         var avPA=cellAt(row,C.avun), vlPA=cellAt(row,C.valor), puPA=cellAt(row,C.itemPU);
@@ -5774,9 +5788,14 @@ window.addEventListener('resize', ()=>{
           // col AA "TIPO" (HH = pessoas; MÊS / VB x MÊS = verbas mensais ...): agrupa o extrato. HH so vem da col K nas linhas de tipo HH
           var aaD = txtOrBlank(cellAt(row,C.aa)).toUpperCase(); if (aaD==='MES') aaD='MÊS'; if (aaD==='HOMEM HORA') aaD='HH';
           var kD = cellAt(row,C.avun), hhD = (aaD==='HH' && typeof kD==='number') ? kD : 0;
-          var dk = tipoS+'|'+projS+'|'+mes+'|'+situS+'|'+fa+'|'+itD+'|'+nmD+'|'+aaD+'|'+(isTechint?1:0)+'|'+(medC?1:0);
-          if (!fiaratDetail[dk]) fiaratDetail[dk]={t:tipoS,projeto:projS,mesano:mes,situacao:situS,fa:String(fa).trim(),item:itD,nome:nmD,aa:aaD,e:isTechint?1:0,m:medC?1:0,hh:0,rs:0};
-          fiaratDetail[dk].rs+=rs; fiaratDetail[dk].hh+=hhD;
+          var addDet = function(mFlag, val, hv){
+            var dk = tipoS+'|'+projS+'|'+mes+'|'+situS+'|'+fa+'|'+itD+'|'+nmD+'|'+aaD+'|'+(isTechint?1:0)+'|'+mFlag;
+            if (!fiaratDetail[dk]) fiaratDetail[dk]={t:tipoS,projeto:projS,mesano:mes,situacao:situS,fa:String(fa).trim(),item:itD,nome:nmD,aa:aaD,e:isTechint?1:0,m:mFlag,hh:0,rs:0};
+            fiaratDetail[dk].rs+=val; fiaratDetail[dk].hh+=hv;
+          };
+          // parte ja emitida de uma celula com varias FR's: continua no extrato (e), mas fora do "Para emitir FR" (m)
+          if (medC && rs - rsMed > 0.005){ addDet(0, rs - rsMed, 0); addDet(1, rsMed, hhD); }
+          else addDet(medC?1:0, rs, hhD);
         }
       }
       // Avanco UN (col K) so e HH de verdade para Tipo=FAD (confirmado nesta planilha: para RATEIO
@@ -5785,21 +5804,22 @@ window.addEventListener('resize', ()=>{
       var avunV=cellAt(row,C.avun); var hh = typeof avunV==='number'?avunV:0;
       var fornDet = titleCaseName(txtOrBlank(cellAt(row,C.forn)));
       if (tipoS==='FIA' && situS==='Medida' && fatS==='Não faturado' && !jaEmitida){
-        var k3=projS+'|'+mes; if(!fiaMedidoAgg[k3]) fiaMedidoAgg[k3]={projeto:projS,mesano:mes,rs:0}; fiaMedidoAgg[k3].rs+=rs;
+        var k3=projS+'|'+mes; if(!fiaMedidoAgg[k3]) fiaMedidoAgg[k3]={projeto:projS,mesano:mes,rs:0}; fiaMedidoAgg[k3].rs+=rsMed;
         // FIA tem "Nº Med." (col G) sempre preenchido, entao usa a mesma coluna do FAD (so o identificador;
         // sem HH, pelo motivo acima)
-        var fk=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fiaMedidoDetail[fk]) fiaMedidoDetail[fk]={projeto:projS,mesano:mes,numfa:nmedS,numsapmed:sapmedS,forn:fornDet,rs:0}; fiaMedidoDetail[fk].rs+=rs;
+        var fk=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fiaMedidoDetail[fk]) fiaMedidoDetail[fk]={projeto:projS,mesano:mes,numfa:nmedS,numsapmed:sapmedS,forn:fornDet,rs:0}; fiaMedidoDetail[fk].rs+=rsMed;
       }
       if (tipoS==='RAT' && situS==='Concluído' && fatS==='Não faturado' && !jaEmitida){
-        var k4=projS+'|'+mes; if(!rateioMedidoAgg[k4]) rateioMedidoAgg[k4]={projeto:projS,mesano:mes,rs:0}; rateioMedidoAgg[k4].rs+=rs;
+        var k4=projS+'|'+mes; if(!rateioMedidoAgg[k4]) rateioMedidoAgg[k4]={projeto:projS,mesano:mes,rs:0}; rateioMedidoAgg[k4].rs+=rsMed;
         // RATEIO nao tem "Nº Med." preenchido (col G sempre vazia nesta aba) — usa "Nº FA" (col D) no lugar
-        var fk2=projS+'|'+mes+'|'+fa+'|'+sapmedS; if(!rateioMedidoDetail[fk2]) rateioMedidoDetail[fk2]={projeto:projS,mesano:mes,numfa:String(fa),numsapmed:sapmedS,forn:fornDet,rs:0}; rateioMedidoDetail[fk2].rs+=rs;
+        var fk2=projS+'|'+mes+'|'+fa+'|'+sapmedS; if(!rateioMedidoDetail[fk2]) rateioMedidoDetail[fk2]={projeto:projS,mesano:mes,numfa:String(fa),numsapmed:sapmedS,forn:fornDet,rs:0}; rateioMedidoDetail[fk2].rs+=rsMed;
       }
       if (tipoS==='FAD' && situS==='Medida' && fatS==='Não faturado' && !jaEmitida){
         var k5=projS+'|'+mes; if(!fadMedidoAgg[k5]) fadMedidoAgg[k5]={projeto:projS,mesano:mes,hh:0,rs:0};
-        fadMedidoAgg[k5].hh+=hh; fadMedidoAgg[k5].rs+=rs;
+        var fMed = rs ? rsMed/rs : 1;
+        fadMedidoAgg[k5].hh+=hh*fMed; fadMedidoAgg[k5].rs+=rsMed;
         var fk3=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fadMedidoDetail[fk3]) fadMedidoDetail[fk3]={projeto:projS,mesano:mes,med:nmedS,sapmed:sapmedS,forn:fornDet,hh:0,rs:0};
-        fadMedidoDetail[fk3].hh+=hh; fadMedidoDetail[fk3].rs+=rs;
+        fadMedidoDetail[fk3].hh+=hh*fMed; fadMedidoDetail[fk3].rs+=rsMed;
       }
     }
 
@@ -6221,8 +6241,6 @@ window.addEventListener('resize', ()=>{
   dlBtn.title = 'Salva o HTML atualizado — depois é só substituir o arquivo do projeto por este (e comitar/publicar, pra quem abre em outro computador ver tambem)';
   dlBtn.style.cssText = 'display:none;margin-left:8px;font-size:12px;font-weight:700;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--green);color:var(--navy);cursor:pointer;white-space:nowrap;';
   document.getElementById('sp-refresh-row').insertAdjacentElement('afterend', dlBtn);
-  // a linha inteira "Atualizar dados" (icone + texto) abre o seletor de planilha, nao so o icone pequeno
-  document.getElementById('sp-refresh-row').addEventListener('click', function(e){ if (e.target.closest('#btn-refresh-data')) return; btn.click(); });
   dlBtn.addEventListener('click', downloadUpdatedReport);
 
   /* ---- persistencia do arquivo entre reaberturas (File System Access API + IndexedDB) ----
@@ -6566,6 +6584,16 @@ if (bannerEl && 'ResizeObserver' in window){
   ['content','fa-modal-body'].forEach(function(id){
     new MutationObserver(function(){ refresh(); }).observe(document.getElementById(id), { childList: true });
   });
+})();
+/* menu da engrenagem (Configuracoes): abre/fecha e a linha inteira "Atualizar dados" abre o seletor de planilha */
+(function(){
+  var g=document.getElementById('btn-settings'), p=document.getElementById('settings-panel'), row=document.getElementById('sp-refresh-row'), rb=document.getElementById('btn-refresh-data');
+  if(!g||!p) return;
+  function setOpen(o){ p.style.display = o ? 'block' : 'none'; g.setAttribute('aria-expanded', o ? 'true':'false'); }
+  g.addEventListener('click', function(e){ e.stopPropagation(); setOpen(p.style.display==='none'); });
+  document.addEventListener('click', function(e){ if (p.style.display!=='none' && !p.contains(e.target) && e.target!==g) setOpen(false); });
+  document.addEventListener('keydown', function(e){ if (e.key==='Escape') setOpen(false); });
+  row.addEventListener('click', function(e){ if (e.target.closest('#btn-refresh-data')) return; if (!rb.disabled) rb.click(); });
 })();
 </script>
 </body></html>
