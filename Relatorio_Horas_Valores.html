@@ -5626,6 +5626,12 @@ window.addEventListener('resize', ()=>{
         var mm = parseInt(m[0],10), yy = parseInt(m[1],10)%100;
         if (MES_BR[mm]) return MES_BR[mm]+'/'+String(yy).padStart(2,'0');
       }
+      // texto com o nome do mes ("jun/26", "Jun-26", "junho/2026", "set/26"): aparece quando o mes e digitado a mao na planilha
+      var tn = v.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').match(/^([a-z]{3})[a-z]*\s*[\/\-]\s*(\d{2}|\d{4})$/);
+      if (tn){
+        var ix = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'].indexOf(tn[1]);
+        if (ix !== -1) return MES_BR[ix+1]+'/'+String(parseInt(tn[2],10)%100).padStart(2,'0');
+      }
     }
     return null;
   }
@@ -5717,7 +5723,11 @@ window.addEventListener('resize', ()=>{
       }
       var valor=cellAt(row,C.valor); var rs = typeof valor==='number' ? valor : 0;
       var mes = mesAnoFromMY(cellAt(row,C.mesano));
-      if (!mes) continue;
+      if (!mes){
+        // linha com valor mas com "Mês / ANO" que nao deu pra entender: nao some em silencio, o aviso aparece depois da atualizacao
+        if (rs && normTipoFR(tipo)!=='') { window.__mesFalhas = window.__mesFalhas || { n:0, rs:0, ex:'' }; window.__mesFalhas.n++; window.__mesFalhas.rs += rs; if (!window.__mesFalhas.ex) window.__mesFalhas.ex = '"'+String(cellAt(row,C.mesano))+'" (linha '+(r+1)+')'; }
+        continue;
+      }
       var projS = isBlankV(proj)?'?':String(proj);
       // trim: a planilha pode trazer a Situacao com TAB/espaco sobrando ("\tAprovado - SGE", visto
       // em 05/10/2026) — sem isso o texto nao bate com as linhas da tabela (1.3 "Aprovado - SGE") e
@@ -6346,10 +6356,13 @@ window.addEventListener('resize', ()=>{
       // de publicar pra todos (08/10/2026: um Set/26 de 12.439 HH sumiu assim)
       function ultimoMesExtrato(){ var best = null; RAW_EXTRATO.forEach(function(r){ if (!best || mesKey(r.mesano) > mesKey(best)) best = r.mesano; }); return best; }
       var mesAntes = ultimoMesExtrato();
+      window.__mesFalhas = null;
       var nd = await regenerateFromFile(file);
       applyNewData(nd);
       dlBtn.style.display = 'inline-flex';
       var mesDepois = ultimoMesExtrato();
+      var mf = window.__mesFalhas; window.__mesFalhas = null;
+      if (mf) window.alert('ATENÇÃO: '+mf.n+' linha(s) da aba "FAD_FIA & RATEIO" (R$ '+mf.rs.toLocaleString('pt-BR',{maximumFractionDigits:0})+') ficaram de fora porque a coluna "Mês / ANO" não foi entendida (ex.: '+mf.ex+'). Use o formato mm/aaaa, uma data ou mês/aa (jun/26).');
       var regrediu = !!(mesAntes && mesDepois && mesKey(mesDepois) < mesKey(mesAntes));
       var pubMsg;
       if (regrediu && supa && supaUser && !window.confirm('ATENÇÃO: a aba "Extrato SGE" desta planilha só vai até '+mesDepois+', mas os dados que estavam na tela vão até '+mesAntes+'.\n\nPublicar mesmo assim vai fazer os valores de '+mesAntes+' sumirem do painel pra todo mundo.\n\nOK = publicar assim mesmo   |   Cancelar = só atualizar aqui, sem publicar')){
