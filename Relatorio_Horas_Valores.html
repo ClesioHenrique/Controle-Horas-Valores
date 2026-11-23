@@ -1915,7 +1915,11 @@ function renderKpiStrip(proj, data){
     { icon:'✅', cls:'kpi-green kpi-frs-clickable', label:'FR em aprovação SAP_USM', value:'R$ '+fmtBRL(medidoFR.rs), sub:fmtPct(pctPronto)+' do total', aprovProj:proj }
   ];
   if (!HIDE_FRS_EMITIDAS && Math.round(frsEmitido)!==0){
-    cards.push({ icon:'📄', cls:'kpi-warn kpi-frs-clickable', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido), clickProj:proj });
+    // data da liberacao: a mais recente entre as FR's emitidas que entram no total (respeita os filtros de datas / fornecedor)
+    const frsDatas = Array.from(new Set(filterFrsRows(proj).map(r=>r.dataSolic).filter(Boolean))).sort((a,b)=>dataKeyBR(a)-dataKeyBR(b));
+    const frsUlt = frsDatas.length ? frsDatas[frsDatas.length-1] : '';
+    cards.push({ icon:'📄', cls:'kpi-warn kpi-frs-clickable', label:'FR\'S Emitidas', value:'R$ '+fmtBRL(frsEmitido), clickProj:proj,
+      sub: frsUlt ? (frsDatas.length===1 ? 'FR liberada em <b>'+esc(frsUlt)+'</b>' : 'última FR liberada em <b>'+esc(frsUlt)+'</b>') : '' });
   }
   const aribaTot = aribaTotalFor(proj);
   if (Math.round(aribaTot*100)!==0){
