@@ -5756,10 +5756,14 @@ window.addEventListener('resize', ()=>{
       if (isBlankV(fa) && isBlankV(proj)) continue;
       var sapKey = isBlankV(cellAt(row,C.sapmed)) ? '' : String(cellAt(row,C.sapmed)).trim();
       if (sapKey && sapKey!=='0'){
-        var lk = sapLookup[sapKey];
         var tipoLk = normTipoFR(tipo);
-        if (!lk){ lk = sapLookup[sapKey] = {tipo:tipoLk, hh:0}; }
-        if (tipoLk==='FAD'){ var kk=cellAt(row,C.avun); if (typeof kk==='number') lk.hh += kk; }
+        // celula com varias FR's juntas ("1013337102 / 1013337107 / ..."): cada numero classifica a sua FR
+        var sapKeys = sapKey.indexOf('/')!==-1 ? sapKey.split('/').map(function(s){ return s.trim(); }).filter(Boolean) : [sapKey];
+        sapKeys.forEach(function(sk){
+          var lk = sapLookup[sk];
+          if (!lk){ lk = sapLookup[sk] = {tipo:tipoLk, hh:0}; }
+          if (tipoLk==='FAD' && sapKeys.length===1){ var kk=cellAt(row,C.avun); if (typeof kk==='number') lk.hh += kk; }
+        });
       }
       var valor=cellAt(row,C.valor); var rs = typeof valor==='number' ? valor : 0;
       var mes = mesAnoFromMY(cellAt(row,C.mesano));
@@ -6046,6 +6050,8 @@ window.addEventListener('resize', ()=>{
       if (!tipoF && FR_CLASSIFICACAO_MANUAL[frKey]) tipoF = FR_CLASSIFICACAO_MANUAL[frKey];
       // FR que nao esta na aba FAD_FIA & RATEIO mas traz a classificacao na coluna H ("OS") da propria aba FR'S emitidas (ex.: "RATEIO")
       if (!tipoF){ var osF = normTxt(cellAt(row4,F.os)); if (osF==='rateio') tipoF='RAT'; else if (osF==='fia') tipoF='FIA'; else if (osF==='fad') tipoF='FAD'; }
+      // FR sem linha na aba FAD_FIA & RATEIO, mas cuja medicao (col G "MED") e do tipo "RAT_nnnn": e RATEIO
+      if (!tipoF && String(isBlankV(cellAt(row4,colLetterOffset('G'))) ? '' : cellAt(row4,colLetterOffset('G'))).trim().toUpperCase().indexOf('RAT_')===0) tipoF='RAT';
       var nfF = isBlankV(cellAt(row4,F.nf)) ? '' : String(cellAt(row4,F.nf)).trim();
       var kf2=projF+'|'+tipoF+'|'+dataF+'|'+fornF+'|'+bmF+'|'+mesF;
       if(!frsAgg[kf2]) frsAgg[kf2]={proj:projF,tipo:tipoF,dataSolic:dataF,forn:fornF,bm:bmF,mesComp:mesF,valor:0,hh:0,frs:[],nfs:[]};
