@@ -656,6 +656,7 @@ tr.medido-row td, tr.medido-row td *{font-weight:800 !important;}
 #bm-resumo{margin-top:14px;}
 .bm-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 8px;font-size:16px;color:var(--navy);}
 .bm-head .bm-acts{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto;}
+.bm-head .bm-off{opacity:.65;text-decoration:line-through;}
 .bm-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
 .bm-box{flex:1 1 360px;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 .bm-box table{width:100%;border-collapse:collapse;font-size:12.5px;}
@@ -4085,29 +4086,44 @@ const bmFmt2 = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFra
 const bmZero = it => it.k==='r' && Math.round(it.rs)===0;
 const BM_NOTE = 'Valores pendentes por mês de competência e BM (Jun/26 = BM-22), em R$ e em milhões de R$ (MR$): tudo o que ainda não virou FR — do cadastro até “Medido – Para emitir FR”.';
 function bmPeriodTxt(){ const m = DISPLAY_MONTHS.slice().sort((a,b)=>mesKey(a)-mesKey(b)); return m.length ? (m.length>1 ? m[0]+' a '+m[m.length-1] : m[0]) : ''; }
+// colunas de valores podem ser ocultadas (escolha guardada no navegador); vale para tela, imagem, tabela copiada e Excel
+const BM_H_D = 'Δ (BM − FR x 1.000) Saldo Pendente', BM_H_R = 'R$ Pendente';
+const BM_HIDE = (function(){ try { return JSON.parse(localStorage.getItem('bmHide')) || { d:false, r:false }; } catch(e){ return { d:false, r:false }; } })();
+function bmCols(){
+  return [ { id:'a', h:'Período', al:'left' }, { id:'b', h:'N° BM', al:'left' }, { id:'d', h:BM_H_D, al:'right' }, { id:'r', h:BM_H_R, al:'right' } ]
+    .filter(c=> !(c.id==='d' && BM_HIDE.d) && !(c.id==='r' && BM_HIDE.r));
+}
+const bmFmtK = v => (v/1e3).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});   // em milhares de R$ (x 1.000)
+function bmCellTxt(it, id){
+  const z = bmZero(it);
+  return id==='a' ? it.a : id==='b' ? it.b : id==='d' ? (z ? '—' : bmFmtK(it.rs)) : (z ? '—' : bmFmt2(it.rs));
+}
 function renderBmResumo(){
+  const cols = bmCols();
   const box = b => {
-    let h = '<div class="bm-box"><table><tr class="bm-ttl"><th>Valores em MR$</th><th></th><th class="bm-unit">'+esc(b.proj)+'</th><th></th></tr>'+
-      '<tr><th>Período</th><th>N° BM</th><th class="num">Δ (BM − FR)</th><th class="num">R$</th></tr>';
+    let h = '<div class="bm-box"><table><tr class="bm-ttl"><th colspan="'+Math.max(1,cols.length-1)+'">Valores em MR$</th><th class="bm-unit">'+esc(b.proj)+'</th></tr>'+
+      '<tr>'+cols.map(c=>'<th'+(c.al==='right'?' class="num"':'')+'>'+esc(c.h)+'</th>').join('')+'</tr>';
     b.items.forEach(it=>{
-      const cls = it.k==='m' ? 'bm-m' : it.k==='t' ? 'bm-t' : 'bm-r', z = bmZero(it);
-      h += '<tr class="'+cls+'"><td>'+esc(it.a)+'</td><td>'+esc(it.b)+'</td><td class="num">'+(z?'—':bmFmtM(it.rs))+'</td><td class="num">'+(z?'—':bmFmt2(it.rs))+'</td></tr>';
+      const cls = it.k==='m' ? 'bm-m' : it.k==='t' ? 'bm-t' : 'bm-r';
+      h += '<tr class="'+cls+'">'+cols.map(c=>'<td'+(c.al==='right'?' class="num"':'')+'>'+esc(bmCellTxt(it, c.id))+'</td>').join('')+'</tr>';
     });
-    if (b.empty) h += '<tr class="bm-r"><td colspan="4">Sem pendências nos meses selecionados.</td></tr>';
+    if (b.empty) h += '<tr class="bm-r"><td colspan="'+cols.length+'">Sem pendências nos meses selecionados.</td></tr>';
     return h+'</table></div>';
   };
+  const chip = (k, lbl) => '<button type="button" class="evol-quick'+(BM_HIDE[k]?' bm-off':'')+'" data-bm-hide="'+k+'" title="Mostrar / ocultar esta coluna de valores (vale também para imagem, tabela copiada e Excel)">'+(BM_HIDE[k]?'🚫 ':'👁 ')+lbl+'</button>';
   return '<div class="bm-head"><b>'+esc(BM_TITLE)+'</b><span class="bm-acts">'+
+    chip('d','Saldo Pendente (x 1.000)')+chip('r','R$ Pendente')+
     '<button type="button" class="evol-quick" data-bm-img="1" title="Copia o resumo como imagem nítida: cole no e-mail, no Teams ou no WhatsApp" style="font-weight:800">📷 Copiar imagem (e-mail / Teams)</button>'+
     '<button type="button" class="evol-quick" data-bm-copy="1" title="Copia o resumo como tabela formatada (para colar no corpo do e-mail ou no Excel)">📋 Copiar tabela</button>'+
     '<button type="button" class="evol-quick" data-bm-xls="1" title="Baixa o resumo em Excel (.xlsx)">📊 Exportar Excel</button></span></div>'+
-    '<div class="bm-wrap">'+bmModel().map(box).join('')+'</div><div class="bm-note">'+esc(BM_NOTE)+' Segue o filtro de Meses.</div>';
+    '<div class="bm-wrap">'+bmModel().map(box).join('')+'</div><div class="bm-note">'+esc(BM_NOTE)+' Saldo Pendente em milhares de R$ (x 1.000). Segue o filtro de Meses.</div>';
 }
 // 📷 imagem nítida (canvas): as duas unidades lado a lado, mesmas cores da tela
 function bmRenderCanvas(model){
   const S = 2, FONT = '"Segoe UI", Calibri, Arial, sans-serif', GREEN = '#92D050', GREY = '#d9d9d9', NAVY = '#12305a', LINE = '#c9d3df';
-  const cw = [112, 84, 112, 150], BW = cw.reduce((a,b)=>a+b,0), GAP = 22, M = 20, RH = 26, PADX = 10;
+  const cols = bmCols(), wById = { a:112, b:84, d:268, r:150 }, cw = cols.map(c=>wById[c.id]), BW = cw.reduce((a,b)=>a+b,0), GAP = 22, M = 20, RH = 26, PADX = 10;
   const rowsN = Math.max.apply(null, model.map(b=>2 + Math.max(1, b.items.length)));
-  const width = M*2 + BW*model.length + GAP*(model.length-1), height = M + 34 + 22 + 22 + 10 + rowsN*RH + 30 + M;
+  const width = Math.max(M*2 + BW*model.length + GAP*(model.length-1), 620), height = M + 34 + 22 + 22 + 10 + rowsN*RH + 30 + M;
   const cv = document.createElement('canvas'), cx = cv.getContext('2d');
   cv.width = width*S; cv.height = height*S; cx.scale(S,S);
   cx.fillStyle = '#ffffff'; cx.fillRect(0,0,width,height); cx.textBaseline = 'middle';
@@ -4115,23 +4131,23 @@ function bmRenderCanvas(model){
   let y = M;
   cx.fillStyle = NAVY; cx.font = font(22,'700'); cx.fillText(BM_TITLE, M, y+17); y += 34;
   cx.fillStyle = '#5b6b7c'; cx.font = font(13); cx.fillText('Pendências por mês de competência e BM · '+bmPeriodTxt()+' · gerado em '+new Date().toLocaleDateString('pt-BR'), M, y+11); y += 22;
-  cx.fillStyle = '#5b6b7c'; cx.font = font(12); cx.fillText('Valores em MR$ (milhões de R$) e R$ — tudo o que ainda não virou FR', M, y+11); y += 22 + 10;
+  cx.fillStyle = '#5b6b7c'; cx.font = font(12); cx.fillText('Valores em MR$ (milhares de R$) — tudo o que ainda não virou FR', M, y+11); y += 22 + 10;
   const cell = (x, yy, w, bg, txt, color, weight, align) => {
     cx.fillStyle = bg; cx.fillRect(x, yy, w, RH); cx.strokeStyle = LINE; cx.lineWidth = 1; cx.strokeRect(x+.5, yy+.5, w-1, RH-1);
     cx.fillStyle = color; cx.font = font(13, weight); cx.textAlign = align; cx.fillText(txt, align==='right' ? x+w-PADX : x+PADX, yy+RH/2+1); cx.textAlign = 'left';
   };
   model.forEach((b, bi)=>{
     const x0 = M + bi*(BW+GAP); let yy = y, x;
-    x = x0; ['Valores em MR$','',b.proj,''].forEach((t,i)=>{ cell(x, yy, cw[i], i===2?'#FFF2CC':'#ffffff', t, NAVY, '700', i===2?'center':'left'); x += cw[i]; }); yy += RH;
-    x = x0; ['Período','N° BM','Δ (BM − FR)','R$'].forEach((t,i)=>{ cell(x, yy, cw[i], GREEN, t, '#042341', '700', i>=2?'right':'left'); x += cw[i]; }); yy += RH;
+    // linha-titulo: "Valores em MR$" ocupa as colunas, a unidade (MOA / PCI) fica na ultima
+    x = x0; cols.forEach((c,i)=>{ const last = i===cols.length-1; cell(x, yy, cw[i], last ? '#FFF2CC' : '#ffffff', last ? b.proj : (i===0 ? 'Valores em MR$' : ''), NAVY, '700', last ? 'center' : 'left'); x += cw[i]; }); yy += RH;
+    x = x0; cols.forEach((c,i)=>{ cell(x, yy, cw[i], GREEN, c.h, '#042341', '700', c.al); x += cw[i]; }); yy += RH;
     if (b.empty){ cell(x0, yy, BW, '#ffffff', 'Sem pendências nos meses selecionados.', '#5b6b7c', '400', 'left'); yy += RH; }
     b.items.forEach(it=>{
-      const z = bmZero(it), isM = it.k==='m', isT = it.k==='t', bg = isM ? GREY : isT ? NAVY : '#ffffff', col = isT ? '#ffffff' : '#1b2a3a', wt = (isM||isT) ? '700' : '400';
-      const vals = [(it.k==='r'||it.k==='tr' ? '   ' : '')+it.a, it.b, z?'—':bmFmtM(it.rs), z?'—':bmFmt2(it.rs)];
-      x = x0; vals.forEach((t,i)=>{ cell(x, yy, cw[i], bg, t, col, wt, i>=2?'right':'left'); x += cw[i]; }); yy += RH;
+      const isM = it.k==='m', isT = it.k==='t', bg = isM ? GREY : isT ? NAVY : '#ffffff', col = isT ? '#ffffff' : '#1b2a3a', wt = (isM||isT) ? '700' : '400';
+      x = x0; cols.forEach((c,i)=>{ cell(x, yy, cw[i], bg, (c.id==='a' && (it.k==='r'||it.k==='tr') ? '   ' : '')+bmCellTxt(it, c.id), col, wt, c.al); x += cw[i]; }); yy += RH;
     });
   });
-  cx.fillStyle = '#5b6b7c'; cx.font = font(11); cx.textAlign = 'left'; cx.fillText('BM = Jun/26 → BM-22.  '+'Δ (BM − FR) = valor pendente do BM, em milhões de R$.', M, height - M + 4);
+  cx.fillStyle = '#5b6b7c'; cx.font = font(11); cx.textAlign = 'left'; cx.fillText('BM = Jun/26 → BM-22.  Saldo Pendente = valor pendente do BM, em milhares de R$ (x 1.000).', M, height - M + 4);
   return cv;
 }
 async function bmCopyImage(btn){
@@ -4151,21 +4167,21 @@ async function bmCopyImage(btn){
 }
 // 📋 tabela formatada (HTML com cores inline + TSV): cola direto no corpo do e-mail / Excel
 function bmMailBuild(){
-  const model = bmModel(), ft = 'font-family:Calibri,Arial,sans-serif;', bd = 'border:1px solid #c9d3df;';
-  const td = (v, a, bg, col, bold) => '<td style="'+ft+bd+'font-size:10.5pt;padding:4px 9px;text-align:'+a+';background:'+bg+';color:'+col+';'+(bold?'font-weight:bold;':'')+'white-space:nowrap;">'+v+'</td>';
-  let h = '<table style="border-collapse:collapse;'+ft+'"><tr><td colspan="4" style="'+ft+'font-size:15pt;font-weight:bold;color:#12305a;padding:2px 0;">'+esc(BM_TITLE)+'</td></tr>'+
-    '<tr><td colspan="4" style="'+ft+'font-size:10pt;color:#5b6b7c;padding:0 0 8px;">'+esc(BM_NOTE)+' · '+esc(bmPeriodTxt())+' · gerado em '+new Date().toLocaleDateString('pt-BR')+'</td></tr>';
+  const model = bmModel(), cols = bmCols(), n = cols.length, ft = 'font-family:Calibri,Arial,sans-serif;', bd = 'border:1px solid #c9d3df;';
+  const td = (v, a, bg, col, bold) => '<td style="'+ft+bd+'font-size:10.5pt;padding:4px 9px;text-align:'+a+';background:'+bg+';color:'+col+';'+(bold?'font-weight:bold;':'')+'">'+v+'</td>';
+  let h = '<table style="border-collapse:collapse;'+ft+'"><tr><td colspan="'+n+'" style="'+ft+'font-size:15pt;font-weight:bold;color:#12305a;padding:2px 0;">'+esc(BM_TITLE)+'</td></tr>'+
+    '<tr><td colspan="'+n+'" style="'+ft+'font-size:10pt;color:#5b6b7c;padding:0 0 8px;">'+esc(BM_NOTE)+' · '+esc(bmPeriodTxt())+' · gerado em '+new Date().toLocaleDateString('pt-BR')+'</td></tr>';
   let tsv = BM_TITLE+'\n';
   model.forEach(b=>{
-    h += '<tr>'+td('Valores em MR$','left','#ffffff','#12305a',true)+td('','left','#ffffff','#12305a')+td(esc(b.proj),'center','#FFF2CC','#12305a',true)+td('','left','#ffffff','#12305a')+'</tr>'+
-      '<tr>'+['Período','N° BM','Δ (BM − FR)','R$'].map((t,i)=>td(t, i>=2?'right':'left', '#92D050', '#042341', true)).join('')+'</tr>';
-    tsv += '\n'+['Valores em MR$','',b.proj,''].join('\t')+'\nPeríodo\tN° BM\tΔ (BM − FR)\tR$\n';
+    h += '<tr>'+cols.map((c,i)=> i===n-1 ? td(esc(b.proj),'center','#FFF2CC','#12305a',true) : td(i===0?'Valores em MR$':'','left','#ffffff','#12305a',true)).join('')+'</tr>'+
+      '<tr>'+cols.map(c=>td(esc(c.h), c.al, '#92D050', '#042341', true)).join('')+'</tr>';
+    tsv += '\n'+cols.map((c,i)=> i===n-1 ? b.proj : (i===0?'Valores em MR$':'')).join('\t')+'\n'+cols.map(c=>c.h).join('\t')+'\n';
     b.items.forEach(it=>{
-      const z = bmZero(it), isM = it.k==='m', isT = it.k==='t', bg = isM ? '#d9d9d9' : isT ? '#12305a' : '#ffffff', col = isT ? '#ffffff' : '#1b2a3a', bold = isM || isT, ind = (it.k==='r'||it.k==='tr') ? '&nbsp;&nbsp;&nbsp;' : '';
-      h += '<tr>'+td(ind+esc(it.a),'left',bg,col,bold)+td(esc(it.b),'left',bg,col,bold)+td(z?'—':bmFmtM(it.rs),'right',bg,col,bold)+td(z?'—':bmFmt2(it.rs),'right',bg,col,bold)+'</tr>';
-      tsv += [it.a, it.b, z?'':bmFmtM(it.rs), z?'':bmFmt2(it.rs)].join('\t')+'\n';
+      const isM = it.k==='m', isT = it.k==='t', bg = isM ? '#d9d9d9' : isT ? '#12305a' : '#ffffff', col = isT ? '#ffffff' : '#1b2a3a', bold = isM || isT, ind = (it.k==='r'||it.k==='tr') ? '&nbsp;&nbsp;&nbsp;' : '';
+      h += '<tr>'+cols.map(c=>td((c.id==='a'?ind:'')+esc(bmCellTxt(it, c.id)), c.al, bg, col, bold)).join('')+'</tr>';
+      tsv += cols.map(c=>{ const z = bmZero(it); return (z && (c.id==='d'||c.id==='r')) ? '' : bmCellTxt(it, c.id); }).join('\t')+'\n';
     });
-    h += '<tr><td colspan="4" style="padding:6px"></td></tr>';
+    h += '<tr><td colspan="'+n+'" style="padding:6px"></td></tr>';
   });
   return { h:h+'</table>', tsv };
 }
@@ -4179,31 +4195,39 @@ async function bmCopyTable(btn){
   }
   if (btn){ const old = btn.textContent; btn.textContent = ok ? '✔ Copiado! Cole no e-mail (Ctrl+V)' : 'Não foi possível copiar'; setTimeout(()=>{ btn.textContent = old; }, 3500); }
 }
-// 📊 Excel: as duas unidades lado a lado (cores do modelo: cabeçalho verde, meses cinza, total azul)
+// 📊 Excel: as duas unidades lado a lado (cores do modelo: cabeçalho verde, meses cinza, total azul); valores como número
 function bmExportXlsx(){
-  const model = bmModel(), S = { hd:25, hdR:26, m:27, mN:28, det:29, tot:30, txt:17, ind:13, tTxt:18 };
-  const t = (v,s) => ({ v:v, t:'s', s:s }), n = (v,s) => ({ v:v, t:'d', s:s });
+  const model = bmModel(), cols = bmCols(), n = cols.length, S = { hd:25, hdR:26, m:27, mN:28, det:29, tot:30, txt:17, ind:13, tTxt:18 };
+  const t = (v,s) => ({ v:v, t:'s', s:s }), num = (v,s) => ({ v:v, t:'d', s:s });
   const blocks = model.map(b=>{
-    const rows = [[t('Valores em MR$',S.hd), t('',S.hd), t(b.proj,S.hd), t('',S.hd)], [t('Período',S.hd), t('N° BM',S.hd), t('Δ (BM − FR) MR$',S.hdR), t('R$',S.hdR)]];
+    const rows = [ cols.map((c,i)=> t(i===0 ? 'Valores em MR$' : (i===n-1 ? b.proj : ''), S.hd)), cols.map(c=>t(c.h, c.al==='right' ? S.hdR : S.hd)) ];
     b.items.forEach(it=>{
       const z = bmZero(it);
-      if (it.k==='m') rows.push([t(it.a,S.m), t(it.b,S.m), n(it.rs/1e6,S.mN), n(it.rs,S.mN)]);
-      else if (it.k==='t') rows.push([t(it.a,S.tTxt), t('',S.tTxt), n(it.rs/1e6,S.tot), n(it.rs,S.tot)]);
-      else rows.push([t(it.a,S.ind), t(it.b,S.txt), z ? t('—',S.txt) : n(it.rs/1e6,S.det), z ? t('—',S.txt) : n(it.rs,S.det)]);
+      rows.push(cols.map(c=>{
+        if (c.id==='a') return t(it.a, it.k==='m' ? S.m : it.k==='t' ? S.tTxt : S.ind);
+        if (c.id==='b') return t(it.b, it.k==='m' ? S.m : it.k==='t' ? S.tTxt : S.txt);
+        if (z) return t('—', S.txt);
+        const v = c.id==='d' ? it.rs/1e3 : it.rs;
+        return num(v, it.k==='m' ? S.mN : it.k==='t' ? S.tot : S.det);
+      }));
     });
-    if (b.empty) rows.push([t('Sem pendências nos meses selecionados.',S.txt), t('',S.txt), t('',S.txt), t('',S.txt)]);
+    if (b.empty) rows.push(cols.map((c,i)=>t(i===0 ? 'Sem pendências nos meses selecionados.' : '', S.txt)));
     return rows;
   });
   const nR = Math.max.apply(null, blocks.map(b=>b.length));
-  const rows = [[{ v:BM_TITLE, t:'s', h:true }], [t(BM_NOTE+' · '+bmPeriodTxt(),0)], []];
+  const rows = [[{ v:BM_TITLE, t:'s', h:true }], [t(BM_NOTE+' · '+bmPeriodTxt()+' · Saldo Pendente em milhares de R$ (x 1.000)',0)], []];
   for (let i=0;i<nR;i++){
     let row = [];
-    blocks.forEach((b,bi)=>{ if (bi) row.push(t('',0)); row = row.concat(b[i] || [t('',0),t('',0),t('',0),t('',0)]); });
+    blocks.forEach((b,bi)=>{ if (bi) row.push(t('',0)); row = row.concat(b[i] || cols.map(()=>t('',0))); });
     rows.push(row);
   }
-  xlsxDownload([{ name:BM_TITLE, rows, widths:[14,10,18,18,3,14,10,18,18] }], BM_TITLE+'.xlsx');
+  const wById = { a:14, b:10, d:34, r:18 }, widths = [];
+  model.forEach((b,bi)=>{ if (bi) widths.push(3); cols.forEach(c=>widths.push(wById[c.id])); });
+  xlsxDownload([{ name:BM_TITLE, rows, widths }], BM_TITLE+'.xlsx');
 }
 document.addEventListener('click', e=>{
+  const hd = e.target.closest('[data-bm-hide]');
+  if (hd){ const k = hd.dataset.bmHide; BM_HIDE[k] = !BM_HIDE[k]; try { localStorage.setItem('bmHide', JSON.stringify(BM_HIDE)); } catch(err){} updateBmResumo(document.querySelector('.tab-btn.active').dataset.proj); return; }
   const im = e.target.closest('[data-bm-img]'); if (im){ bmCopyImage(im); return; }
   const c = e.target.closest('[data-bm-copy]'); if (c){ bmCopyTable(c); return; }
   if (e.target.closest('[data-bm-xls]')) bmExportXlsx();
