@@ -185,6 +185,8 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pend-r b{text-align:right;font-variant-numeric:tabular-nums;}.pend-r i{text-align:right;font-style:normal;color:#5a6f88;font-size:11px;}
 .pend-tot{border-bottom:1px solid #cfd7e2;padding-bottom:4px;margin-bottom:3px;font-weight:800;}
 .pend-ok b{color:#b87400;}.pend-pt{margin-top:4px;border-top:1px dashed #cfd7e2;padding-top:4px;font-weight:800;}.pend-pt b{color:#c0392b;}
+.pend-grp{font-weight:800;margin-top:5px;padding-top:3px;border-top:1px solid #e3e8ef;}
+.pend-pt2{margin-top:2px;font-weight:800;}
 .pend-sub{color:#44586f;padding-left:12px;font-size:12px;}
 @media (max-width:900px){.pend-card{display:block;margin:10px 0 0;min-width:0;width:100%;}}
 .pk-live{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 8px #3ddc84;animation:pkpulse 1.8s infinite;}
@@ -1983,22 +1985,26 @@ function pendCardHTML(proj, data, totalRS, medRS, aribaRS){
   const T = o => (o && o['__TOTAL__']) ? o['__TOTAL__'] : null;
   const rsOf = o => { const t = T(o); return t ? (typeof t.rs==='number' ? t.rs : (t.total ? t.total.rs : 0)) : 0; };
   const med = { FAD:0, FIA:0, RAT:0 }; aprovRowsFor(proj).forEach(r=>{ const k = String(r.tipo||'').toUpperCase(); if (k in med) med[k] += r.rs; });
-  const l = [
-    { n:'FAD · Planilha de Pendências', rs:rsOf(data.s1values) },
-    { n:'FAD · Sistema SGE', rs:rsOf(data.s2values) },
-    { n:'FIA · equipamentos auxiliares', rs:rsOf(data.fiaTotal) - med.FIA },
-    { n:'RATEIO · mão de obra indireta', rs:rsOf(data.rateioTotal) - med.RAT }
+  const P = v => totalRS ? fmtPct(v/totalRS) : '—';
+  const G = [
+    { n:'FAD — horas', tot:rsOf(data.totalGeral), med:med.FAD, p:[ ['Planilha de Pendências', rsOf(data.s1values)], ['Sistema SGE (carregamento / elaboração)', rsOf(data.s2values)] ] },
+    { n:'FIA — equipamentos auxiliares', tot:rsOf(data.fiaTotal), med:med.FIA, p:[ ['Pendente (em criação / aprovação)', rsOf(data.fiaTotal) - med.FIA] ] },
+    { n:'RATEIO — mão de obra indireta', tot:rsOf(data.rateioTotal), med:med.RAT, p:[ ['Pendente (a criar / em criação)', rsOf(data.rateioTotal) - med.RAT] ] }
   ];
-  const pend = l.reduce((s,x)=>s+x.rs,0), P = v => totalRS ? fmtPct(v/totalRS) : '—';
-  const ok = Math.round(pend + medRS) === Math.round(totalRS);
+  const pend = G.reduce((s,g)=>s+g.tot-g.med,0);
+  const row = (cls, n, v, extra) => '<div class="pend-r '+cls+'"><span>'+n+'</span><b>R$ '+fmtBRL(v)+'</b><i>'+(extra!==undefined?extra:P(v))+'</i></div>';
   let h = '<div class="pend-card pk-click" data-pksum="rs" data-proj="'+esc(proj)+'" title="Clique para ver o resumo do detalhamento pendente">'+
-    '<div class="pend-h">PENDENTE · O QUE FALTA PARA FATURAR</div>'+
-    '<div class="pend-r pend-tot"><span>Total Geral</span><b>R$ '+fmtBRL(totalRS)+'</b><i>100%</i></div>'+
-    '<div class="pend-r pend-ok"><span>✔ FR em aprovação SAP_USM</span><b>R$ '+fmtBRL(medRS)+'</b><i>'+P(medRS)+'</i></div>'+
-    (Math.round(aribaRS)!==0 ? '<div class="pend-r pend-sub"><span>↳ FR liberada SAP_USM</span><b>R$ '+fmtBRL(aribaRS)+'</b><i>'+(medRS?fmtPct(aribaRS/medRS):'—')+' da aprov.</i></div>' : '')+
-    '<div class="pend-r pend-pt"><span>⏳ Pendente (ainda sem FR)</span><b>R$ '+fmtBRL(pend)+'</b><i>'+P(pend)+'</i></div>';
-  l.forEach(x=>{ if (Math.round(x.rs)!==0) h += '<div class="pend-r pend-sub"><span>↳ '+esc(x.n)+'</span><b>R$ '+fmtBRL(x.rs)+'</b><i>'+P(x.rs)+'</i></div>'; });
-  return h+(ok?'':'<div class="pend-r pend-sub"><span>⚠ diferença de arredondamento/seções filtradas</span><b>R$ '+fmtBRL(totalRS-pend-medRS)+'</b><i></i></div>')+'</div>';
+    '<div class="pend-h">PENDENTE · O QUE FALTA PARA FATURAR</div>'+row('pend-tot','Total Geral',totalRS,'100%');
+  G.forEach(g=>{
+    if (Math.round(g.tot)===0) return;
+    h += row('pend-grp', g.n, g.tot);
+    g.p.forEach(x=>{ if (Math.round(x[1])!==0) h += row('pend-sub','↳ '+esc(x[0]), x[1]); });
+    if (Math.round(g.med)!==0) h += row('pend-sub pend-ok','↳ ✔ Em aprovação SAP_USM', g.med);
+  });
+  h += row('pend-pt','⏳ Pendente (ainda sem FR)', pend) + row('pend-ok pend-pt2','✔ FR em aprovação SAP_USM', medRS);
+  if (Math.round(aribaRS)!==0) h += row('pend-sub','↳ FR liberada SAP_USM', aribaRS, medRS?fmtPct(aribaRS/medRS)+' da aprov.':'');
+  const dif = totalRS - pend - medRS;
+  return h+(Math.round(dif)===0?'':row('pend-sub','⚠ diferença (seções filtradas)', dif, ''))+'</div>';
 }
 function projLabelPk(proj){ return proj==='GERAL' ? 'MOA + PCI' : proj; }
 // Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
