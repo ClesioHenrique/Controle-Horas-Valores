@@ -654,6 +654,8 @@ tr.medido-row td, tr.medido-row td *{font-weight:800 !important;}
 .freenote-text{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #e8c96b;border-radius:6px;padding:8px 10px;background:#fff59d;font-size:12.5px;line-height:1.4;color:#222;}
 /* resumo "Valores em MR$" por mes / BM / modalidade (acima das notas metodologicas) */
 #bm-resumo{margin-top:14px;}
+.bm-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 8px;font-size:16px;color:var(--navy);}
+.bm-head .bm-acts{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto;}
 .bm-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
 .bm-box{flex:1 1 360px;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 .bm-box table{width:100%;border-collapse:collapse;font-size:12.5px;}
@@ -4062,33 +4064,150 @@ function bmNum(mes){
   const n = (2000+parseInt(mm[1],10)-2026)*12 + m + 16;   // Jun/26 = BM-22
   return n>0 ? 'BM-'+String(n).padStart(2,'0') : '';
 }
-function renderBmResumo(){
-  const fmtM = v => (v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const f2 = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const box = proj => {
-    const d = buildTable(proj), meses = DISPLAY_MONTHS.slice().sort((a,b)=>mesKey(a)-mesKey(b));
-    let h = '<div class="bm-box"><table><tr class="bm-ttl"><th>Valores em MR$</th><th></th><th class="bm-unit">'+esc(proj)+'</th><th></th></tr>'+
-      '<tr><th>Período</th><th>N° BM</th><th class="num">Δ (BM − FR)</th><th class="num">R$</th></tr>';
-    let tot = 0, nM = 0; const tm = { RATEIO:0, FAD:0, FIA:0 };
+const BM_TITLE = 'BM x Recebimento';
+// modelo unico (tela, imagem, tabela copiada e Excel usam o mesmo): por unidade, itens {k: m (mes) | r (modalidade) | t (total) | tr (total da modalidade), a, b, rs}
+function bmModel(){
+  const meses = DISPLAY_MONTHS.slice().sort((a,b)=>mesKey(a)-mesKey(b));
+  return ['MOA','PCI'].map(proj=>{
+    const d = buildTable(proj), items = []; let tot = 0, nM = 0; const tm = { RATEIO:0, FAD:0, FIA:0 };
     meses.forEach(mes=>{
       const v = { RATEIO:(d.rateioTotal[mes]||{rs:0}).rs, FAD:(d.totalGeral[mes]||{rs:0}).rs, FIA:(d.fiaTotal[mes]||{rs:0}).rs };
       const t = v.RATEIO + v.FAD + v.FIA; if (Math.round(t)===0) return;
-      nM++; tot += t;
-      h += '<tr class="bm-m"><td>'+esc(mes.toLowerCase())+'</td><td>'+bmNum(mes)+'</td><td class="num">'+fmtM(t)+'</td><td class="num">'+f2(t)+'</td></tr>';
-      ['RATEIO','FAD','FIA'].forEach(k=>{
-        tm[k] += v[k];
-        h += '<tr class="bm-r"><td>'+k+'</td><td>'+bmNum(mes)+'</td><td class="num">'+(Math.round(v[k])? fmtM(v[k]) : '—')+'</td><td class="num">'+(Math.round(v[k])? f2(v[k]) : '—')+'</td></tr>';
-      });
+      nM++; tot += t; items.push({ k:'m', a:mes.toLowerCase(), b:bmNum(mes), rs:t });
+      ['RATEIO','FAD','FIA'].forEach(k=>{ tm[k] += v[k]; items.push({ k:'r', a:k, b:bmNum(mes), rs:v[k] }); });
     });
-    if (!nM) h += '<tr class="bm-r"><td colspan="4">Sem pendências nos meses selecionados.</td></tr>';
-    else {
-      h += '<tr class="bm-t"><td>Total</td><td></td><td class="num">'+fmtM(tot)+'</td><td class="num">'+f2(tot)+'</td></tr>';
-      ['RATEIO','FAD','FIA'].forEach(k=>{ h += '<tr class="bm-r"><td>'+k+'</td><td></td><td class="num">'+fmtM(tm[k])+'</td><td class="num">'+f2(tm[k])+'</td></tr>'; });
-    }
+    if (nM){ items.push({ k:'t', a:'Total', b:'', rs:tot }); ['RATEIO','FAD','FIA'].forEach(k=>items.push({ k:'tr', a:k, b:'', rs:tm[k] })); }
+    return { proj, items, empty:!nM };
+  });
+}
+const bmFmtM = v => (v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const bmFmt2 = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const bmZero = it => it.k==='r' && Math.round(it.rs)===0;
+const BM_NOTE = 'Valores pendentes por mês de competência e BM (Jun/26 = BM-22), em R$ e em milhões de R$ (MR$): tudo o que ainda não virou FR — do cadastro até “Medido – Para emitir FR”.';
+function bmPeriodTxt(){ const m = DISPLAY_MONTHS.slice().sort((a,b)=>mesKey(a)-mesKey(b)); return m.length ? (m.length>1 ? m[0]+' a '+m[m.length-1] : m[0]) : ''; }
+function renderBmResumo(){
+  const box = b => {
+    let h = '<div class="bm-box"><table><tr class="bm-ttl"><th>Valores em MR$</th><th></th><th class="bm-unit">'+esc(b.proj)+'</th><th></th></tr>'+
+      '<tr><th>Período</th><th>N° BM</th><th class="num">Δ (BM − FR)</th><th class="num">R$</th></tr>';
+    b.items.forEach(it=>{
+      const cls = it.k==='m' ? 'bm-m' : it.k==='t' ? 'bm-t' : 'bm-r', z = bmZero(it);
+      h += '<tr class="'+cls+'"><td>'+esc(it.a)+'</td><td>'+esc(it.b)+'</td><td class="num">'+(z?'—':bmFmtM(it.rs))+'</td><td class="num">'+(z?'—':bmFmt2(it.rs))+'</td></tr>';
+    });
+    if (b.empty) h += '<tr class="bm-r"><td colspan="4">Sem pendências nos meses selecionados.</td></tr>';
     return h+'</table></div>';
   };
-  return '<div class="bm-wrap">'+box('MOA')+box('PCI')+'</div><div class="bm-note">Valores pendentes por mês de competência e BM (Jun/26 = BM-22), em R$ e em milhões de R$ (MR$): tudo o que ainda não virou FR — do cadastro até “Medido – Para emitir FR”. Segue o filtro de Meses.</div>';
+  return '<div class="bm-head"><b>'+esc(BM_TITLE)+'</b><span class="bm-acts">'+
+    '<button type="button" class="evol-quick" data-bm-img="1" title="Copia o resumo como imagem nítida: cole no e-mail, no Teams ou no WhatsApp" style="font-weight:800">📷 Copiar imagem (e-mail / Teams)</button>'+
+    '<button type="button" class="evol-quick" data-bm-copy="1" title="Copia o resumo como tabela formatada (para colar no corpo do e-mail ou no Excel)">📋 Copiar tabela</button>'+
+    '<button type="button" class="evol-quick" data-bm-xls="1" title="Baixa o resumo em Excel (.xlsx)">📊 Exportar Excel</button></span></div>'+
+    '<div class="bm-wrap">'+bmModel().map(box).join('')+'</div><div class="bm-note">'+esc(BM_NOTE)+' Segue o filtro de Meses.</div>';
 }
+// 📷 imagem nítida (canvas): as duas unidades lado a lado, mesmas cores da tela
+function bmRenderCanvas(model){
+  const S = 2, FONT = '"Segoe UI", Calibri, Arial, sans-serif', GREEN = '#92D050', GREY = '#d9d9d9', NAVY = '#12305a', LINE = '#c9d3df';
+  const cw = [112, 84, 112, 150], BW = cw.reduce((a,b)=>a+b,0), GAP = 22, M = 20, RH = 26, PADX = 10;
+  const rowsN = Math.max.apply(null, model.map(b=>2 + Math.max(1, b.items.length)));
+  const width = M*2 + BW*model.length + GAP*(model.length-1), height = M + 34 + 22 + 22 + 10 + rowsN*RH + 30 + M;
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d');
+  cv.width = width*S; cv.height = height*S; cx.scale(S,S);
+  cx.fillStyle = '#ffffff'; cx.fillRect(0,0,width,height); cx.textBaseline = 'middle';
+  const font = (px,w) => (w||'400')+' '+px+'px '+FONT;
+  let y = M;
+  cx.fillStyle = NAVY; cx.font = font(22,'700'); cx.fillText(BM_TITLE, M, y+17); y += 34;
+  cx.fillStyle = '#5b6b7c'; cx.font = font(13); cx.fillText('Pendências por mês de competência e BM · '+bmPeriodTxt()+' · gerado em '+new Date().toLocaleDateString('pt-BR'), M, y+11); y += 22;
+  cx.fillStyle = '#5b6b7c'; cx.font = font(12); cx.fillText('Valores em MR$ (milhões de R$) e R$ — tudo o que ainda não virou FR', M, y+11); y += 22 + 10;
+  const cell = (x, yy, w, bg, txt, color, weight, align) => {
+    cx.fillStyle = bg; cx.fillRect(x, yy, w, RH); cx.strokeStyle = LINE; cx.lineWidth = 1; cx.strokeRect(x+.5, yy+.5, w-1, RH-1);
+    cx.fillStyle = color; cx.font = font(13, weight); cx.textAlign = align; cx.fillText(txt, align==='right' ? x+w-PADX : x+PADX, yy+RH/2+1); cx.textAlign = 'left';
+  };
+  model.forEach((b, bi)=>{
+    const x0 = M + bi*(BW+GAP); let yy = y, x;
+    x = x0; ['Valores em MR$','',b.proj,''].forEach((t,i)=>{ cell(x, yy, cw[i], i===2?'#FFF2CC':'#ffffff', t, NAVY, '700', i===2?'center':'left'); x += cw[i]; }); yy += RH;
+    x = x0; ['Período','N° BM','Δ (BM − FR)','R$'].forEach((t,i)=>{ cell(x, yy, cw[i], GREEN, t, '#042341', '700', i>=2?'right':'left'); x += cw[i]; }); yy += RH;
+    if (b.empty){ cell(x0, yy, BW, '#ffffff', 'Sem pendências nos meses selecionados.', '#5b6b7c', '400', 'left'); yy += RH; }
+    b.items.forEach(it=>{
+      const z = bmZero(it), isM = it.k==='m', isT = it.k==='t', bg = isM ? GREY : isT ? NAVY : '#ffffff', col = isT ? '#ffffff' : '#1b2a3a', wt = (isM||isT) ? '700' : '400';
+      const vals = [(it.k==='r'||it.k==='tr' ? '   ' : '')+it.a, it.b, z?'—':bmFmtM(it.rs), z?'—':bmFmt2(it.rs)];
+      x = x0; vals.forEach((t,i)=>{ cell(x, yy, cw[i], bg, t, col, wt, i>=2?'right':'left'); x += cw[i]; }); yy += RH;
+    });
+  });
+  cx.fillStyle = '#5b6b7c'; cx.font = font(11); cx.textAlign = 'left'; cx.fillText('BM = Jun/26 → BM-22.  '+'Δ (BM − FR) = valor pendente do BM, em milhões de R$.', M, height - M + 4);
+  return cv;
+}
+async function bmCopyImage(btn){
+  const old = btn ? btn.textContent : ''; if (btn){ btn.textContent = '⌛ Gerando imagem…'; btn.disabled = true; }
+  let msg = '';
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const blob = await new Promise(res=>bmRenderCanvas(bmModel()).toBlob(res,'image/png'));
+    try { await navigator.clipboard.write([ new ClipboardItem({ 'image/png':blob }) ]); msg = '✔ Imagem copiada! Cole no e-mail ou no Teams (Ctrl+V)'; }
+    catch(clipErr){
+      const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = BM_TITLE+'.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      msg = '💾 Imagem baixada (o navegador não deixou copiar)';
+    }
+  } catch(err){ console.error(err); msg = 'Não foi possível gerar a imagem'; }
+  if (btn){ btn.textContent = msg; setTimeout(()=>{ btn.textContent = old; btn.disabled = false; }, 3800); }
+}
+// 📋 tabela formatada (HTML com cores inline + TSV): cola direto no corpo do e-mail / Excel
+function bmMailBuild(){
+  const model = bmModel(), ft = 'font-family:Calibri,Arial,sans-serif;', bd = 'border:1px solid #c9d3df;';
+  const td = (v, a, bg, col, bold) => '<td style="'+ft+bd+'font-size:10.5pt;padding:4px 9px;text-align:'+a+';background:'+bg+';color:'+col+';'+(bold?'font-weight:bold;':'')+'white-space:nowrap;">'+v+'</td>';
+  let h = '<table style="border-collapse:collapse;'+ft+'"><tr><td colspan="4" style="'+ft+'font-size:15pt;font-weight:bold;color:#12305a;padding:2px 0;">'+esc(BM_TITLE)+'</td></tr>'+
+    '<tr><td colspan="4" style="'+ft+'font-size:10pt;color:#5b6b7c;padding:0 0 8px;">'+esc(BM_NOTE)+' · '+esc(bmPeriodTxt())+' · gerado em '+new Date().toLocaleDateString('pt-BR')+'</td></tr>';
+  let tsv = BM_TITLE+'\n';
+  model.forEach(b=>{
+    h += '<tr>'+td('Valores em MR$','left','#ffffff','#12305a',true)+td('','left','#ffffff','#12305a')+td(esc(b.proj),'center','#FFF2CC','#12305a',true)+td('','left','#ffffff','#12305a')+'</tr>'+
+      '<tr>'+['Período','N° BM','Δ (BM − FR)','R$'].map((t,i)=>td(t, i>=2?'right':'left', '#92D050', '#042341', true)).join('')+'</tr>';
+    tsv += '\n'+['Valores em MR$','',b.proj,''].join('\t')+'\nPeríodo\tN° BM\tΔ (BM − FR)\tR$\n';
+    b.items.forEach(it=>{
+      const z = bmZero(it), isM = it.k==='m', isT = it.k==='t', bg = isM ? '#d9d9d9' : isT ? '#12305a' : '#ffffff', col = isT ? '#ffffff' : '#1b2a3a', bold = isM || isT, ind = (it.k==='r'||it.k==='tr') ? '&nbsp;&nbsp;&nbsp;' : '';
+      h += '<tr>'+td(ind+esc(it.a),'left',bg,col,bold)+td(esc(it.b),'left',bg,col,bold)+td(z?'—':bmFmtM(it.rs),'right',bg,col,bold)+td(z?'—':bmFmt2(it.rs),'right',bg,col,bold)+'</tr>';
+      tsv += [it.a, it.b, z?'':bmFmtM(it.rs), z?'':bmFmt2(it.rs)].join('\t')+'\n';
+    });
+    h += '<tr><td colspan="4" style="padding:6px"></td></tr>';
+  });
+  return { h:h+'</table>', tsv };
+}
+async function bmCopyTable(btn){
+  const { h, tsv } = bmMailBuild(), full = '<html><head><meta charset="utf-8"></head><body>'+h+'</body></html>';
+  let ok = false;
+  try { await navigator.clipboard.write([ new ClipboardItem({ 'text/html':new Blob([full],{type:'text/html'}), 'text/plain':new Blob([tsv],{type:'text/plain'}) }) ]); ok = true; }
+  catch(e){
+    try { const d = document.createElement('div'); d.contentEditable = 'true'; d.style.cssText = 'position:fixed;left:-9999px;top:0;'; d.innerHTML = h; document.body.appendChild(d);
+      const r = document.createRange(); r.selectNodeContents(d); const s = getSelection(); s.removeAllRanges(); s.addRange(r); ok = document.execCommand('copy'); s.removeAllRanges(); document.body.removeChild(d); } catch(e2){ ok = false; }
+  }
+  if (btn){ const old = btn.textContent; btn.textContent = ok ? '✔ Copiado! Cole no e-mail (Ctrl+V)' : 'Não foi possível copiar'; setTimeout(()=>{ btn.textContent = old; }, 3500); }
+}
+// 📊 Excel: as duas unidades lado a lado (cores do modelo: cabeçalho verde, meses cinza, total azul)
+function bmExportXlsx(){
+  const model = bmModel(), S = { hd:25, hdR:26, m:27, mN:28, det:29, tot:30, txt:17, ind:13, tTxt:18 };
+  const t = (v,s) => ({ v:v, t:'s', s:s }), n = (v,s) => ({ v:v, t:'d', s:s });
+  const blocks = model.map(b=>{
+    const rows = [[t('Valores em MR$',S.hd), t('',S.hd), t(b.proj,S.hd), t('',S.hd)], [t('Período',S.hd), t('N° BM',S.hd), t('Δ (BM − FR) MR$',S.hdR), t('R$',S.hdR)]];
+    b.items.forEach(it=>{
+      const z = bmZero(it);
+      if (it.k==='m') rows.push([t(it.a,S.m), t(it.b,S.m), n(it.rs/1e6,S.mN), n(it.rs,S.mN)]);
+      else if (it.k==='t') rows.push([t(it.a,S.tTxt), t('',S.tTxt), n(it.rs/1e6,S.tot), n(it.rs,S.tot)]);
+      else rows.push([t(it.a,S.ind), t(it.b,S.txt), z ? t('—',S.txt) : n(it.rs/1e6,S.det), z ? t('—',S.txt) : n(it.rs,S.det)]);
+    });
+    if (b.empty) rows.push([t('Sem pendências nos meses selecionados.',S.txt), t('',S.txt), t('',S.txt), t('',S.txt)]);
+    return rows;
+  });
+  const nR = Math.max.apply(null, blocks.map(b=>b.length));
+  const rows = [[{ v:BM_TITLE, t:'s', h:true }], [t(BM_NOTE+' · '+bmPeriodTxt(),0)], []];
+  for (let i=0;i<nR;i++){
+    let row = [];
+    blocks.forEach((b,bi)=>{ if (bi) row.push(t('',0)); row = row.concat(b[i] || [t('',0),t('',0),t('',0),t('',0)]); });
+    rows.push(row);
+  }
+  xlsxDownload([{ name:BM_TITLE, rows, widths:[14,10,18,18,3,14,10,18,18] }], BM_TITLE+'.xlsx');
+}
+document.addEventListener('click', e=>{
+  const im = e.target.closest('[data-bm-img]'); if (im){ bmCopyImage(im); return; }
+  const c = e.target.closest('[data-bm-copy]'); if (c){ bmCopyTable(c); return; }
+  if (e.target.closest('[data-bm-xls]')) bmExportXlsx();
+});
 function updateBmResumo(active){
   const el = document.getElementById('bm-resumo'); if (!el) return;
   el.innerHTML = (active==='GERAL' || active==='MOA' || active==='PCI' || active==='PEND') ? renderBmResumo() : '';
@@ -4974,9 +5093,9 @@ function xlsxBuild(sheets){
   // estilos: 0 padrao | 1 percentual | 2 decimais | 3 cabecalho em negrito
   files.push({name:'xl/styles.xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="#,##0"/><numFmt numFmtId="166" formatCode="&quot;R$&quot; #,##0"/></numFmts>'+
     '<fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FF12305A"/><name val="Calibri"/></font></fonts>'+
-    '<fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6EDF4"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF3CD"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF002B5C"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDFE8F2"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFEE00"/><bgColor indexed="64"/></patternFill></fill></fills>'+
+    '<fills count="9"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6EDF4"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF3CD"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF002B5C"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDFE8F2"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFEE00"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF92D050"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill></fills>'+
     '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FF9FB2C6"/></left><right style="thin"><color rgb="FF9FB2C6"/></right><top style="thin"><color rgb="FF9FB2C6"/></top><bottom style="thin"><color rgb="FF9FB2C6"/></bottom><diagonal/></border></borders>'+
-    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="25">'+
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="31">'+
     '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+                                                                            // 0
     '<xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'+                                                     // 1
     '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'+                                                    // 2
@@ -5002,6 +5121,12 @@ function xlsxBuild(sheets){
     '<xf numFmtId="0" fontId="3" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>'+   // 22 Nº FA destaque
     '<xf numFmtId="165" fontId="3" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'+        // 23 soma HH (amarelo)
     '<xf numFmtId="166" fontId="3" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'+        // 24 soma R$ (amarelo)
+    '<xf numFmtId="0" fontId="1" fillId="7" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+                                // 25 cabecalho verde (resumo MR$)
+    '<xf numFmtId="0" fontId="1" fillId="7" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right"/></xf>'+   // 26 cabecalho verde a direita
+    '<xf numFmtId="0" fontId="1" fillId="8" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+                                // 27 mes (cinza) texto
+    '<xf numFmtId="164" fontId="1" fillId="8" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'+       // 28 mes (cinza) numero 2 casas
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>'+                                    // 29 detalhe numero 2 casas
+    '<xf numFmtId="164" fontId="2" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'+       // 30 total numero 2 casas
     '</cellXfs></styleSheet>'});
   sheets.forEach((s,i)=>{
     const widths = [];
