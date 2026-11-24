@@ -652,6 +652,20 @@ td.fa-detail:hover{background:#eaf3fb !important;}
 .freenote-block textarea:focus{outline:2px solid var(--info-blue);outline-offset:1px;}
 tr.medido-row td, tr.medido-row td *{font-weight:800 !important;}
 .freenote-text{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #e8c96b;border-radius:6px;padding:8px 10px;background:#fff59d;font-size:12.5px;line-height:1.4;color:#222;}
+/* resumo "Valores em MR$" por mes / BM / modalidade (acima das notas metodologicas) */
+#bm-resumo{margin-top:14px;}
+.bm-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
+.bm-box{flex:1 1 360px;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.bm-box table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.bm-box th{background:var(--green);color:#042341;font-weight:800;padding:7px 10px;text-align:left;}
+.bm-box th.num,.bm-box td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.bm-box .bm-ttl th{background:#fff;font-size:14px;font-style:italic;padding:8px 10px;}
+.bm-box .bm-ttl th.bm-unit{background:#FFF2CC;text-align:center;font-style:italic;}
+.bm-box tr.bm-m td{background:#d9d9d9;font-weight:800;padding:5px 10px;}
+.bm-box tr.bm-r td{padding:4px 10px 4px 22px;border-bottom:1px solid var(--border);}
+.bm-box tr.bm-r td.num{padding-left:10px;}
+.bm-box tr.bm-t td{background:var(--navy);color:#fff;font-weight:800;padding:6px 10px;}
+.bm-note{font-size:11.5px;color:var(--text-muted);margin:6px 2px 0;}
 .notes{margin-top:14px;background:var(--navy-100);border-left:4px solid var(--info-blue);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text);}
 .notes b{color:var(--navy);}
 .notes ul{margin:6px 0 0;padding-left:18px;}
@@ -674,7 +688,7 @@ body.printing *{-webkit-print-color-adjust:exact !important;print-color-adjust:e
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
 body.printing html, body.printing, body.printing .app, body.printing .update-date-box{background:#fff !important;}
 body.printing .update-date-box{border-color:#fff !important;box-shadow:none !important;}
-body.printing .confronto-banner, body.printing .toolbar, body.printing .notes, body.printing .header, body.printing .update-date-box, body.printing .kpi-strip{display:none !important;}
+body.printing #bm-resumo, body.printing .confronto-banner, body.printing .toolbar, body.printing .notes, body.printing .header, body.printing .update-date-box, body.printing .kpi-strip{display:none !important;}
 body.printing .sticky-topbar{position:static !important;box-shadow:none !important;}
 body.printing #content{display:none !important;}
 body.printing #print-content{display:block !important;}
@@ -901,6 +915,8 @@ try { if (localStorage.getItem('darkTheme') === '1') document.documentElement.cl
       <div id="fa-modal-body"></div>
     </div>
   </div>
+
+  <div id="bm-resumo"></div>
 
   <details class="notes">
     <summary><b>Notas metodologicas</b></summary>
@@ -4038,8 +4054,48 @@ function fluxoPrint(){
 }
 document.addEventListener('click', e=>{ if (e.target.closest('[data-fx-print]')) fluxoPrint(); });
 let lastChartData = null;
+// Resumo "Valores em MR$" (modelo da planilha): por mes de competencia, N° do BM e modalidade (RATEIO / FAD / FIA), o valor ainda
+// pendente (tudo que ainda nao virou FR: do cadastro ate "Medido - Para emitir FR") e o mesmo valor em milhoes de R$ (Δ BM − FR).
+// Uma tabela para cada unidade (MOA e PCI), acima das notas metodologicas, respeitando o filtro de Meses.
+function bmNum(mes){
+  const mm = String(mes).split('/'); const m = MES_ORD[mm[0]]; if (!m) return '';
+  const n = (2000+parseInt(mm[1],10)-2026)*12 + m + 16;   // Jun/26 = BM-22
+  return n>0 ? 'BM-'+String(n).padStart(2,'0') : '';
+}
+function renderBmResumo(){
+  const fmtM = v => (v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const f2 = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const box = proj => {
+    const d = buildTable(proj), meses = DISPLAY_MONTHS.slice().sort((a,b)=>mesKey(a)-mesKey(b));
+    let h = '<div class="bm-box"><table><tr class="bm-ttl"><th>Valores em MR$</th><th></th><th class="bm-unit">'+esc(proj)+'</th><th></th></tr>'+
+      '<tr><th>Período</th><th>N° BM</th><th class="num">Δ (BM − FR)</th><th class="num">R$</th></tr>';
+    let tot = 0, nM = 0; const tm = { RATEIO:0, FAD:0, FIA:0 };
+    meses.forEach(mes=>{
+      const v = { RATEIO:(d.rateioTotal[mes]||{rs:0}).rs, FAD:(d.totalGeral[mes]||{rs:0}).rs, FIA:(d.fiaTotal[mes]||{rs:0}).rs };
+      const t = v.RATEIO + v.FAD + v.FIA; if (Math.round(t)===0) return;
+      nM++; tot += t;
+      h += '<tr class="bm-m"><td>'+esc(mes.toLowerCase())+'</td><td>'+bmNum(mes)+'</td><td class="num">'+fmtM(t)+'</td><td class="num">'+f2(t)+'</td></tr>';
+      ['RATEIO','FAD','FIA'].forEach(k=>{
+        tm[k] += v[k];
+        h += '<tr class="bm-r"><td>'+k+'</td><td>'+bmNum(mes)+'</td><td class="num">'+(Math.round(v[k])? fmtM(v[k]) : '—')+'</td><td class="num">'+(Math.round(v[k])? f2(v[k]) : '—')+'</td></tr>';
+      });
+    });
+    if (!nM) h += '<tr class="bm-r"><td colspan="4">Sem pendências nos meses selecionados.</td></tr>';
+    else {
+      h += '<tr class="bm-t"><td>Total</td><td></td><td class="num">'+fmtM(tot)+'</td><td class="num">'+f2(tot)+'</td></tr>';
+      ['RATEIO','FAD','FIA'].forEach(k=>{ h += '<tr class="bm-r"><td>'+k+'</td><td></td><td class="num">'+fmtM(tm[k])+'</td><td class="num">'+f2(tm[k])+'</td></tr>'; });
+    }
+    return h+'</table></div>';
+  };
+  return '<div class="bm-wrap">'+box('MOA')+box('PCI')+'</div><div class="bm-note">Valores pendentes por mês de competência e BM (Jun/26 = BM-22), em R$ e em milhões de R$ (MR$): tudo o que ainda não virou FR — do cadastro até “Medido – Para emitir FR”. Segue o filtro de Meses.</div>';
+}
+function updateBmResumo(active){
+  const el = document.getElementById('bm-resumo'); if (!el) return;
+  el.innerHTML = (active==='GERAL' || active==='MOA' || active==='PCI' || active==='PEND') ? renderBmResumo() : '';
+}
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
+  updateBmResumo(active);
   // filtros de Itens e de FR'S nao se aplicam as abas RDC / Pendente Aprovação Fiscalização
   // (so o filtro de Meses vale nelas): escondidos la
   const hideItemFrsFilters = active==='RDC' || active==='MOBILE_PENDENTE';
