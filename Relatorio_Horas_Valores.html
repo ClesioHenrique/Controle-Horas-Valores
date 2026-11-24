@@ -658,7 +658,10 @@ tr.medido-row td, tr.medido-row td *{font-weight:800 !important;}
 .bm-head .bm-acts{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto;}
 .bm-head .bm-off{opacity:.65;text-decoration:line-through;}
 .bm-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
-.bm-box{flex:1 1 360px;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.bm-box{flex:0 1 auto;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-x:auto;}
+.bm-box table.bm-tbl{width:auto;table-layout:fixed;}
+.bm-box th{overflow:hidden;}
+.bm-box th .col-resize-handle{right:0;}
 .bm-box table{width:100%;border-collapse:collapse;font-size:12.5px;}
 .bm-box th{background:var(--green);color:#042341;font-weight:800;padding:7px 10px;text-align:left;}
 .bm-box th.num,.bm-box td.num{text-align:right;font-variant-numeric:tabular-nums;}
@@ -4101,14 +4104,16 @@ function bmCellTxt(it, id){
 function renderBmResumo(){
   const cols = bmCols();
   const box = b => {
-    let h = '<div class="bm-box"><table><tr class="bm-ttl"><th colspan="'+Math.max(1,cols.length-1)+'">Valores em MR$</th><th class="bm-unit">'+esc(b.proj)+'</th></tr>'+
-      '<tr>'+cols.map(c=>'<th'+(c.al==='right'?' class="num"':'')+'>'+esc(c.h)+'</th>').join('')+'</tr>';
+    // colgroup + thead: as larguras das colunas se ajustam arrastando a beirada do cabeçalho (enableColResize), valem para MOA e PCI juntos
+    let h = '<div class="bm-box"><table class="bm-tbl resizable-tbl" id="bm-tbl-'+esc(b.proj)+'"><colgroup>'+cols.map(c=>'<col data-role="'+c.id+'">').join('')+'</colgroup><thead>'+
+      '<tr class="bm-ttl"><th colspan="'+Math.max(1,cols.length-1)+'">Valores em MR$</th><th class="bm-unit">'+esc(b.proj)+'</th></tr>'+
+      '<tr>'+cols.map(c=>'<th'+(c.al==='right'?' class="num"':'')+'>'+esc(c.h)+'</th>').join('')+'</tr></thead><tbody>';
     b.items.forEach(it=>{
       const cls = it.k==='m' ? 'bm-m' : it.k==='t' ? 'bm-t' : 'bm-r';
       h += '<tr class="'+cls+'">'+cols.map(c=>'<td'+(c.al==='right'?' class="num"':'')+'>'+esc(bmCellTxt(it, c.id))+'</td>').join('')+'</tr>';
     });
     if (b.empty) h += '<tr class="bm-r"><td colspan="'+cols.length+'">Sem pendências nos meses selecionados.</td></tr>';
-    return h+'</table></div>';
+    return h+'</tbody></table></div>';
   };
   const chip = (k, lbl) => '<button type="button" class="evol-quick'+(BM_HIDE[k]?' bm-off':'')+'" data-bm-hide="'+k+'" title="Mostrar / ocultar esta coluna de valores (vale também para imagem, tabela copiada e Excel)">'+(BM_HIDE[k]?'🚫 ':'👁 ')+lbl+'</button>';
   return '<div class="bm-head"><b>'+esc(BM_TITLE)+'</b><span class="bm-acts">'+
@@ -4235,7 +4240,22 @@ document.addEventListener('click', e=>{
 function updateBmResumo(active){
   const el = document.getElementById('bm-resumo'); if (!el) return;
   el.innerHTML = (active==='GERAL' || active==='MOA' || active==='PCI' || active==='PEND') ? renderBmResumo() : '';
+  bmApplyWidths();
+  const ids = bmCols().map(c=>c.id);
+  el.querySelectorAll('table.bm-tbl').forEach(t=>enableColResize(t, 'bm', ids));
 }
+// larguras das colunas do resumo (padrão ou as que você arrastou, guardadas no navegador); MOA e PCI sempre iguais
+const BM_W0 = { a:112, b:84, d:250, r:150 };
+function bmApplyWidths(){
+  document.querySelectorAll('#bm-resumo table.bm-tbl').forEach(t=>{
+    let sum = 0;
+    t.querySelectorAll(':scope > colgroup > col').forEach(c=>{ const w = getSavedColWidth('bm', c.dataset.role) || BM_W0[c.dataset.role] || 100; c.style.width = w+'px'; sum += w; });
+    t.style.width = sum+'px';
+  });
+}
+let BM_DRAG = false;
+document.addEventListener('mousedown', e=>{ BM_DRAG = !!(e.target.closest && e.target.closest('#bm-resumo .col-resize-handle')); }, true);   // captura: a alça para a propagação do evento
+document.addEventListener('mouseup', ()=>{ if (BM_DRAG){ BM_DRAG = false; setTimeout(bmApplyWidths, 0); } });
 function render(){
   const active = document.querySelector('.tab-btn.active').dataset.proj;
   updateBmResumo(active);
