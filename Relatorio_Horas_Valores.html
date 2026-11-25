@@ -197,6 +197,10 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pk-row{display:grid;grid-template-columns:repeat(3,minmax(190px,1fr)) 180px;gap:10px;align-items:stretch;}
 .pk-row.pk-3{grid-template-columns:repeat(3,minmax(190px,1fr));}
 .pk-row.pk-auto{grid-template-columns:repeat(var(--pkn,4),minmax(170px,1fr));}
+.pk-groups{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;}
+.pk-grp{border:1.5px solid #9fb0c6;border-radius:12px;padding:6px 8px 8px;background:rgba(255,255,255,.35);}
+.pk-grp-cap{font-size:9.5px;font-weight:800;letter-spacing:.14em;color:#5a6f88;margin:0 0 5px 4px;white-space:nowrap;}
+@media (max-width:900px){.pk-groups{display:block}.pk-grp{margin-bottom:8px}}
 .pk-ari .pk-val{color:#6a3fb5;text-shadow:none;}
 .pk-dif .pk-val{color:#c0392b;text-shadow:none;}.pk-dif .pk-bar i{background:linear-gradient(90deg,#d9534f,#f0a29e);box-shadow:none;}
 .pk-ari .pk-bar i{background:linear-gradient(90deg,#7b4fc9,#b28df0);}
@@ -1977,12 +1981,16 @@ function renderKpiStrip(proj, data){
     pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(totalGlobalRS), 100, projLabelPk(proj), 'data-pksum="rs" data-proj="'+esc(proj)+'" title="Clique para ver o resumo do detalhamento"'),
     pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(totalHH)+' HH', 0, 'horas apontadas', 'data-pksum="hh" data-proj="'+esc(proj)+'" title="Clique para ver o resumo do detalhamento em horas"')
   ];
+  const tilesS = [], tilesE = [];
   cards.slice(2).forEach(c=>{
     const k = c.aprovProj ? 'pk-usm' : c.aribaProj ? 'pk-ari' : c.difProj ? 'pk-dif' : 'pk-tct';
     const pc = c.difProj ? (medidoFR.rs ? Math.max(0,Math.min(100,(medidoFR.rs-aribaTot)/medidoFR.rs*100)) : 0) : c.aprovProj ? pcPronto : (c.aribaProj && medidoFR.rs ? Math.min(100, aribaTot/medidoFR.rs*100) : 0);
-    tiles.push(pkTile(k, c.label.toUpperCase(), c.value, pc, c.sub ? c.sub : 'clique para detalhar', attrsOf(c) || ''));
+    (c.clickProj ? tilesE : tilesS).push(pkTile(k, c.label.toUpperCase(), c.value, pc, c.sub ? c.sub : 'clique para detalhar', attrsOf(c) || ''));
   });
-  return pkPanel('PAINEL · '+projLabelPk(proj).toUpperCase(), '', tiles, '', 'auto');
+  // tres blocos separados: totais | saldos envolvidos (aprovacao x liberacao) | FR's emitidas
+  const grp = (cap, arr) => arr.length ? '<div class="pk-grp"><div class="pk-grp-cap">'+cap+'</div><div class="pk-row pk-auto" style="--pkn:'+arr.length+'">'+arr.join('')+'</div></div>' : '';
+  return '<div class="pk-panel"><div class="pk-head"><span class="pk-live"></span>PAINEL · '+projLabelPk(proj).toUpperCase()+'</div><div class="pk-groups">'+
+    grp('TOTAIS', tiles)+grp('SALDOS ENVOLVIDOS · APROVAÇÃO × LIBERAÇÃO', tilesS)+grp('EMITIDAS', tilesE)+'</div></div>';
 }
 // Cartao "DIFERENÇA APROV. x LIBERADA": FR em aprovacao SAP_USM menos FR liberada SAP_USM; clique abre o detalhe da diferenca
 function difRows(proj){
