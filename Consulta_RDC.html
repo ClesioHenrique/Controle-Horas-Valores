@@ -5255,7 +5255,8 @@ function xlsxBuild(sheets){
     const rowsXml = s.rows.map((row,ri)=>'<row r="'+(ri+1)+'"'+((s.outline && s.outline[ri]) ? ' outlineLevel="1"' : '')+'>'+row.map((c,ci)=>{
       const ref = xlsxColName(ci)+(ri+1);
       const len = String(c.t==='s' ? c.v : (c.t==='p' ? (c.v*100).toFixed(1)+'%' : c.v)).length; widths[ci] = Math.min(60, Math.max(widths[ci]||8, len+2));
-      if (c.t==='s'){ if (c.v==='' && !c.h && c.s===undefined) return ''; return '<c r="'+ref+'" t="inlineStr"'+(c.s!==undefined ? ' s="'+c.s+'"' : (c.h?' s="3"':''))+'><is><t xml:space="preserve">'+xlsxEsc(c.v)+'</t></is></c>'; }
+      if (c.t==='s' && c.f) return '<c r="'+ref+'" t="str"'+(c.s!==undefined ? ' s="'+c.s+'"' : '')+'><f>'+xlsxEsc(c.f)+'</f><v>'+xlsxEsc(c.v)+'</v></c>';
+      if (c.t==='s'){ if (c.v===''&& !c.h && c.s===undefined) return ''; return '<c r="'+ref+'" t="inlineStr"'+(c.s!==undefined ? ' s="'+c.s+'"' : (c.h?' s="3"':''))+'><is><t xml:space="preserve">'+xlsxEsc(c.v)+'</t></is></c>'; }
       return '<c r="'+ref+'"'+(c.s!==undefined ? ' s="'+c.s+'"' : (c.t==='p'?' s="1"':c.t==='d'?' s="2"':''))+'>'+(c.f ? '<f>'+xlsxEsc(c.f)+'</f>' : '')+'<v>'+c.v+'</v></c>';
     }).join('')+'</row>').join('');
     if (s.widths) s.widths.forEach(function(w,ci){ if (w) widths[ci] = w; });
@@ -5304,8 +5305,9 @@ function xlsxExtratoSheet(t, title, sub, root){
   const rows = [], outline = [];
   rows.push([{v:title,t:'s',h:true}]); outline.push(0);
   rows.push([{v:sub,t:'s',h:false}]); outline.push(0);
-  const cards = Array.prototype.map.call(root.querySelectorAll('.pe-card'), c=>txt(c)).join('   |   ');
-  if (cards){ rows.push([{v:cards,t:'s',h:true}]); outline.push(0); }
+  const cardEls = Array.prototype.slice.call(root.querySelectorAll('.pe-card'));
+  const cardRow0 = rows.length;   // linhas reservadas: os cards viram formulas ligadas a tabela (preenchidas depois do corpo)
+  cardEls.forEach(()=>{ rows.push([]); outline.push(0); });
   rows.push([]); outline.push(0);
   rows.push(heads.map(h=>({v:h,t:'s',s:4}))); outline.push(0);
   // somas operacionais: status/tipo = soma das linhas abaixo; fiscal = soma dos status/tipos; total = soma dos fiscais; % = parte / pai (celulas em amarelo)
@@ -5314,14 +5316,16 @@ function xlsxExtratoSheet(t, title, sub, root){
   const cn = (ci, i) => xlsxColName(ci) + (firstNo + i);
   const bodyRows = Array.prototype.slice.call(t.tBodies[0].rows);
   const YEL = { int:23, rs:24 };
+  const iQ = Math.max(heads.indexOf('Qtd RDC'), heads.indexOf('Pessoas')), fisIdx = plan.map((p,j)=>p.type==='fis' ? j : -1).filter(j=>j>=0), totIdx = plan.findIndex(p=>p.type==='tot');
   bodyRows.forEach((tr,bi)=>{
     const type = plan[bi].type, pl = plan[bi];
     const cells = Array.prototype.map.call(tr.cells, (td,ci)=>{
-      const k = kinds[ci] || 'text', s = txt(td);
+      const k = (kinds[ci] || 'text')==='text' && ci===iQ && type==='tot' ? 'int' : (kinds[ci] || 'text'), s = txt(td);
       if (k==='text'){ const st = type==='det' ? (ci===1 ? 13 : (heads[ci]==='Nº FA' && s ? 22 : 17)) : ST[type].text; return {v:s,t:'s',s:st}; }
       const v = num(s,k), st = ST[type][k];
       if (v===null) return {v:'',t:'s',s:st};
       const c = {v:v,t:'n',s:st};
+      if (ci===iQ && type==='tot' && fisIdx.length){ c.f = 'SUM('+fisIdx.map(j=>cn(ci,j)).join(',')+')'; c.s = YEL.int; }
       if (type!=='det' && pl.kids.length && (ci===iHH || ci===iRS)){
         c.f = 'SUM('+pl.kids.map(j=>cn(ci,j)).join(',')+')'; c.s = ci===iHH ? YEL.int : YEL.rs;
       } else if (k==='pct' && ci===iPC && (type==='fis' || type==='tipo') && pl.ref>=0 && iK>=0){
@@ -5331,6 +5335,28 @@ function xlsxExtratoSheet(t, title, sub, root){
     });
     rows.push(cells);
     outline.push(tr.classList.contains('ar-det') ? 1 : 0);
+  });
+  // cards (um por linha: rotulo na coluna do fiscal, valor na coluna do R$) com formulas que acompanham a tabela
+  cardEls.forEach((c,ci)=>{
+    const lbl = txt(c.querySelector('span')), b = txt(c.querySelector('b')), sm = c.querySelector('small') ? txt(c.querySelector('small')) : '';
+    const other = iK===iRS ? iHH : iRS, vcol = Math.max(iRS, 2);
+    const mk = (f, st) => { const n = num(b, 'int'); return n===null ? null : { v:n, t:'n', s:st, f:f }; };
+    let cell = null;
+    if (totIdx>=0 && iK>=0){
+      const rng = col => cn(col,0)+':'+cn(col,totIdx-1), stK = iK===iRS ? YEL.rs : YEL.int;
+      if (/^TOTAL PENDENTE/.test(lbl)) cell = mk(cn(iK,totIdx), stK);
+      else if ((lbl==='HH' || lbl==='R$') && other>=0) cell = mk(cn(other,totIdx), other===iRS ? YEL.rs : YEL.int);
+      else if (lbl==='FISCAIS') cell = mk('COUNT('+fisIdx.map(j=>cn(iK,j)).join(',')+')', YEL.int);
+      else if (/^(RDC|PESSOAS)/.test(lbl) && iQ>=0) cell = mk(cn(iQ,totIdx), YEL.int);
+      else if (/^MAIOR VOLUME/.test(lbl)){
+        const m = 'MAX('+rng(iK)+')';
+        cell = { v:b+(sm?' · '+sm:''), t:'s', s:3, f:'INDEX('+rng(1)+',MATCH('+m+','+rng(iK)+',0))&" · "&'+(iK===iRS ? '"R$ "&FIXED('+m+',0)' : 'FIXED('+m+',0)&" HH"')+'&" · "&FIXED('+m+'/'+cn(iK,totIdx)+'*100,1)&"%"' };
+      }
+    }
+    const row = []; row[1] = { v:lbl, t:'s', s:3 };
+    for (let k=2;k<vcol;k++) row[k] = { v:'', t:'s', s:3 };
+    row[vcol] = cell || { v:b+(sm?' · '+sm:''), t:'s', s:3 };
+    rows[cardRow0+ci] = Array.from(row, x=>x||{v:'',t:'s',h:false});
   });
   return { name: title, rows, outline: outline.some(x=>x) ? outline : null, widths };
 }
@@ -5377,6 +5403,31 @@ async function xlCopyExtrato(ctx){
   h += '<tr><td colspan="'+ncol+'" style="font-family:Calibri,Arial,sans-serif;font-size:10pt;color:#5b6b7c;">'+esc(sub)+'</td></tr><tr><td colspan="'+ncol+'"></td></tr>';
   let cards = Array.prototype.slice.call(root.querySelectorAll('.pe-card'));
   let tsv = title+'\n'+sub+'\n\n';
+  const parseN = s => { s = String(s).trim(); if (!s || s==='—' || s==='n/a') return null; const v = parseFloat(s.replace(/^R\$\s*/,'').replace('%','').replace(/\./g,'').replace(',','.')); return isNaN(v) ? null : v; };
+  // estrutura de somas (declarada aqui porque os cards tambem viram formulas ligadas a tabela)
+  const isPe = table.classList.contains('pe-tbl') && table.tHead && table.tHead.rows.length===1 && table.tBodies.length;
+  const plan = isPe ? peSumPlan(table) : null;
+  const hh = isPe ? Array.prototype.map.call(table.tHead.rows[0].cells, c=>c.innerText.trim()) : [];
+  const iHH = hh.indexOf('HH'), iRS = hh.indexOf('R$'), iPC = hh.indexOf('%'), iK = /\(HH\)/.test(title) ? iHH : iRS;
+  const iQ = Math.max(hh.indexOf('Qtd RDC'), hh.indexOf('Pessoas'));
+  const rowOf = j => 4 + (cards.length ? 3 : 0) + 2 + j;   // linha do Excel (colando em A1): guia, titulo, sub, vazia, [cards: 2 + vazia], cabecalho, corpo...
+  const totJ = isPe ? plan.findIndex(p=>p.type==='tot') : -1, fisJ = isPe ? plan.map((p,j)=>p.type==='fis' ? j : -1).filter(j=>j>=0) : [];
+  const cA = (col, j) => xlsxColName(col) + rowOf(j);
+  // formula de cada card (pelo rotulo): total, outra metrica, fiscais, RDC/pessoas e maior volume
+  const cardFmla = c => {
+    if (!isPe || totJ<0 || iK<0) return null;
+    const lbl = c.querySelector('span').textContent.trim(), other = iK===iRS ? iHH : iRS;
+    const rng = col => cA(col, 0)+':'+cA(col, totJ-1);
+    if (/^TOTAL PENDENTE/.test(lbl)) return { f:cA(iK,totJ), fmt:iK===iRS ? '"R$ "#,##0' : '#,##0' };
+    if (lbl==='HH' || lbl==='R$') return other>=0 && /\d/.test(c.querySelector('b').textContent) ? { f:cA(other,totJ), fmt:other===iRS ? '"R$ "#,##0' : '#,##0' } : null;
+    if (lbl==='FISCAIS') return { f:'COUNT('+fisJ.map(j=>cA(iK,j)).join(',')+')', fmt:'0' };
+    if (/^(RDC|PESSOAS)/.test(lbl)) return iQ>=0 ? { f:cA(iQ,totJ), fmt:'0' } : null;
+    if (/^MAIOR VOLUME/.test(lbl)){
+      const m = 'MAX('+rng(iK)+')';
+      return { f:'INDEX('+rng(1)+',MATCH('+m+','+rng(iK)+',0))&" · "&'+(iK===iRS ? '"R$ "&FIXED('+m+',0)' : 'FIXED('+m+',0)&" HH"')+'&" · "&FIXED('+m+'/'+cA(iK,totJ)+'*100,1)&"%"', str:true };
+    }
+    return null;
+  };
   if (cards.length){
     // ordem para o Excel: Total | outra metrica | Maior volume (coluna larga, nome em 1 linha) | Fiscais | RDC | Top 3
     if (ncol>=9 && cards.length>=5){ cards = [0,1,4,2,3,5].filter(i=>cards[i]).map(i=>cards[i]); }
@@ -5385,16 +5436,18 @@ async function xlCopyExtrato(ctx){
     else { spans[0] += Math.max(0, ncol - cards.length); }
     const cb = '3px solid #fff';   // vao branco entre os cards, como na tela
     const lab = cards.map((c,i)=>{ const s = c.querySelector('span'); return '<td colspan="'+spans[i]+'" style="'+fx(c,{size:'9pt',bold:true})+'border:'+cb+';border-bottom:none;padding-left:8px;vertical-align:bottom;white-space:nowrap;color:'+getComputedStyle(s).color+';">'+esc(s.textContent)+'</td>'; }).join('');
-    const val = cards.map((c,i)=>{ const b = c.querySelector('b'), sm = c.querySelector('small'); return '<td colspan="'+spans[i]+'" style="'+fx(c,{size:i===0?'20pt':'14pt',bold:true})+'border:'+cb+';border-top:none;padding-left:8px;vertical-align:top;white-space:nowrap;color:'+getComputedStyle(b).color+';">'+esc(b.textContent)+(sm?'<br><span style="font-size:9pt;font-weight:normal;">'+esc(sm.textContent)+'</span>':'')+'</td>'; }).join('');
+    const val = cards.map((c,i)=>{ const b = c.querySelector('b'), sm = c.querySelector('small'), cf = cardFmla(c);
+      let at = '', bt = esc(b.textContent), smx = sm;
+      if (cf){   // card ligado a tabela: muda sozinho quando qualquer item/valor for revisado
+        if (cf.str){ at = ' x:str="'+esc(b.textContent+(sm?' · '+sm.textContent:''))+'" x:fmla="='+esc(cf.f)+'"'; bt = esc(b.textContent+(sm?' · '+sm.textContent:'')); smx = null; }
+        else { const nv = parseN(b.textContent); if (nv!==null){ at = ' x:num="'+nv+'" x:fmla="='+esc(cf.f)+'"'; bt = String(nv); } }
+        if (at && !cf.str) at += '';
+      }
+      return '<td colspan="'+spans[i]+'"'+at+' style="'+fx(c,{size:i===0?'20pt':'14pt',bold:true})+'border:'+cb+';border-top:none;padding-left:8px;vertical-align:top;white-space:nowrap;color:'+getComputedStyle(b).color+';'+(cf && !cf.str ? "mso-number-format:'"+cf.fmt.replace(/"/g,'\\0022').replace(/ /g,'\\ ').replace(/#/g,'\\#').replace(/,/g,'\\,').replace(/\$/g,'\\$')+"';" : '')+'">'+bt+(smx?'<br><span style="font-size:9pt;font-weight:normal;">'+esc(sm.textContent)+'</span>':'')+'</td>'; }).join('');
     h += '<tr style="height:22px">'+lab+'</tr><tr style="height:'+(cards.some(c=>c.querySelector('small'))?'46':'38')+'px">'+val+'</tr><tr><td colspan="'+ncol+'"></td></tr>';
     tsv += cards.map(c=>c.innerText.replace(/\s*\n\s*/g,' ')).join('\t')+'\n\n';
   }
   // numeros como numeros e somas operacionais (formula em R1C1, relativa: vale em qualquer lugar da planilha onde colar), em amarelo
-  const isPe = table.classList.contains('pe-tbl') && table.tHead && table.tHead.rows.length===1 && table.tBodies.length;
-  const plan = isPe ? peSumPlan(table) : null;
-  const hh = isPe ? Array.prototype.map.call(table.tHead.rows[0].cells, c=>c.innerText.trim()) : [];
-  const iHH = hh.indexOf('HH'), iRS = hh.indexOf('R$'), iPC = hh.indexOf('%'), iK = /\(HH\)/.test(title) ? iHH : iRS;
-  const parseN = s => { s = String(s).trim(); if (!s || s==='—' || s==='n/a') return null; const v = parseFloat(s.replace(/^R\$\s*/,'').replace('%','').replace(/\./g,'').replace(',','.')); return isNaN(v) ? null : v; };
   const tr0 = (h.match(/<tr/g)||[]).length;   // linhas do bloco antes da tabela (guia, titulo, cards...)
   Array.prototype.forEach.call(table.rows, (row, rix)=>{
     const cells = Array.prototype.slice.call(row.cells); let ci = 0;
@@ -5408,6 +5461,9 @@ async function xlCopyExtrato(ctx){
       if (medal){ const m = getComputedStyle(medal); st += 'background:'+(rgb(m.backgroundColor)||'#e3eaf2')+';color:'+m.color+';font-weight:bold;text-align:center;'; }
       let attrs = '', inner = esc(c.innerText.trim().replace(/^[▸▾]\s*/,''));
       if (c.tagName==='TD' && !c.classList.contains('num')) st += "mso-number-format:'\\@';";   // texto (evita 'Out/26' virar data)
+      if (bi>=0 && c.tagName==='TD' && c0===iQ && plan[bi].type==='tot' && fisJ.length && parseN(c.innerText)!==null){   // Total de Qtd RDC / Pessoas = soma dos fiscais
+        attrs = ' x:num="'+parseN(c.innerText)+'" x:fmla="=SUM('+fisJ.map(j=>cA(iQ,j)).join(',')+')"'; st += 'background:#ffee00;color:#12305a;font-weight:bold;';
+      }
       if (bi>=0 && c.tagName==='TD' && (c0===iHH || c0===iRS || c0===iPC)){
         const v = parseN(c.innerText), pl = plan[bi];
         if (v!==null){
@@ -5415,7 +5471,7 @@ async function xlCopyExtrato(ctx){
           attrs = ' x:num="'+val+'"'; inner = String(val);
           st += 'mso-number-format:'+(pct ? "'0\\.0%'" : c0===iHH ? "'\\#\\,\\#\\#0'" : "'\\0022R\\$\\0022\\ \\#\\,\\#\\#0'")+';';
           // enderecos A1 (o Excel nao le R1C1 em HTML): valem colando o bloco na celula A1 (linha do corpo j => linha tr0+2+j)
-          const ad = (col, j) => xlsxColName(col) + (tr0 + 3 + j);
+          const ad = (col, j) => xlsxColName(col) + (tr0 + 2 + j);
           if (!pct && pl.type!=='det' && pl.kids.length){
             attrs += ' x:fmla="=SUM('+pl.kids.map(j=>ad(c0,j)).join(',')+')"'; st += 'background:#ffee00;color:#12305a;font-weight:bold;';
           } else if (pct && (pl.type==='fis' || pl.type==='tipo') && pl.ref>=0 && iK>=0){
