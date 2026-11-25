@@ -198,6 +198,7 @@ tr.pn-mes-hdr .pn-tg{cursor:pointer;font-style:normal;}
 .pk-row.pk-3{grid-template-columns:repeat(3,minmax(190px,1fr));}
 .pk-row.pk-auto{grid-template-columns:repeat(var(--pkn,4),minmax(170px,1fr));}
 .pk-ari .pk-val{color:#6a3fb5;text-shadow:none;}
+.pk-dif .pk-val{color:#c0392b;text-shadow:none;}.pk-dif .pk-bar i{background:linear-gradient(90deg,#d9534f,#f0a29e);box-shadow:none;}
 .pk-ari .pk-bar i{background:linear-gradient(90deg,#7b4fc9,#b28df0);}
 .pk-panel .pk-tile{min-width:0;}
 .pk-bar-off{background:transparent !important;}
@@ -1941,6 +1942,7 @@ function openAprovModal(proj){
   document.getElementById('fa-modal-backdrop').classList.add('open');
 }
 document.getElementById('kpi-strip').addEventListener('click', e=>{
+  const dcard = e.target.closest('[data-dif-kpi]'); if (dcard){ openDifModal(dcard.dataset.proj); return; }
   const card = e.target.closest('[data-aprov-kpi]');
   if (card) openAprovModal(card.dataset.proj);
 });
@@ -1968,59 +1970,61 @@ function renderKpiStrip(proj, data){
     cards.splice(3, 0, { icon:'💰', cls:'kpi-ariba kpi-frs-clickable', label:'FR LIBERADA SAP_USM', value:'R$ '+fmtBRL(aribaTot), sub:(medidoFR.rs ? (aribaTot/medidoFR.rs*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% da FR em aprov.' : aribaRowsFor(proj).length+" FR's"), aribaProj:proj });
   }
   // painel executivo (mesmo visual do Resumo de Pendências); os cartões clicáveis mantêm os atributos data-* usados pelos handlers
-  const attrsOf = c => (c.clickProj?'data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?'data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.aribaProj?'data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo da FR liberada SAP_USM"':'');
+  const attrsOf = c => (c.clickProj?'data-frs-kpi data-proj="'+esc(c.clickProj)+'" title="Clique para ver a composição FAD / FIA / RATEIO"':'')+(c.aprovProj?'data-aprov-kpi data-proj="'+esc(c.aprovProj)+'" title="Clique para ver as FRs em aprovação SAP_USM"':'')+(c.difProj?'data-dif-kpi data-proj="'+esc(c.difProj)+'" title="Clique para ver o detalhe da diferença entre FR em aprovação e FR liberada"':'')+(c.aribaProj?'data-ariba-kpi data-proj="'+esc(c.aribaProj)+'" title="Clique para ver o resumo da FR liberada SAP_USM"':'');
+  if (Math.round(aribaTot*100)!==0) cards.push({ icon:'Δ', cls:'kpi-dif kpi-frs-clickable', label:'DIFERENÇA APROV. × LIBERADA', value:'R$ '+fmtBRL(medidoFR.rs-aribaTot), sub:(medidoFR.rs ? ((medidoFR.rs-aribaTot)/medidoFR.rs*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% da FR em aprov.' : ''), difProj:proj });
   const pcPronto = totalGlobalRS ? Math.max(0, Math.min(100, pctPronto*100)) : 0;
   const tiles = [
     pkTile('pk-main','TOTAL GERAL · R$', 'R$ '+fmtBRL(totalGlobalRS), 100, projLabelPk(proj), 'data-pksum="rs" data-proj="'+esc(proj)+'" title="Clique para ver o resumo do detalhamento"'),
     pkTile('pk-tct','TOTAL GERAL · HH', fmtInt(totalHH)+' HH', 0, 'horas apontadas', 'data-pksum="hh" data-proj="'+esc(proj)+'" title="Clique para ver o resumo do detalhamento em horas"')
   ];
   cards.slice(2).forEach(c=>{
-    const k = c.aprovProj ? 'pk-usm' : c.aribaProj ? 'pk-ari' : 'pk-tct';
-    const pc = c.aprovProj ? pcPronto : (c.aribaProj && medidoFR.rs ? Math.min(100, aribaTot/medidoFR.rs*100) : 0);
+    const k = c.aprovProj ? 'pk-usm' : c.aribaProj ? 'pk-ari' : c.difProj ? 'pk-dif' : 'pk-tct';
+    const pc = c.difProj ? (medidoFR.rs ? Math.max(0,Math.min(100,(medidoFR.rs-aribaTot)/medidoFR.rs*100)) : 0) : c.aprovProj ? pcPronto : (c.aribaProj && medidoFR.rs ? Math.min(100, aribaTot/medidoFR.rs*100) : 0);
     tiles.push(pkTile(k, c.label.toUpperCase(), c.value, pc, c.sub ? c.sub : 'clique para detalhar', attrsOf(c) || ''));
   });
-  return pkPanel('PAINEL · '+projLabelPk(proj).toUpperCase(), '', tiles, '', 'auto')+pendCardHTML(proj, data, totalGlobalRS, medidoFR.rs, aribaTot);
+  return pkPanel('PAINEL · '+projLabelPk(proj).toUpperCase(), '', tiles, '', 'auto');
 }
-// Cartao "Pendente x quadros": mostra, ao lado dos quadros, quanto do Total Geral ja esta pronto (FR em aprovacao / liberada)
-// e o que ainda esta pendente, aberto por FAD (Pendencias, SGE), FIA e RATEIO. Clique abre o resumo do detalhamento.
-function pendCardHTML(proj, data, totalRS, medRS, aribaRS){
-  const T = o => (o && o['__TOTAL__']) ? o['__TOTAL__'] : null;
-  const rsOf = o => { const t = T(o); return t ? (typeof t.rs==='number' ? t.rs : (t.total ? t.total.rs : 0)) : 0; };
-  const med = { FAD:0, FIA:0, RAT:0 }; aprovRowsFor(proj).forEach(r=>{ const k = String(r.tipo||'').toUpperCase(); if (k in med) med[k] += r.rs; });
-  const P = v => totalRS ? fmtPct(v/totalRS) : '—';
-  const G = [
-    { n:'FAD — horas', tot:rsOf(data.totalGeral), med:med.FAD, p:[ ['Planilha de Pendências', rsOf(data.s1values)], ['Sistema SGE (carregamento / elaboração)', rsOf(data.s2values)] ] },
-    { n:'FIA — equipamentos auxiliares', tot:rsOf(data.fiaTotal), med:med.FIA, p:[ ['Pendente (em criação / aprovação)', rsOf(data.fiaTotal) - med.FIA] ] },
-    { n:'RATEIO — mão de obra indireta', tot:rsOf(data.rateioTotal), med:med.RAT, p:[ ['Pendente (a criar / em criação)', rsOf(data.rateioTotal) - med.RAT] ] }
-  ];
-  const pend = G.reduce((s,g)=>s+g.tot-g.med,0);
-  // grupos recolhidos por padrao; clique na linha do grupo abre / fecha (estado lembrado enquanto a pagina estiver aberta)
-  window.PEND_OPEN = window.PEND_OPEN || {};
-  const row = (cls, n, v, extra, gk, isHead) => '<div class="pend-r '+cls+(gk&&!isHead?' pend-c'+(window.PEND_OPEN[gk]?'':' pend-hide'):'')+'"'+(gk?' data-pend-'+(isHead?'g':'c')+'="'+gk+'"':'')+(isHead?' title="Clique para abrir / fechar"':'')+'><span>'+(isHead?'<em class="pend-tg">'+(window.PEND_OPEN[gk]?'▾':'▸')+'</em> ':'')+n+'</span><b>R$ '+fmtBRL(v)+'</b><i>'+(extra!==undefined?extra:P(v))+'</i></div>';
-  let h = '<div class="pend-card pk-click" data-pksum="rs" data-proj="'+esc(proj)+'" title="Clique para ver o resumo do detalhamento pendente">'+
-    '<div class="pend-h">PENDENTE · O QUE FALTA PARA FATURAR</div>'+row('pend-tot','Total Geral',totalRS,'100%');
-  G.forEach((g,gi)=>{
-    if (Math.round(g.tot)===0) return;
-    const gk = 'g'+gi;
-    h += row('pend-grp', g.n, g.tot, undefined, gk, true);
-    g.p.forEach(x=>{ if (Math.round(x[1])!==0) h += row('pend-sub','↳ '+esc(x[0]), x[1], undefined, gk); });
-    if (Math.round(g.med)!==0) h += row('pend-sub pend-ok','↳ ✔ Em aprovação SAP_USM', g.med, undefined, gk);
-  });
-  h += row('pend-pt','⏳ Pendente (ainda sem FR)', pend);
-  if (Math.round(aribaRS)!==0) h += row('pend-ok pend-pt2 pend-grp0','✔ FR em aprovação SAP_USM', medRS, undefined, 'ap', true) + row('pend-sub','↳ FR liberada SAP_USM', aribaRS, medRS?fmtPct(aribaRS/medRS)+' da aprov.':'', 'ap');
-  else h += row('pend-ok pend-pt2','✔ FR em aprovação SAP_USM', medRS);
-  const dif = totalRS - pend - medRS;
-  return h+(Math.round(dif)===0?'':row('pend-sub','⚠ diferença (seções filtradas)', dif, ''))+'</div>';
+// Cartao "DIFERENÇA APROV. x LIBERADA": FR em aprovacao SAP_USM menos FR liberada SAP_USM; clique abre o detalhe da diferenca
+function difRows(proj){
+  const ap = aprovRowsFor(proj), ar = aribaRowsFor(proj);
+  const arSet = new Set(ar.map(r=>String(r.fr))), apSet = new Set(ap.map(r=>String(r.fr)));
+  const A = ap.filter(r=>!arSet.has(String(r.fr)));            // em aprovacao e ainda nao liberadas
+  const B = ar.filter(r=>!apSet.has(String(r.fr)));            // liberadas que nao estao no "em aprovacao"
+  const tAp = ap.reduce((s,r)=>s+r.rs,0), tAr = ar.reduce((s,r)=>s+r.rs,0), sA = A.reduce((s,r)=>s+r.rs,0), sB = B.reduce((s,r)=>s+r.rs,0);
+  return { A, B, tAp, tAr, sA, sB, dif:tAp-tAr, resto:(tAp-tAr)-(sA-sB) };
 }
-// abre / fecha os grupos do quadro Pendente (captura antes do clique do cartao, que abriria o resumo)
-document.addEventListener('click', function(e){
-  const g = e.target.closest && e.target.closest('[data-pend-g]'); if (!g) return;
-  e.stopPropagation(); e.stopImmediatePropagation();
-  const k = g.getAttribute('data-pend-g'), open = !window.PEND_OPEN[k]; window.PEND_OPEN[k] = open;
-  const card = g.closest('.pend-card'); if (!card) return;
-  card.querySelectorAll('[data-pend-c="'+k+'"]').forEach(r=>r.classList.toggle('pend-hide', !open));
-  const tg = g.querySelector('.pend-tg'); if (tg) tg.textContent = open ? '▾' : '▸';
-}, true);
+function openDifModal(proj){
+  const D = difRows(proj), lib = frMesLiberacaoMap();
+  document.getElementById('fa-modal-title').textContent = 'Diferença: FR em aprovação SAP_USM × FR liberada SAP_USM';
+  document.getElementById('fa-modal-sub').textContent = (proj==='GERAL'?'MOA & PCI':proj)+' — o que está em aprovação e ainda não foi liberado (e o contrário)';
+  const gName = { FAD:'FAD — horas', FIA:'FIA — equipamentos auxiliares', RAT:'RATEIO' }, order = ['FAD','FIA','RAT'];
+  const mesOrd = a => Array.from(new Set(a.filter(Boolean))).sort((x,y)=>mesKey(x)-mesKey(y)).join('; ');
+  const sec = (pfx, titulo, rows, sign, norm) => {
+    let h = '<tr class="fa-total"><td colspan="6">'+esc(titulo)+'</td><td class="num">'+(rows.length?fmtBRL2(sign*rows.reduce((s,r)=>s+r.rs,0)):'—')+'</td></tr>';
+    if (!rows.length) return h+'<tr><td colspan="7" class="fiscal-empty">Nenhuma FR neste grupo.</td></tr>';
+    const groups = new Map(); rows.forEach(r=>{ const k = String(r.tipo||'—').trim().toUpperCase()||'—'; if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(r); });
+    const tot = rows.reduce((s,r)=>s+r.rs,0);
+    Array.from(groups.keys()).sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?9:ia)-(ib<0?9:ib);}).forEach(k=>{
+      const list = groups.get(k), sub = list.reduce((s,r)=>s+r.rs,0), key = pfx+k;
+      h += '<tr class="ar-grp" data-ar="'+key+'" title="Clique para abrir / fechar o detalhe"><td colspan="3"><span class="ar-tg">▸</span> '+esc(gName[k]||k)+'</td><td>'+list.length+' FR'+(list.length>1?"'s":'')+'</td><td>'+esc(mesOrd(list.map(r=>norm(r,'lib')))||'—')+'</td><td>'+esc(mesOrd(list.map(r=>norm(r,'per')))||'—')+' · '+(tot?fmtPct(sub/tot):'—')+'</td><td class="num">'+fmtBRL2(sign*sub)+'</td></tr>';
+      list.forEach(r=>{ h += '<tr class="ar-det ar-hide" data-ar="'+key+'"><td>'+esc(CONTRATO_TXT[norm(r,'proj')]||norm(r,'proj')||'—')+'</td><td>'+esc(r.forn||'—')+'</td><td>'+esc(r.tipo||'—')+'</td><td>'+esc(r.fr||'—')+'</td><td>'+esc(norm(r,'lib')||'—')+'</td><td>'+esc(norm(r,'per')||'—')+'</td><td class="num">'+fmtBRL2(sign*r.rs)+'</td></tr>'; });
+    });
+    return h;
+  };
+  const nA = (r,w)=> w==='lib' ? lib.get(String(r.fr)) : w==='per' ? r.mesano : r.projeto;
+  const nB = (r,w)=> w==='lib' ? r.mesFR : w==='per' ? r.periodo : ARIBA_CONTRATO_PROJ[r.contrato];
+  let body = '<table><tr><th>Contrato</th><th>Fornecedor</th><th>FAD / FIA / RAT</th><th>Nº FR</th><th>Mês/Ano liberação da FR</th><th>Período (mês)</th><th class="num">R$</th></tr>'+
+    '<tr class="fa-total"><td colspan="6">FR em aprovação SAP_USM</td><td class="num">'+fmtBRL2(D.tAp)+'</td></tr>'+
+    '<tr class="fa-total"><td colspan="6">(−) FR liberada SAP_USM</td><td class="num">'+fmtBRL2(-D.tAr)+'</td></tr>'+
+    '<tr class="fa-total"><td colspan="6">= DIFERENÇA</td><td class="num">'+fmtBRL2(D.dif)+'</td></tr>'+
+    sec('A-', 'Em aprovação e ainda NÃO liberada (explica a diferença)', D.A, 1, nA)+
+    sec('B-', 'Liberada, mas fora do "em aprovação" (reduz a diferença)', D.B, -1, nB)+
+    (Math.abs(D.resto)>=0.5 ? '<tr class="fa-total"><td colspan="6">Mesma FR com valor diferente entre as duas bases</td><td class="num">'+fmtBRL2(D.resto)+'</td></tr>' : '')+
+    '</table>';
+  body = '<div class="ar-bar"><button type="button" data-ar-all="1">Abrir todos</button><button type="button" data-ar-all="0">Fechar todos</button></div>'+body;
+  document.getElementById('fa-modal-body').innerHTML = body;
+  document.getElementById('fa-modal-backdrop').classList.add('open');
+}
 function projLabelPk(proj){ return proj==='GERAL' ? 'MOA + PCI' : proj; }
 // Aba "RDC nao aprovada": consulta da aba Pendencias MOA_PCI (RESUMO = RDC nao esta aprovada),
 // linhas = Projeto / Lider / Fiscal, colunas = cada mes selecionado (HH e R$) + total.
