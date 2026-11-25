@@ -678,6 +678,7 @@ tr.medido-row td, tr.medido-row td *{font-weight:800 !important;}
 .bm-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
 .bm-box{flex:0 1 auto;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-x:auto;}
 .bm-box table.bm-tbl{width:auto;table-layout:fixed;}
+.bm-tbl tr[data-bm-dbl]{cursor:pointer;user-select:none;}.bm-tbl tr[data-bm-dbl]:hover td{background:#eef6e0;}
 .bm-box th{overflow:hidden;}
 .bm-box th .col-resize-handle{right:0;}
 .bm-box table{width:100%;border-collapse:collapse;font-size:12.5px;}
@@ -4143,7 +4144,7 @@ function bmModel(){
       const v = { RATEIO:(d.rateioTotal[mes]||{rs:0}).rs, FAD:(d.totalGeral[mes]||{rs:0}).rs, FIA:(d.fiaTotal[mes]||{rs:0}).rs };
       const t = v.RATEIO + v.FAD + v.FIA; if (Math.round(t)===0) return;
       nM++; tot += t; items.push({ k:'m', a:mes.toLowerCase(), b:bmNum(mes), rs:t });
-      ['RATEIO','FAD','FIA'].forEach(k=>{ tm[k] += v[k]; items.push({ k:'r', a:k, b:bmNum(mes), rs:v[k] }); });
+      ['RATEIO','FAD','FIA'].forEach(k=>{ tm[k] += v[k]; items.push({ k:'r', a:k, b:bmNum(mes), mes, rs:v[k] }); });
     });
     if (nM){ items.push({ k:'t', a:'Total', b:'', rs:tot }); ['RATEIO','FAD','FIA'].forEach(k=>items.push({ k:'tr', a:k, b:'', rs:tm[k] })); }
     return { proj, items, empty:!nM };
@@ -4175,7 +4176,8 @@ function renderBmResumo(){
       '<tr>'+cols.map(c=>'<th'+(c.al==='right'?' class="num"':'')+'>'+esc(c.h)+'</th>').join('')+'</tr></thead><tbody>';
     b.items.forEach(it=>{
       const cls = it.k==='m' ? 'bm-m' : it.k==='t' ? 'bm-t' : 'bm-r';
-      h += '<tr class="'+cls+'">'+cols.map(c=>'<td'+(c.al==='right'?' class="num"':'')+'>'+esc(bmCellTxt(it, c.id))+'</td>').join('')+'</tr>';
+      const dbl = (it.k==='r' || it.k==='tr') ? ' data-bm-dbl="'+it.a+'|'+(it.mes||'')+'|'+b.proj+'" title="Duplo clique: extrato por Fiscal (FA, descrição, quantidades e R$)"' : '';
+      h += '<tr class="'+cls+'"'+dbl+'>'+cols.map(c=>'<td'+(c.al==='right'?' class="num"':'')+'>'+esc(bmCellTxt(it, c.id))+'</td>').join('')+'</tr>';
     });
     if (b.empty) h += '<tr class="bm-r"><td colspan="'+cols.length+'">Sem pendências nos meses selecionados.</td></tr>';
     return h+'</tbody></table></div>';
@@ -4295,6 +4297,17 @@ function bmExportXlsx(){
   model.forEach((b,bi)=>{ if (bi) widths.push(3); cols.forEach(c=>widths.push(wById[c.id])); });
   xlsxDownload([{ name:BM_TITLE, rows, widths }], BM_TITLE+'.xlsx');
 }
+// duplo clique numa linha FAD / FIA / RATEIO do resumo BM x Recebimento: abre o extrato por Fiscal (mesma janela do Resumo de Pendencias)
+document.addEventListener('dblclick', e=>{
+  const tr = e.target.closest && e.target.closest('tr[data-bm-dbl]'); if (!tr) return;
+  const p = tr.dataset.bmDbl.split('|'), kind = p[0], mes = p[1], proj = p[2];
+  const idx = { FAD:0, FIA:1, RATEIO:2 }[kind]; if (idx===undefined) return;
+  const s = pendBuild().secs.find(x=>x.idx===idx); if (!s) return;
+  const items = s.groups.reduce((a,g)=>a.concat(g.items.map(it=>({ sec:s.idx, label:it.label, resp:it.resp }))), []);
+  PEND_SCOPES['__bm'] = { title:kind==='FAD' ? 'FAD' : s.title, items, mes:mes ? mes.replace(/^(\w)/, c=>c.toUpperCase()) : null };
+  try { window.getSelection().removeAllRanges(); } catch(_){}
+  openPendExtratoModal('__bm', proj.toLowerCase(), 'rs');
+});
 document.addEventListener('click', e=>{
   const hd = e.target.closest('[data-bm-hide]');
   if (hd){ const k = hd.dataset.bmHide; BM_HIDE[k] = !BM_HIDE[k]; try { localStorage.setItem('bmHide', JSON.stringify(BM_HIDE)); } catch(err){} updateBmResumo(document.querySelector('.tab-btn.active').dataset.proj); return; }
