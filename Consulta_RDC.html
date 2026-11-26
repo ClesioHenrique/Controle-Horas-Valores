@@ -997,13 +997,13 @@ let RAW_MEDIDO_FR_DETAIL = [];
    Projeto (col O) e Mês/Ano (col M). Não há coluna de HH nesta aba — só R$ (col L, Valor Avanço). */
 
 /* Item 1.5 "Medido - Para emitir FR - SAP" (FIA): FAD_FIA_RAT(N)="FIA" + Situação(F)="Medida"
-   + Faturado SIM ou NÃO(AB)="Não faturado". */
+   + Faturado SIM ou NÃO(AB)="Não faturado" + TCT ou USM(S)="TECHINT"/"TECHINT_RATEIO_RETROATIVO". */
 /* Reconsultado em 05/09/2026: os medidos de Mai/26 e Abr/26 do PCI (~R$ 2,99 mi) ja foram
    faturados (coluna AB="Faturado") e saem do "Nao faturado" — so restou o Jan/25. */
 let RAW_FIA_MEDIDO = [];
 
 /* Item 2.5 "Medido - Para emitir FR - SAP" (RATEIO): FAD_FIA_RAT(N)="RAT" + Situação(F)="Concluído"
-   + Faturado SIM ou NÃO(AB)="Não faturado". */
+   + Faturado SIM ou NÃO(AB)="Não faturado" + TCT ou USM(S)="TECHINT"/"TECHINT_RATEIO_RETROATIVO". */
 /* Reconsultado em 05/09/2026: uma parte do Mai/26 do PCI ja foi faturada, reduzindo o valor
    (o restante desse mes e os demais meses seguem "Nao faturado"). */
 let RAW_RATEIO_MEDIDO = [];
@@ -6214,8 +6214,8 @@ window.addEventListener('resize', ()=>{
       // item da planilha (col J) + descricao/nome (col AD "Ponto de verificacao dos itens de Cessao"). e=1: entra no
       // extrato (TECHINT); m=1: entra em "Medido - Para emitir FR - SAP" (nao faturado e FR ainda nao emitida)
       if (tipoS==='FIA' || tipoS==='RAT'){
-        var medC = (tipoS==='FIA' && situS==='Medida' || tipoS==='RAT' && situS==='Concluído') && fatS==='Não faturado' && !jaEmitida;
-        if (isTechint || medC){
+        var medC = (tipoS==='FIA' && situS==='Medida' || tipoS==='RAT' && situS==='Concluído') && fatS==='Não faturado' && !jaEmitida && isTechint;   // linha de outra empresa (ex.: UNIVALE) nao entra
+        if (isTechint){
           var itD = txtOrBlank(cellAt(row,C.item)), nmD = txtOrBlank(cellAt(row,C.desc));
           // col AA "TIPO" (HH = pessoas; MÊS / VB x MÊS = verbas mensais ...): agrupa o extrato. HH so vem da col K nas linhas de tipo HH
           var aaD = txtOrBlank(cellAt(row,C.aa)).toUpperCase(); if (aaD==='MES') aaD='MÊS'; if (aaD==='HOMEM HORA') aaD='HH';
@@ -6237,13 +6237,13 @@ window.addEventListener('resize', ()=>{
       // entao NAO usar col K como HH para FIA/RATEIO, so pedir pra conferir a origem da coluna).
       var avunV=cellAt(row,C.avun); var hh = typeof avunV==='number'?avunV:0;
       var fornDet = titleCaseName(txtOrBlank(cellAt(row,C.forn)));
-      if (tipoS==='FIA' && situS==='Medida' && fatS==='Não faturado' && !jaEmitida){
+      if (tipoS==='FIA' && isTechint && situS==='Medida' && fatS==='Não faturado' && !jaEmitida){
         var k3=projS+'|'+mes; if(!fiaMedidoAgg[k3]) fiaMedidoAgg[k3]={projeto:projS,mesano:mes,rs:0}; fiaMedidoAgg[k3].rs+=rsMed;
         // FIA tem "Nº Med." (col G) sempre preenchido, entao usa a mesma coluna do FAD (so o identificador;
         // sem HH, pelo motivo acima)
         var fk=projS+'|'+mes+'|'+nmedS+'|'+sapmedS; if(!fiaMedidoDetail[fk]) fiaMedidoDetail[fk]={projeto:projS,mesano:mes,numfa:nmedS,numsapmed:sapmedS,forn:fornDet,rs:0}; fiaMedidoDetail[fk].rs+=rsMed;
       }
-      if (tipoS==='RAT' && situS==='Concluído' && fatS==='Não faturado' && !jaEmitida){
+      if (tipoS==='RAT' && isTechint && situS==='Concluído' && fatS==='Não faturado' && !jaEmitida){
         var k4=projS+'|'+mes; if(!rateioMedidoAgg[k4]) rateioMedidoAgg[k4]={projeto:projS,mesano:mes,rs:0}; rateioMedidoAgg[k4].rs+=rsMed;
         // RATEIO nao tem "Nº Med." preenchido (col G sempre vazia nesta aba) — usa "Nº FA" (col D) no lugar
         var fk2=projS+'|'+mes+'|'+fa+'|'+sapmedS; if(!rateioMedidoDetail[fk2]) rateioMedidoDetail[fk2]={projeto:projS,mesano:mes,numfa:String(fa),numsapmed:sapmedS,forn:fornDet,rs:0}; rateioMedidoDetail[fk2].rs+=rsMed;
